@@ -37,5 +37,11 @@
   "aiKeyStore": "No se pudo usar el almacén de credenciales del sistema: {{error}}",
   "aiError": "Anthropic devolvió un error: {{error}}",
   "tagNothing": "No hay nada que etiquetar.",
-  "tagPromptTooLong": "Las instrucciones de etiquetado son demasiado largas."
+  "tagPromptTooLong": "Las instrucciones de etiquetado son demasiado largas.",
+  "meaningOff": "La búsqueda por significado no está activada. Actívala en Configuración › Funciones de IA.",
+  "meaningUnsupported": "La búsqueda por significado todavía no está disponible en este equipo.",
+  "meaningOffline": "No se pudieron descargar los archivos de la búsqueda por significado. Comprueba tu conexión a internet y vuelve a intentarlo.",
+  "meaningDamaged": "Un archivo descargado para la búsqueda por significado estaba dañado, así que se eliminó. Vuelve a intentarlo.",
+  "meaningStart": "No se pudo iniciar la búsqueda por significado: {{error}}",
+  "meaningVcRuntime": "La búsqueda por significado necesita el entorno de ejecución de Visual C++ de Microsoft. Instálalo y vuelve a intentarlo."
 }

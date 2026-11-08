@@ -13,7 +13,7 @@ import { markSeen, seenVersion } from "./lib/news";
 import { applyTheme, loadPrefs, savePrefs, type AiPrefs, type KindLabels, type Layout, type Prefs, type SortKey, type StartView, type Theme } from "./lib/prefs";
 import type { AccentId } from "./lib/themes";
 import { forgetThumbnails } from "./lib/thumbs";
-import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, FolderFilter, Kind, Notes, Root, SpriteSheet, ViewName } from "./types";
+import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, FolderFilter, Kind, MeaningStatus, Notes, Root, SpriteSheet, ViewName } from "./types";
 
 export interface Toast {
   id: number;
@@ -70,6 +70,8 @@ interface State extends Prefs {
   palettes: Map<number, LabSwatch[]> | null;
   /** How many images are analysed for colours and similarity, and the analysis pass the user started. */
   analysis: AnalysisStatus;
+  /** Search by meaning: its download and index. */
+  meaning: MeaningStatus;
   /** Suggest tags: batches out with Claude, and the last run whose results are in. */
   tagging: TaggingStatus;
   /** The assets the Suggest tags dialog is open for. */
@@ -323,6 +325,7 @@ export const useStore = create<State>((set, get, store) => {
     notes: {},
     palettes: null,
     analysis: { done: 0, total: 0, running: false, paused: false, keep: false },
+    meaning: { done: 0, total: 0, running: false, paused: false, on: false, installed: false, download: null, error: null, files: [], vcRuntime: true },
     tagging: { assets: 0, requests: 0, finished: 0, canceling: false, error: null, last: null },
     suggestFor: null,
     similar: null,
@@ -358,6 +361,8 @@ export const useStore = create<State>((set, get, store) => {
       });
       await api.onAnalysisStatus((analysis) => set({ analysis }));
       api.analysisStatus().then((analysis) => set({ analysis }), get().setError);
+      await api.onMeaningStatus((meaning) => set({ meaning }));
+      api.meaningStatus().then((meaning) => set({ meaning }), get().setError);
       await api.onTaggingStatus((tagging) => set({ tagging }));
       api.taggingStatus().then((tagging) => set({ tagging }), get().setError);
       api

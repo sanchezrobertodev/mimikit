@@ -372,6 +372,8 @@ src/agent/tools.test.ts` rewrites it.
 | Thumbnails, decoded previews and the font samples Suggest tags sends | `thumbs/` and `previews/` in the app cache folder (safe to delete, or **Settings → Clear thumbnail cache**) |
 | UI preferences, and the AI agents switch and allowed apps | browser storage in the app's webview |
 | Port and token of the AI agents bridge, while it's on | `agent-bridge.json` in the app data folder |
+| Search by meaning: the model and ONNX Runtime, downloaded when you turn it on | `models/` in the app data folder (**Settings → AI features → Delete model and index**) |
+| Search by meaning's index | `meaning.db` (SQLite) in the app data folder. Not in backups: it's rebuilt when needed |
 
 ## Known limits
 
@@ -384,6 +386,8 @@ src/agent/tools.test.ts` rewrites it.
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
   scan only when **Keep new and changed images analysed** is on.
+- Search by meaning isn't available on Intel Macs, since Microsoft publishes no ONNX Runtime build for them. On
+  Windows it needs Microsoft's Visual C++ runtime; Settings links to it when it's missing.
 - Syntax highlighting for text and code is not built yet.
 - The visual design comes from the "Asset Den UI/UX redesign" project in Claude Design. The tokens live in
   `src/index.css`, and the rationale in `design-system/mimikit/MASTER.md`.

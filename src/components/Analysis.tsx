@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { LoaderCircle, Pause, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
+import { bytes } from "../lib/fmt";
 import { t } from "../lib/i18n";
 import { useStore } from "../store";
 import { focusAssets, IconButton } from "./ui";
@@ -12,23 +13,65 @@ export const analyse = () => run(api.analyseImages());
 export const pauseAnalysis = (paused: boolean) => run(api.pauseAnalysis(paused));
 export const cancelAnalysis = () => run(api.cancelAnalysis());
 
-/**
- * The running analysis pass under the folder list, with Pause and Cancel. Screen readers hear when it starts, pauses
- * and ends, not every count.
- */
-/** `compact`: just a spinner that says what runs, for the sidebar's rail. */
+export const pauseMeaning = (paused: boolean) => run(api.pauseMeaning(paused));
+export const cancelMeaning = () => run(api.cancelMeaning());
+
+/** The running analysis pass under the folder list, with Pause and Cancel. `compact`: a spinner, for the sidebar's rail. */
 export function AnalysisProgress({ compact }: { compact?: boolean }) {
   const a = useStore((s) => s.analysis);
+  return <PassProgress ns="analysis" status={a} onPause={pauseAnalysis} onCancel={cancelAnalysis} compact={compact} />;
+}
+
+/** Search by meaning's download, then its indexing pass, the same way. */
+export function MeaningProgress({ compact }: { compact?: boolean }) {
+  const m = useStore((s) => s.meaning);
+  const d = m.download;
+  return (
+    <PassProgress
+      ns="meaning"
+      status={m}
+      // A download can't pause; Cancel keeps what came, and the next one resumes from there.
+      onPause={d ? undefined : pauseMeaning}
+      onCancel={cancelMeaning}
+      compact={compact}
+      title={d ? t("meaning.downloadingTitle") : undefined}
+      progress={d ? t("meaning.progress", { done: bytes(d.done), total: bytes(d.total) }) : undefined}
+      fraction={d ? (d.total ? d.done / d.total : 0) : undefined}
+    />
+  );
+}
+
+/** Screen readers hear when a pass starts, pauses and ends, not every count. */
+function PassProgress({
+  ns,
+  status: a,
+  onPause,
+  onCancel,
+  compact,
+  title,
+  progress = t(`${ns}.progress`, { done: a.done, total: a.total }),
+  fraction = a.total ? a.done / a.total : 0,
+}: {
+  ns: "analysis" | "meaning";
+  status: { done: number; total: number; running: boolean; paused: boolean };
+  onPause?: (paused: boolean) => void;
+  onCancel: () => void;
+  compact?: boolean;
+  title?: string;
+  progress?: string;
+  fraction?: number;
+}) {
   const was = useRef(a);
   const [said, setSaid] = useState("");
   useEffect(() => {
     const before = was.current;
     was.current = a;
-    if (a.running && !before.running) setSaid(t("analysis.started"));
-    else if (a.running && a.paused !== before.paused) setSaid(a.paused ? t("analysis.paused") : t("analysis.resumed"));
+    if (a.running && !before.running) setSaid(t(`${ns}.started`));
+    else if (a.running && a.paused !== before.paused) setSaid(a.paused ? t(`${ns}.paused`) : t(`${ns}.resumed`));
     else if (!a.running && before.running)
-      setSaid(a.done >= a.total ? t("analysis.finished", { count: a.total }) : t("analysis.stopped", { count: a.total, done: a.done }));
-  }, [a]);
+      setSaid(a.done >= a.total ? t(`${ns}.finished`, { count: a.total }) : t(`${ns}.stopped`, { count: a.total, done: a.done }));
+  }, [a, ns]);
+  title ??= a.paused ? t(`${ns}.pausedTitle`) : t(`${ns}.runningTitle`);
 
   return (
     <>
@@ -36,31 +79,33 @@ export function AnalysisProgress({ compact }: { compact?: boolean }) {
         {said}
       </p>
       {a.running && compact && (
-        <span title={a.paused ? t("analysis.pausedTitle") : t("analysis.runningTitle")} className="flex size-9 items-center justify-center text-muted">
-          <LoaderCircle role="img" aria-label={a.paused ? t("analysis.pausedTitle") : t("analysis.runningTitle")} className={clsx("size-4", !a.paused && "animate-spin")} />
+        <span title={title} className="flex size-9 items-center justify-center text-muted">
+          <LoaderCircle role="img" aria-label={title} className={clsx("size-4", !a.paused && "animate-spin")} />
         </span>
       )}
       {a.running && !compact && (
         <div className="flex flex-col rounded-lg bg-hover py-1 pr-0.5 pl-2.5 text-xs">
           <div className="flex items-center">
-            <span className="min-w-0 flex-1 truncate text-fg">{a.paused ? t("analysis.pausedTitle") : t("analysis.runningTitle")}</span>
-            <IconButton label={a.paused ? t("analysis.resume") : t("analysis.pause")} onClick={() => pauseAnalysis(!a.paused)}>
-              {a.paused ? <Play aria-hidden className="size-3.5" /> : <Pause aria-hidden className="size-3.5" />}
-            </IconButton>
+            <span className="min-w-0 flex-1 truncate text-fg">{title}</span>
+            {onPause && (
+              <IconButton label={a.paused ? t(`${ns}.resume`) : t(`${ns}.pause`)} onClick={() => onPause(!a.paused)}>
+                {a.paused ? <Play aria-hidden className="size-3.5" /> : <Pause aria-hidden className="size-3.5" />}
+              </IconButton>
+            )}
             <IconButton
-              label={t("analysis.cancel")}
+              label={t(`${ns}.cancel`)}
               onClick={() => {
                 // This line goes away with its buttons.
                 focusAssets();
-                cancelAnalysis();
+                onCancel();
               }}
             >
               <X aria-hidden className="size-3.5" />
             </IconButton>
           </div>
-          <span className="font-mono text-[11px] text-muted">{t("analysis.progress", { done: a.done, total: a.total })}</span>
+          <span className="font-mono text-[11px] text-muted">{progress}</span>
           <div aria-hidden className="mt-1.5 mr-2 mb-1.5 h-[3px] overflow-hidden rounded-full bg-line-soft">
-            <div className="h-full bg-accent" style={{ width: `${a.total ? (100 * a.done) / a.total : 0}%` }} />
+            <div className="h-full bg-accent" style={{ width: `${100 * fraction}%` }} />
           </div>
         </div>
       )}

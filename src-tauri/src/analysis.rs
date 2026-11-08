@@ -159,7 +159,7 @@ pub fn dominant_colors(img: &RgbaImage) -> Vec<Swatch> {
 }
 
 /// Pixels to analyse: the cached thumbnail when there is one, otherwise the file decoded and shrunk the same way.
-fn pixels(src: &Path, ext: &str, thumb: &Path) -> std::result::Result<RgbaImage, String> {
+pub fn pixels(src: &Path, ext: &str, thumb: &Path) -> std::result::Result<RgbaImage, String> {
     if let Ok(img) = image::open(thumb) {
         return Ok(img.into_rgba8());
     }
@@ -212,7 +212,7 @@ impl Todo {
         }
     }
 
-    fn thumb(&self, thumbs_dir: &Path) -> PathBuf {
+    pub fn thumb(&self, thumbs_dir: &Path) -> PathBuf {
         thumbs_dir.join(thumbs::cache_name(
             &self.path.display().to_string(),
             self.size,
@@ -445,8 +445,8 @@ pub fn status(conn: &Connection) -> Result<Status> {
     Ok(Status {
         done,
         total,
-        running: SHOWN.load(SeqCst),
-        paused: PAUSED.load(SeqCst),
+        running: PASS.shown.load(SeqCst),
+        paused: PASS.paused.load(SeqCst),
         keep: keep(conn)?,
     })
 }
@@ -460,11 +460,11 @@ pub fn emit_status(app: &AppHandle, conn: &Connection) {
     }
 }
 
-/// Work waiting for the pass thread.
+/// Work waiting for a pass thread.
 struct Queue {
-    /// The user asked for the whole library.
+    /// The whole library: the user asked, or a pass catches up.
     all: bool,
-    /// Images that changed while "keep analysed" is on.
+    /// Images that changed while the pass keeps them up to date.
     ids: Vec<i64>,
     /// The pass thread is alive; it takes work until there's none left.
     running: bool,
@@ -480,9 +480,9 @@ impl Queue {
         start
     }
 
-    /// Queues changed images, only if "keep analysed" is on. True when the pass thread must be started.
-    fn changed(&mut self, conn: &Connection, ids: &[i64]) -> bool {
-        !ids.is_empty() && keep(conn).unwrap_or(false) && self.add(false, ids)
+    /// Queues changed images, only if the pass keeps them up to date (`on`). True when the pass thread must be started.
+    fn changed(&mut self, on: bool, ids: &[i64]) -> bool {
+        !ids.is_empty() && on && self.add(false, ids)
     }
 
     /// The next pass: (whole library, changed images). None, and the thread ends, when nothing is queued.
@@ -500,42 +500,138 @@ impl Queue {
     }
 }
 
-static QUEUE: Mutex<Queue> = Mutex::new(Queue {
-    all: false,
-    ids: Vec::new(),
-    running: false,
+/// One pass: (whole library, changed images, the Cancel count it started with).
+pub type Run = fn(&AppHandle, bool, &[i64], usize);
+
+/// A background pass over the library's images, with its own thread and the user's Pause and Cancel. Image analysis
+/// and search by meaning (meaning.rs) each have one.
+pub struct Pass {
+    queue: Mutex<Queue>,
+    /// Bumped by Cancel (with the queue locked): a pass stops once this differs from the value it started with.
+    cancels: AtomicUsize,
+    pub paused: AtomicBool,
+    /// A pass the UI shows is running: the user's, or one keeping many changed images up to date.
+    pub shown: AtomicBool,
+    run: Run,
+}
+
+impl Pass {
+    pub const fn new(run: Run) -> Pass {
+        Pass {
+            queue: Mutex::new(Queue {
+                all: false,
+                ids: Vec::new(),
+                running: false,
+            }),
+            cancels: AtomicUsize::new(0),
+            paused: AtomicBool::new(false),
+            shown: AtomicBool::new(false),
+            run,
+        }
+    }
+
+    /// Brings every image up to date, resuming a paused pass.
+    pub fn all(&'static self, app: &AppHandle) {
+        self.paused.store(false, SeqCst);
+        if self.queue.lock().unwrap().add(true, &[]) {
+            self.spawn(app);
+        }
+    }
+
+    /// Images among `ids` that a scan or file events changed, when the pass keeps them up to date (`on`).
+    pub fn changed(&'static self, app: &AppHandle, on: bool, ids: &[i64]) {
+        if self.queue.lock().unwrap().changed(on, ids) {
+            self.spawn(app);
+        }
+    }
+
+    /// Stops the running pass and drops queued work. Batches already stored stay.
+    pub fn cancel(&self) {
+        {
+            let mut q = self.queue.lock().unwrap();
+            q.clear();
+            self.cancels.fetch_add(1, SeqCst);
+        }
+        self.paused.store(false, SeqCst);
+    }
+
+    pub fn cancelled(&self, since: usize) -> bool {
+        self.cancels.load(SeqCst) != since
+    }
+
+    /// Waits for running scans (they add images) and says whether to go on.
+    pub fn ready(&self, state: &AppState, since: usize) -> bool {
+        while !self.cancelled(since) && !state.scanning.lock().unwrap().is_empty() {
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        !self.cancelled(since)
+    }
+
+    /// Before each image is read: a decode permit, or None once cancelled. At most half the thumbnail permits, so
+    /// thumbnails for what's on screen always have the other half. Waits while paused and while scans run.
+    pub fn gate<'a>(&self, state: &'a AppState, since: usize) -> Option<tokio::sync::SemaphorePermit<'a>> {
+        loop {
+            if self.cancelled(since) {
+                return None;
+            }
+            // Scans go first: they hold the lock often and the UI is waiting for them.
+            if !self.paused.load(SeqCst) && state.scanning.lock().unwrap().is_empty() {
+                if let Ok(permit) = state.thumb_permits.try_acquire() {
+                    return Some(permit);
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            } else {
+                std::thread::sleep(Duration::from_millis(200));
+            }
+        }
+    }
+
+    fn spawn(&'static self, app: &AppHandle) {
+        let app = app.clone();
+        // Normal priority: this thread holds the db lock to read and store. Its workers run low.
+        std::thread::spawn(move || {
+            loop {
+                let (work, cancels) = {
+                    let mut q = self.queue.lock().unwrap();
+                    (q.take(), self.cancels.load(SeqCst))
+                };
+                let Some((all, ids)) = work else { break };
+                (self.run)(&app, all, &ids, cancels);
+                self.shown.store(false, SeqCst);
+                // A pause that came as the pass ended mustn't hold up the next one, which may have no Resume button.
+                self.paused.store(false, SeqCst);
+            }
+        });
+    }
+}
+
+/// Workers for a pass's decoding: half the thumbnail permits, at least one.
+pub fn workers() -> usize {
+    (std::thread::available_parallelism().map_or(4, |n| n.get().clamp(2, 8)) / 2).max(1)
+}
+
+static PASS: Pass = Pass::new(|app, all, ids, cancels| {
+    if let Err(e) = pass(app, all, ids, cancels) {
+        eprintln!("analysis: {e}");
+    }
 });
-/// Bumped by Cancel (with the queue locked): a pass stops once this differs from the value it started with.
-static CANCELS: AtomicUsize = AtomicUsize::new(0);
-static PAUSED: AtomicBool = AtomicBool::new(false);
-/// See [`Status::running`].
-static SHOWN: AtomicBool = AtomicBool::new(false);
 
 /// "Analyse images": brings every image up to date, resuming a paused pass.
 pub fn start(app: &AppHandle) {
-    PAUSED.store(false, SeqCst);
-    let start = QUEUE.lock().unwrap().add(true, &[]);
-    if start {
-        spawn(app);
-    }
+    PASS.all(app);
     let state = app.state::<AppState>();
     emit_status(app, &state.db.lock().unwrap());
 }
 
 pub fn pause(app: &AppHandle, paused: bool) {
-    PAUSED.store(paused, SeqCst);
+    PASS.paused.store(paused, SeqCst);
     let state = app.state::<AppState>();
     emit_status(app, &state.db.lock().unwrap());
 }
 
 /// Stops the running pass and drops queued work. Batches already stored stay.
 pub fn cancel(app: &AppHandle) {
-    {
-        let mut q = QUEUE.lock().unwrap();
-        q.clear();
-        CANCELS.fetch_add(1, SeqCst);
-    }
-    PAUSED.store(false, SeqCst);
+    PASS.cancel();
     let state = app.state::<AppState>();
     emit_status(app, &state.db.lock().unwrap());
 }
@@ -545,30 +641,19 @@ pub fn cancel(app: &AppHandle) {
 pub fn changed(app: &AppHandle, ids: &[i64]) {
     let state = app.state::<AppState>();
     let conn = state.db.lock().unwrap();
-    if QUEUE.lock().unwrap().changed(&conn, ids) {
-        spawn(app);
-    }
+    PASS.changed(app, keep(&conn).unwrap_or(false), ids);
     emit_status(app, &conn);
 }
 
-fn spawn(app: &AppHandle) {
-    let app = app.clone();
-    // Normal priority: this thread holds the db lock to read and store. Its workers run low (analyse_and_store).
-    std::thread::spawn(move || {
-        loop {
-            let (work, cancels) = {
-                let mut q = QUEUE.lock().unwrap();
-                (q.take(), CANCELS.load(SeqCst))
-            };
-            let Some((all, ids)) = work else { break };
-            if let Err(e) = pass(&app, all, &ids, cancels) {
-                eprintln!("analysis: {e}");
-            }
-            SHOWN.store(false, SeqCst);
-            // A pause that came as the pass ended mustn't hold up the next one, which may have no Resume button.
-            PAUSED.store(false, SeqCst);
-        }
-    });
+/// Library folders that aren't there (an unplugged drive): a whole-library pass leaves their images out, or it would
+/// never end. Checked without the lock: an offline network share can take seconds to answer.
+pub fn offline(db: &Mutex<Connection>) -> Result<Vec<PathBuf>> {
+    let roots = db::roots(&db.lock().unwrap())?;
+    Ok(roots
+        .into_iter()
+        .map(|r| PathBuf::from(r.path))
+        .filter(|p| !p.is_dir())
+        .collect())
 }
 
 /// A whole-library pass: every stale image, then again for the ones scans or the watcher added or changed meanwhile,
@@ -586,14 +671,7 @@ pub fn analyse_all<G>(
         if !ready() {
             return Ok(false);
         }
-        // Not the images of a library folder that isn't there (an unplugged drive), or this would never end. Checked
-        // without the lock: an offline network share can take seconds to answer.
-        let roots = db::roots(&db.lock().unwrap())?;
-        let offline: Vec<_> = roots
-            .into_iter()
-            .map(|r| PathBuf::from(r.path))
-            .filter(|p| !p.is_dir())
-            .collect();
+        let offline = offline(db)?;
         let todo: Vec<_> = stale(&db.lock().unwrap())?
             .into_iter()
             .filter(|t| !offline.contains(&t.root))
@@ -607,26 +685,9 @@ pub fn analyse_all<G>(
 
 fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<()> {
     let state = app.state::<AppState>();
-    let cancelled = || CANCELS.load(SeqCst) != cancels;
     let started = Instant::now();
-    // At most half the thumbnail permits, so thumbnails for what's on screen always have the other half.
-    let workers = (std::thread::available_parallelism().map_or(4, |n| n.get().clamp(2, 8)) / 2).max(1);
-    let gate = || {
-        loop {
-            if cancelled() {
-                return None;
-            }
-            // Scans go first: they hold the lock often and the UI is waiting for them.
-            if !PAUSED.load(SeqCst) && state.scanning.lock().unwrap().is_empty() {
-                if let Ok(permit) = state.thumb_permits.try_acquire() {
-                    return Some(permit);
-                }
-                std::thread::sleep(Duration::from_millis(10));
-            } else {
-                std::thread::sleep(Duration::from_millis(200));
-            }
-        }
-    };
+    let workers = workers();
+    let gate = || PASS.gate(&state, cancels);
     let mut analysed = 0;
     let after = |conn: &Connection, colors: Vec<(i64, Vec<Swatch>)>| {
         analysed += colors.len();
@@ -634,14 +695,9 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<()> {
         emit_status(app, conn);
     };
     if all {
-        SHOWN.store(true, SeqCst);
+        PASS.shown.store(true, SeqCst);
         emit_status(app, &state.db.lock().unwrap());
-        let ready = || {
-            while !cancelled() && !state.scanning.lock().unwrap().is_empty() {
-                std::thread::sleep(Duration::from_millis(200));
-            }
-            !cancelled()
-        };
+        let ready = || PASS.ready(&state, cancels);
         let complete = analyse_all(&state.db, workers, &state.thumbs_dir, ready, gate, after)?;
         if complete {
             keep_by_default(&state.db.lock().unwrap())?;
@@ -652,11 +708,11 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<()> {
             return Ok(());
         }
         // A few changed files are done before a progress line could be read; a big new folder gets one, with Pause.
-        SHOWN.store(todo.len() > BATCH, SeqCst);
+        PASS.shown.store(todo.len() > BATCH, SeqCst);
         emit_status(app, &state.db.lock().unwrap());
         analyse_and_store(&state.db, &todo, workers, &state.thumbs_dir, gate, after)?;
     }
-    SHOWN.store(false, SeqCst);
+    PASS.shown.store(false, SeqCst);
     emit_status(app, &state.db.lock().unwrap());
     let secs = started.elapsed().as_secs_f32();
     eprintln!(
@@ -1030,15 +1086,16 @@ mod tests {
             ids: vec![],
             running: false,
         };
+        let on = || keep(&conn).unwrap();
         // Off by default: changes queue nothing and start nothing.
-        assert!(!keep(&conn).unwrap());
-        assert!(!q.changed(&conn, &[1, 2]));
+        assert!(!on());
+        assert!(!q.changed(on(), &[1, 2]));
         assert_eq!(q.take(), None);
         // A finished whole-library pass turns it on. Changes then start the pass thread, once.
         keep_by_default(&conn).unwrap();
-        assert!(keep(&conn).unwrap());
-        assert!(q.changed(&conn, &[1, 2]));
-        assert!(!q.changed(&conn, &[3]));
+        assert!(on());
+        assert!(q.changed(on(), &[1, 2]));
+        assert!(!q.changed(on(), &[3]));
         assert_eq!(q.take(), Some((false, vec![1, 2, 3])));
         assert_eq!(q.take(), None);
         assert!(q.add(true, &[]));
@@ -1047,7 +1104,7 @@ mod tests {
         // Turned off by the user, it stays off after the next whole-library pass.
         set_keep(&conn, false).unwrap();
         keep_by_default(&conn).unwrap();
-        assert!(!q.changed(&conn, &[4]));
+        assert!(!q.changed(on(), &[4]));
         assert_eq!(q.take(), None);
     }
 }

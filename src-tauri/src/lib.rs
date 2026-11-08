@@ -7,6 +7,7 @@ mod db;
 mod dupes;
 mod kind;
 mod mcp;
+mod meaning;
 mod scan;
 mod tagging;
 mod thumbs;
@@ -145,6 +146,7 @@ fn run_scan(app: AppHandle, root: Root) {
         progress(scanned.unwrap_or(0), true, scanned.is_none());
         let _ = app.emit("assets-changed", root.id);
         analysis::changed(&app, &changed);
+        meaning::changed(&app, &changed);
     });
 }
 
@@ -934,6 +936,7 @@ fn open_link(app: AppHandle, link: String) -> Result<(), String> {
         "source" => "https://github.com/sanchezrobertodev/mimikit",
         "ko-fi" => "https://ko-fi.com/sanchezrobertodev",
         "anthropic-keys" => "https://platform.claude.com/settings/keys",
+        "vc-redist" => "https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist",
         _ => return Err(format!("Unknown link {link}.")),
     };
     app.opener().open_url(url, None::<&str>).map_err(err)
@@ -989,6 +992,7 @@ pub fn run() {
             };
             let conn = db::open(&db_path)?;
             conn.execute_batch(analysis::SCHEMA)?;
+            meaning::open(&conn, &data, matches!(restored, Some(Ok(()))))?;
             let roots = db::roots(&conn)?;
             // Before the catch-up scans below, so they skip the user's ignored folders too.
             ignore_folders(&db::ignored_folders(&conn)?, &data);
@@ -1020,6 +1024,7 @@ pub fn run() {
             }
             // Batches sent before Mimikit closed are collected now.
             tagging::start(app.handle());
+            meaning::resume(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1089,7 +1094,13 @@ pub fn run() {
             tagging::accept_suggestions,
             tagging::reject_suggestions,
             tagging::ai_tag_count,
-            tagging::remove_ai_tags
+            tagging::remove_ai_tags,
+            meaning::meaning_status,
+            meaning::meaning_enable,
+            meaning::meaning_pause,
+            meaning::meaning_cancel,
+            meaning::meaning_disable,
+            meaning::meaning_scores
         ])
         .run(context())
         .expect("error while running tauri application");
