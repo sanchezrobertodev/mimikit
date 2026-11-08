@@ -189,8 +189,9 @@ pub fn on(conn: &Connection) -> bool {
 }
 
 /// One vector per version (size, mtime) of an image, for one model: int8 × [`DIMS`], then the f32 scale. Empty when
-/// the image couldn't be read, so it isn't retried until it changes. No foreign key across files: rows of deleted
-/// assets are pruned by each pass.
+/// the image couldn't be read, so it isn't retried until it changes. A foreign key can't reach across files, so a
+/// TEMP trigger (one may touch any attached database) deletes a deleted asset's vector at once, also for a removed
+/// folder's assets: asset ids get reused, and a new image with the same id, size and mtime must not inherit it.
 pub const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS meaning.vectors (
   asset_id INTEGER PRIMARY KEY,
@@ -199,6 +200,9 @@ CREATE TABLE IF NOT EXISTS meaning.vectors (
   model TEXT NOT NULL,
   vec BLOB NOT NULL
 );
+CREATE TEMP TRIGGER IF NOT EXISTS meaning_forget AFTER DELETE ON assets BEGIN
+  DELETE FROM meaning.vectors WHERE asset_id = old.id;
+END;
 ";
 
 /// Attaches `meaning.db` to the library's connection. After a backup restore the library's ids may point at other
@@ -772,6 +776,8 @@ pub struct Status {
     files: Vec<File>,
     /// False on Windows without the Visual C++ runtime ONNX Runtime needs.
     vc_runtime: bool,
+    /// Bytes in `models/`, finished or not: what Delete model and index frees besides the index.
+    downloaded: u64,
 }
 
 static DOWNLOAD: Mutex<Option<Progress>> = Mutex::new(None);
@@ -790,6 +796,13 @@ fn status(conn: &Connection, data_dir: &Path) -> rusqlite::Result<Status> {
         error: ERROR.lock().unwrap().clone(),
         files: files(),
         vc_runtime: vc_runtime(),
+        downloaded: walkdir::WalkDir::new(data_dir.join("models"))
+            .into_iter()
+            .flatten()
+            .filter_map(|e| e.metadata().ok())
+            .filter(|m| m.is_file())
+            .map(|m| m.len())
+            .sum(),
     })
 }
 
@@ -1314,6 +1327,36 @@ mod tests {
         let db = Mutex::new(conn);
         assert_eq!(index_all(&db, &thumbs_dir), 3);
         assert_eq!(counts(&db.lock().unwrap()).unwrap(), (0, 3));
+    }
+
+    #[test]
+    fn a_reused_asset_id_starts_without_a_vector() {
+        let (_dir, conn, thumbs_dir) = scanned(2);
+        let db = Mutex::new(conn);
+        assert_eq!(index_all(&db, &thumbs_dir), 2);
+        let conn = db.into_inner().unwrap();
+        let (id, size, mtime): (i64, i64, i64) = conn
+            .query_row("SELECT id, size, mtime FROM assets WHERE name = 'img1.png'", [], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .unwrap();
+        // Removing the folder deletes its assets by foreign key, and so their vectors.
+        conn.execute("DELETE FROM roots WHERE id = 1", []).unwrap();
+        let rows: i64 = conn
+            .query_row("SELECT count(*) FROM meaning.vectors", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(rows, 0);
+        // Another folder's image that gets the same id, size and mtime is still to do.
+        conn.execute("INSERT INTO roots (id, path) VALUES (2, 'elsewhere')", [])
+            .unwrap();
+        conn.execute(
+            "INSERT INTO assets (id, root_id, rel_path, name, ext, kind, size, mtime)
+             VALUES (?1, 2, 'other.png', 'other.png', 'png', 'image', ?2, ?3)",
+            params![id, size, mtime],
+        )
+        .unwrap();
+        let left: Vec<i64> = stale(&conn).unwrap().iter().map(|t| t.id).collect();
+        assert_eq!(left, [id]);
     }
 
     #[test]

@@ -793,7 +793,8 @@ function MeaningSearch() {
   if (!m.files.length) return <Row label={label} hint={t("meaning.settings.unavailable")} />;
 
   const download = m.files.reduce((n, f) => n + f.size, 0);
-  const freed = (m.installed ? download : 0) + m.done * INDEX_BYTES;
+  // Also a cancelled download's files, which can be hundreds of MB.
+  const freed = m.downloaded + m.done * INDEX_BYTES;
   const left = m.total - m.done;
   const mono = [<span className="font-mono" />];
   const toggle = (on: boolean) => {
@@ -912,7 +913,8 @@ function MeaningSearch() {
           </div>
         </div>
       )}
-      {freed > 0 && !ask && (
+      {/* Not while downloading: the download would write on. */}
+      {freed > 0 && !ask && !m.download && (
         <Row
           label={t("meaning.settings.delete")}
           hint={confirmDelete ? t("meaning.settings.deleteConfirm", { size: bytes(freed) }) : t("meaning.settings.deleteHint", { size: bytes(freed) })}

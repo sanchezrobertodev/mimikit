@@ -101,6 +101,8 @@ export interface MeaningStatus {
   files: { name: string; size: number; source: "huggingface" | "github" }[];
   /** False on Windows without the Visual C++ runtime ONNX Runtime needs. */
   vcRuntime: boolean;
+  /** Bytes downloaded so far, finished files or not. */
+  downloaded: number;
 }
 
 export interface ScanProgress {

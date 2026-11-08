@@ -325,7 +325,7 @@ export const useStore = create<State>((set, get, store) => {
     notes: {},
     palettes: null,
     analysis: { done: 0, total: 0, running: false, paused: false, keep: false },
-    meaning: { done: 0, total: 0, running: false, paused: false, on: false, installed: false, download: null, error: null, files: [], vcRuntime: true },
+    meaning: { done: 0, total: 0, running: false, paused: false, on: false, installed: false, download: null, error: null, files: [], vcRuntime: true, downloaded: 0 },
     tagging: { assets: 0, requests: 0, finished: 0, canceling: false, error: null, last: null },
     suggestFor: null,
     similar: null,
