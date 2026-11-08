@@ -5,6 +5,8 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-06
+
 ### Added
 
 - **Suggest tags**: Claude suggests tags for many assets at once, from the palette (**Suggest tags for the N assets
@@ -12,13 +14,18 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   small preview, the file and folder names, the first 2 KB of text files; never whole files or full paths), the model
   and the estimated cost first, and a **Send** switch: **Right away** gets the tags back in seconds at the normal
   price, and **As a batch, half price** goes through Anthropic's Message Batches API, where results usually arrive
-  within minutes, even if Mimikit was closed meanwhile. Up to 50 assets start on Right away. The sidebar shows the run with **Cancel**, then the assets with suggestions, **Review** and the
-  real cost.
+  within minutes, even if Mimikit was closed meanwhile. Up to 50 assets start on Right away. The sidebar shows a
+  batch run with **Cancel**, then the assets with suggestions, **Review** and the real cost.
 - Suggested tags wait as dashed chips under the tag field in the side panel: click to add one, × to reject it, or
   **Accept all** / **Reject all**, also for several assets at once. **More filters → Has suggested tags** (and smart
   collections) find what's left to review.
 - **Settings › AI features**: **Tagging model** (Haiku 5.5 by default, Sonnet 5.5 or Opus 5.5, always at low effort),
   and **Remove all AI tags**, which takes off every tag you accepted from a suggestion and keeps the ones you added.
+
+### Fixed
+
+- Ask could fail on its first search after Mimikit started: the first request to Anthropic now always sets up its
+  secure connection first.
 
 ## [0.10.0] - 2026-11-05
 
