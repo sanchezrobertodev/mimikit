@@ -163,6 +163,8 @@ interface State extends Prefs {
    * folder, type chips and filters; without, refreshes the open results.
    */
   findByMeaning: (text: string, query?: string) => Promise<void>;
+  /** Drops a search by meaning started from search that hasn't opened yet, when search closes first; true if one was. */
+  dropMeaningOpening: () => boolean;
   clearMeaning: () => void;
   /** Opens the library on just these assets, for an agent's `show`. */
   showAssets: (ids: number[], by: string) => void;
@@ -674,6 +676,15 @@ export const useStore = create<State>((set, get, store) => {
         meaningAsk.cancel(); // or every indexed batch would ask again and show the same error
         get().setError(e);
       }
+    },
+    dropMeaningOpening: () => {
+      if (meaningOpening === null) return false;
+      meaningOpening = null;
+      // The answer on its way is dropped; results already on screen keep growing with the index.
+      const open = get().meaningQuery;
+      if (open) meaningAsk.start(open.text);
+      else meaningAsk.cancel();
+      return true;
     },
     clearMeaning: () => set(noMeaning()),
     showAssets: (ids, by) =>

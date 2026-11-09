@@ -107,6 +107,8 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     // Running a result lands on the assets it shows (the chosen one active); closing search goes back to where it opened.
     return () => {
       const at = document.activeElement;
+      // Closed while a search by meaning ran: it's dropped, as if it never started.
+      if (useStore.getState().dropMeaningOpening()) ran.current = false;
       if (ran.current) focusAssets();
       else if (!at || at === document.body || box?.contains(at)) prev?.focus();
     };
