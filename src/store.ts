@@ -193,8 +193,14 @@ let paletteBacklog: [number, Swatch[]][] | null = null;
 const similarAsk = latestRequest<{ id: number; max: number }>(2000);
 /** Search by meaning, the same way: re-asked as the index grows. */
 const meaningAsk = latestRequest<string>(2000);
+/**
+ * The other search words of a search by meaning the user just started, until its results open. Whichever answer
+ * lands first opens them: a re-ask as the index grows can supersede the user's request while the model loads.
+ */
+let meaningOpening: string | null = null;
 const noMeaning = () => {
   meaningAsk.cancel();
+  meaningOpening = null;
   return { meaningQuery: null };
 };
 /** Ends "Find similar" and search by meaning, including a request still on its way, and an agent's `show`. */
@@ -379,7 +385,10 @@ export const useStore = create<State>((set, get, store) => {
       await api.onMeaningStatus((meaning) => {
         // Turned off: its results would go stale and every re-ask fail. Images indexed since can match the open search.
         if (!meaning.on && get().meaningQuery) set(noMeaning());
-        else if (meaning.on && meaning.done !== get().meaning.done) meaningAsk.again((text) => void get().findByMeaning(text));
+        else if (meaning.on && meaning.done !== get().meaning.done)
+          meaningAsk.again((text) => {
+            if (meaningOpening === null) void get().findByMeaning(text);
+          });
         set({ meaning });
       });
       api.meaningStatus().then((meaning) => set({ meaning }), get().setError);
@@ -641,6 +650,7 @@ export const useStore = create<State>((set, get, store) => {
     },
     clearSimilar: () => set(noSimilar()),
     findByMeaning: async (text, query) => {
+      if (query !== undefined) meaningOpening = query;
       const current = meaningAsk.start(text);
       try {
         const buf = await api.meaningScores(text);
@@ -649,15 +659,18 @@ export const useStore = create<State>((set, get, store) => {
         const scores = new Map<number, number>();
         for (let i = 0; i + 8 <= buf.byteLength; i += 8) scores.set(view.getInt32(i, true), view.getFloat32(i + 4, true));
         const s = get();
+        const opening = meaningOpening;
+        meaningOpening = null;
         // From the library or favorites, the open folder, type chips and filters narrow the results.
         const nav =
-          query === undefined
+          opening === null
             ? {}
-            : { ...(s.view === "library" || s.view === "favorites" ? {} : { view: "library" as const, folder: null, kinds: [] }), full: false, palette: false, query };
+            : { ...(s.view === "library" || s.view === "favorites" ? {} : { view: "library" as const, folder: null, kinds: [] }), full: false, palette: false, query: opening };
         similarAsk.cancel();
         set({ ...nav, meaningQuery: { text, scores }, similar: null, shown: null });
       } catch (e) {
         if (!current()) return;
+        meaningOpening = null;
         meaningAsk.cancel(); // or every indexed batch would ask again and show the same error
         get().setError(e);
       }

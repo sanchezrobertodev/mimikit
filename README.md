@@ -317,7 +317,7 @@ key or connection once the model is downloaded.
   text model takes about 800 MB of memory while loaded and is unloaded after 10 minutes without a search.
 - **Private.** After the download nothing goes online, and nothing about your files leaves the computer. **Delete
   model and index** in Settings removes both. The index takes about 0.8 KB per image and isn't in backups.
-- **How good.** On 30 test descriptions over a library of 3,400 game-art images, about 87% of the top 10 results
+- **How good.** On 30 test descriptions over a library of 3,400 game-art images, 84% of the top 10 results
   were right. It reads what a picture shows, not text inside it.
 
 ## Ask
