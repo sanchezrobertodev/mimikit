@@ -21,7 +21,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Button, focusAssets, Kbd, modalOpen } from "./components/ui";
 import { viewerKey } from "./components/Viewers";
 import { Welcome } from "./components/Welcome";
-import { activeFilterCount, groupByFolder, parseQuery, rulesWantColors, visibleAssets } from "./lib/filter";
+import { activeFilterCount, groupByFolder, parseQuery, ruleLooks, rulesWantColors, visibleAssets } from "./lib/filter";
 import { parentOf } from "./lib/folders";
 import { list } from "./lib/fmt";
 import { baseName, folderOf, rootLabel } from "./lib/format";
@@ -157,27 +157,37 @@ export default function App() {
   const wantsColors = !!s.filters.color || parseQuery(s.query).colors.length > 0 || rulesWantColors(s.collections);
   // Colours only matter to a colour filter; otherwise their updates during an analysis pass mustn't re-sort the list.
   const palettes = wantsColors ? s.palettes : null;
-  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, palettes };
+  // `looks:` words in the search and in smart collections (the sidebar counts them all), scored once each.
+  const looksKey = JSON.stringify([...parseQuery(s.query).looks, ...ruleLooks(s.collections)]);
+  const meaningOn = s.meaning.on && s.meaning.installed;
+  useEffect(() => {
+    const st = useStore.getState();
+    st.resolveLooks("window", JSON.parse(looksKey)).catch(st.setError);
+  }, [looksKey, meaningOn]);
+  const looks = looksKey !== "[]" ? s.looks : null;
+  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, palettes, looks };
   const visible = useMemo(
     () => visibleAssets(s.assets, scope, s.sort),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, palettes],
+    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, palettes, looks],
   );
   // Same scope without the type chips, so each chip can show its count. Only counted, so not sorted.
   const scopeAssets = useMemo(
     () => visibleAssets(s.assets, { ...scope, kinds: [] }, null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, palettes],
+    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, palettes, looks],
   );
   useEffect(() => {
     if (wantsColors) void useStore.getState().loadPalettes();
   }, [wantsColors]);
   const browse = s.view === "library" || s.view === "favorites";
   const navigable = browse || s.view === "collections";
+  // `looks:` words in the search, or in the open smart collection's, rank like search by meaning.
+  const ranked = !!similar || !!meaning || parseQuery(s.query).looks.length > 0 || (s.view === "collections" && !!collection?.rule && parseQuery(collection.rule.query).looks.length > 0);
   const groups = useMemo(
     // "Find similar" and search by meaning results stay in one list, closest first.
-    () => ((browse || s.view === "collections") && s.grouped && !similar && !meaning ? groupByFolder(visible, s.roots, browse ? s.folder : null) : null),
-    [browse, s.view, s.grouped, similar, meaning, visible, s.roots, s.folder],
+    () => ((browse || s.view === "collections") && s.grouped && !ranked ? groupByFolder(visible, s.roots, browse ? s.folder : null) : null),
+    [browse, s.view, s.grouped, ranked, visible, s.roots, s.folder],
   );
   // In Duplicates, full screen steps through the copies of the open group.
   const copies = useMemo(() => {

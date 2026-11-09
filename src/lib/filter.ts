@@ -31,6 +31,8 @@ export interface Filters {
 
 /** Dominant colours by image id, for colour filters. */
 export type Palettes = ReadonlyMap<number, LabSwatch[]>;
+/** Search by meaning's score of each indexed image by id, for each `looks:` phrase the store has scored. */
+export type Looks = ReadonlyMap<string, ReadonlyMap<number, number>>;
 
 export const noFilters: Filters = {
   exts: [],
@@ -87,8 +89,8 @@ export function matchesFilters(a: Asset, f: Filters, now = Date.now(), palettes?
 }
 
 /**
- * A search like `type:audio in:sprites #player size:>1mb dur:<2s rating:>=4 note:redo color:red hero`, as used by the
- * search bar and the ⌘K palette.
+ * A search like `type:audio in:sprites #player size:>1mb dur:<2s rating:>=4 note:redo color:red looks:red-potion hero`,
+ * as used by the search bar and the ⌘K palette.
  */
 export interface Query {
   /** null = any type; an empty array = a `type:` that matched nothing. */
@@ -106,6 +108,8 @@ export interface Query {
   maxMs: number | null;
   /** Colours the image must all have (see Filters.color); null for a `color:` that names no colour. */
   colors: (string | null)[];
+  /** What the image must show (search by meaning), from `looks:red-potion-icon`: hyphens become spaces. */
+  looks: string[];
   text: string[];
 }
 
@@ -118,7 +122,7 @@ export const UNITS: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, 
 export const TIME_UNITS: Record<string, number> = { ms: 1, s: 1000, m: 60_000 };
 
 export function parseQuery(q: string): Query {
-  const out: Query = { types: null, folder: null, tags: [], minBytes: 0, maxBytes: Infinity, minMs: null, maxMs: null, minRating: 0, maxRating: 5, notes: [], colors: [], text: [] };
+  const out: Query = { types: null, folder: null, tags: [], minBytes: 0, maxBytes: Infinity, minMs: null, maxMs: null, minRating: 0, maxRating: 5, notes: [], colors: [], looks: [], text: [] };
   for (const t of q.replace(FULL_WIDTH, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).toLowerCase().split(/\s+/).filter(Boolean)) {
     if (t.startsWith("type:")) {
       const s = t.slice(5);
@@ -155,13 +159,19 @@ export function parseQuery(q: string): Query {
       if (t.length > 5) out.notes.push(t.slice(5));
     } else if (t.startsWith("color:")) {
       if (t.length > 6) out.colors.push(parseColor(t.slice(6)));
+    } else if (t.startsWith("looks:")) {
+      const phrase = t.slice(6).replace(/-+/g, " ").trim();
+      if (phrase) out.looks.push(phrase);
     } else out.text.push(t);
   }
   return out;
 }
 
-/** `notes` is only read for `note:` words, `palettes` for `color:` ones. */
-export function matchesQuery(a: Asset, q: Query, notes: Notes = {}, palettes?: Palettes | null): boolean {
+/**
+ * `notes` is only read for `note:` words, `palettes` for `color:` ones and `looks` for `looks:` ones. A `looks:` word
+ * only needs a score here: `closeLooks` then keeps the close matches.
+ */
+export function matchesQuery(a: Asset, q: Query, notes: Notes = {}, palettes?: Palettes | null, looks?: Looks | null): boolean {
   if (q.types && !q.types.includes(a.kind)) return false;
   if (q.folder && !folderOf(a.relPath).toLowerCase().split("/").some((seg) => seg.startsWith(q.folder!))) return false;
   if (!q.tags.every((t) => a.tags.some((g) => g.startsWith(t)))) return false;
@@ -173,6 +183,7 @@ export function matchesQuery(a: Asset, q: Query, notes: Notes = {}, palettes?: P
     if (!note || !q.notes.every((w) => note.includes(w))) return false;
   }
   if (!q.colors.every((c) => c !== null && hasColor(palettes?.get(a.id), c))) return false;
+  if (!q.looks.every((p) => looks?.get(p)?.has(a.id))) return false;
   const hay = a.relPath.toLowerCase();
   return q.text.every((t) => hay.includes(t) || a.tags.includes(t));
 }
@@ -203,41 +214,70 @@ export interface Scope {
   /** Search by meaning: each indexed image's score. Only these are shown, best first, cut to the close matches. */
   meaning?: ReadonlyMap<number, number> | null;
   palettes?: Palettes | null;
+  looks?: Looks | null;
+  /** More narrowing (an agent's folder, or favorites inside a collection), before `looks:` takes its closest matches. */
+  within?: (a: Asset) => boolean;
 }
 
 /** Search by meaning keeps at most this many results, all within `MEANING_SPREAD` of the best score (phase 0 eval). */
 export const MEANING_TOP = 200;
 export const MEANING_SPREAD = 0.05;
 
-/** Tests assets against a smart collection's saved search. */
-export function ruleMatcher(rule: CollectionRule, notes: Notes, now = Date.now(), palettes?: Palettes | null): (a: Asset) => boolean {
+/** The close matches of a search by meaning: best first, at most MEANING_TOP, within MEANING_SPREAD of the best. Sorts `list`. */
+function closest(list: Asset[], score: (a: Asset) => number): Asset[] {
+  list.sort((a, b) => score(b) - score(a));
+  const floor = list.length ? score(list[0]) - MEANING_SPREAD : 0;
+  const end = list.findIndex((a, i) => i >= MEANING_TOP || score(a) < floor);
+  return end < 0 ? list : list.slice(0, end);
+}
+
+/**
+ * Keeps the assets of `list` that are close matches of every `looks:` phrase, best first (by their summed scores).
+ * `list` matched everything else in the search, scores included, so a folder or filter gets its own best matches.
+ */
+export function closeLooks(list: Asset[], phrases: string[], looks?: Looks | null): Asset[] {
+  if (!phrases.length || !list.length) return list;
+  const maps = phrases.map((p) => looks!.get(p)!);
+  const keep = maps.map((m) => new Set(closest([...list], (a) => m.get(a.id)!)));
+  const sum = (a: Asset) => maps.reduce((n, m) => n + m.get(a.id)!, 0);
+  return list.filter((a) => keep.every((k) => k.has(a))).sort((a, b) => sum(b) - sum(a));
+}
+
+/** A smart collection's members: the assets its saved search matches now, best first for a `looks:` one. */
+export function ruleMembers(rule: CollectionRule, assets: Asset[], notes: Notes, now = Date.now(), palettes?: Palettes | null, looks?: Looks | null): Asset[] {
   const q = parseQuery(rule.query);
   const f = { ...noFilters, ...rule.filters };
-  return (a) => matchesFilters(a, f, now, palettes) && matchesQuery(a, q, notes, palettes);
+  return closeLooks(assets.filter((a) => matchesFilters(a, f, now, palettes) && matchesQuery(a, q, notes, palettes, looks)), q.looks, looks);
 }
 
 /** Whether a smart collection searches by colour: only then do members change as colours are analysed. */
 export const rulesWantColors = (collections: Collection[]) =>
   collections.some((c) => c.rule && (!!c.rule.filters.color || parseQuery(c.rule.query).colors.length > 0));
 
+/** The `looks:` phrases smart collections search for: their members change as these are scored. */
+export const ruleLooks = (collections: Collection[]) => collections.flatMap((c) => (c.rule ? parseQuery(c.rule.query).looks : []));
+
 /** Each smart collection's current members, by collection id. */
-export function smartMembers(collections: Collection[], assets: Asset[], notes: Notes, palettes?: Palettes | null): Map<number, Asset[]> {
+export function smartMembers(collections: Collection[], assets: Asset[], notes: Notes, palettes?: Palettes | null, looks?: Looks | null): Map<number, Asset[]> {
   const now = Date.now();
-  return new Map(collections.flatMap((c) => (c.rule ? [[c.id, assets.filter(ruleMatcher(c.rule, notes, now, palettes))] as const] : [])));
+  return new Map(collections.flatMap((c) => (c.rule ? [[c.id, ruleMembers(c.rule, assets, notes, now, palettes, looks)] as const] : [])));
 }
 
 /** Assets the current view shows, after type chips, folder, search and Filters panel, sorted (unless `sort` is null). */
 export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; desc: boolean } | null): Asset[] {
-  const rank = s.similar ? new Map(s.similar.map((id, i) => [id, i])) : null;
   const now = Date.now();
-  const rule = s.view === "collections" && s.collection?.rule ? ruleMatcher(s.collection.rule, s.notes, now, s.palettes) : null;
-  const members = s.view === "collections" && !rule ? new Set(s.collection?.assetIds ?? []) : null;
+  const rule = s.view === "collections" && s.collection?.rule ? s.collection.rule : null;
+  const smart = rule ? ruleMembers(rule, assets, s.notes, now, s.palettes, s.looks) : null;
+  const members = s.view === "collections" ? new Set(smart?.map((a) => a.id) ?? s.collection?.assetIds ?? []) : null;
+  // "Find similar" keeps its order, and so does a smart collection searching by meaning (best first).
+  const order = s.similar ?? (rule && parseQuery(rule.query).looks.length ? smart!.map((a) => a.id) : null);
+  const rank = order ? new Map(order.map((id, i) => [id, i])) : null;
   const q = parseQuery(s.query);
   const out = assets.filter((a) => {
     // A collection's members, narrowed by the type chips, search and Filters panel like any other view.
-    if (rule && !rule(a)) return false;
     if (members && !members.has(a.id)) return false;
     if (s.view === "favorites" && !a.favorite) return false;
+    if (s.within && !s.within(a)) return false;
     if (rank && !rank.has(a.id)) return false;
     if (s.meaning && !s.meaning.has(a.id)) return false;
     if (s.kinds.length && !s.kinds.includes(a.kind)) return false;
@@ -248,19 +288,15 @@ export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; d
         if (folderOf(a.relPath) !== s.folder.path) return false;
       } else if (s.folder.path && !a.relPath.startsWith(s.folder.path + "/")) return false;
     }
-    return matchesFilters(a, s.filters, now, s.palettes) && matchesQuery(a, q, s.notes, s.palettes);
+    return matchesFilters(a, s.filters, now, s.palettes) && matchesQuery(a, q, s.notes, s.palettes, s.looks);
   });
+  // The cuts are taken after the other filters, so a narrow folder still gets its own best matches; even unsorted
+  // (the type chips' counts), since they decide what's in.
+  const looked = closeLooks(out, q.looks, s.looks);
   const meaning = s.meaning;
-  if (meaning) {
-    // The cut is taken after the other filters, so a narrow folder still gets its own best matches; even unsorted
-    // (the type chips' counts), since it decides what's in.
-    const score = (a: Asset) => meaning.get(a.id)!;
-    out.sort((a, b) => score(b) - score(a));
-    const floor = out.length ? score(out[0]) - MEANING_SPREAD : 0;
-    const end = out.findIndex((a, i) => i >= MEANING_TOP || score(a) < floor);
-    return end < 0 ? out : out.slice(0, end);
-  }
-  if (!sort) return out;
+  if (meaning) return closest(looked, (a) => meaning.get(a.id)!);
+  // `looks:` words show the best matches first, whatever the sort.
+  if (!sort || q.looks.length) return looked;
   if (rank) return out.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
   const dir = sort.desc ? -1 : 1;
   return out.sort((a, b) => dir * compare[sort.key](a, b));

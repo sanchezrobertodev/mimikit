@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import type { Asset } from "../types";
 import { toLab } from "./colors.ts";
-import { activeFilterCount, groupByFolder, matchesFilters, matchesQuery, MEANING_TOP, noFilters, parseQuery, ruleMatcher, rulesWantColors, visibleAssets, type Scope } from "./filter.ts";
+import { activeFilterCount, groupByFolder, matchesFilters, matchesQuery, MEANING_TOP, noFilters, parseQuery, ruleLooks, ruleMembers, rulesWantColors, smartMembers, visibleAssets, type Scope } from "./filter.ts";
 
 const now = Date.UTC(2026, 9, 19);
 const day = 86_400_000;
@@ -140,11 +140,11 @@ assert.deepEqual(members(smart("", { minRating: 5 })), [1]);
 assert.deepEqual(members(smart("type:image", { exts: ["tga"] })), [2]);
 assert.deepEqual(members(smart("note:loud"), { notes }), [3]);
 assert.deepEqual(members(smart("", {})), [1, 2, 3]); // missing filter fields mean "any"
-assert.deepEqual(all.filter(ruleMatcher(smart("#env").rule, {}, now)).map((a) => a.id), [2]);
+assert.deepEqual(ruleMembers(smart("#env").rule, all, {}, now).map((a) => a.id), [2]);
 // Smart collections can save a colour, as a color: word or the Filters panel's colour.
 assert.deepEqual(members(smart("color:red"), { palettes }), [1]);
 assert.deepEqual(members(smart("", { color: "blue" }), { palettes }), [2]);
-assert.deepEqual(all.filter(ruleMatcher(smart("color:blu").rule, {}, now, palettes)).map((a) => a.id), [2]);
+assert.deepEqual(ruleMembers(smart("color:blu").rule, all, {}, now, palettes).map((a) => a.id), [2]);
 // Only colour rules make the members depend on the colour data.
 assert.equal(rulesWantColors([smart("rating:>=3"), { ...smart(""), rule: null }]), false);
 assert.equal(rulesWantColors([smart("color:red")]), true);
@@ -170,6 +170,31 @@ const close = new Map(many.map((a, i) => [a.id, 0.1 + i * 1e-5]));
 const top = visibleAssets(many, scope({ meaning: close }), byName);
 assert.equal(top.length, MEANING_TOP);
 assert.equal(top[0].id, 100 + MEANING_TOP + 49);
+
+// `looks:` words: the same cut, from the scores the store has for each phrase (hyphens are spaces).
+assert.deepEqual(parseQuery("looks:Red-Potion--icon looks: looks:- type:image").looks, ["red potion icon"]);
+const looks = new Map([
+  ["red potion", new Map([[1, 0.15], [2, 0.08], [3, 0.12]])],
+  ["stone", new Map([[1, 0.12], [2, 0.14]])],
+]);
+const ql = (query: string, o: Partial<Scope> = {}) => seen(visibleAssets(all, scope({ query, looks, ...o }), byName));
+assert.deepEqual(ql("looks:red-potion"), [1, 3], "best first, cut 0.05 below the best");
+assert.deepEqual(ql("looks:red-potion type:image"), [1], "the other words narrow it first");
+assert.deepEqual(ql("looks:red-potion", { filters: f({ exts: ["tga", "ogg"] }) }), [3, 2], "so do the Filters panel, and the best is taken after them");
+assert.deepEqual(ql("looks:red-potion tex"), [2], "a folder or name gets its own best match");
+assert.deepEqual(ql("looks:red-potion looks:stone"), [1], "every phrase must keep it");
+assert.deepEqual(ql("looks:dragon"), [], "a phrase not scored yet, or with search by meaning off, matches nothing");
+assert.deepEqual(ql("looks:red-potion", { looks: null }), []);
+assert.deepEqual(seen(visibleAssets(all, scope({ query: "looks:red-potion", looks }), null)), [1, 3], "the type chips' counts are cut the same way");
+assert.deepEqual(all.filter((a) => matchesQuery(a, parseQuery("looks:stone"), {}, null, looks)).map((a) => a.id), [1, 2], "matchesQuery only needs a score");
+// In smart collections: members are the rule's best matches among everything, whatever the view's search narrows.
+const potions = smart("looks:red-potion");
+assert.deepEqual(ruleMembers(potions.rule, all, {}, now, null, looks).map((a) => a.id), [1, 3]);
+assert.deepEqual(members(potions, { looks }), [1, 3], "best first in the collection too");
+assert.deepEqual(members(potions, { looks, query: "type:audio" }), [3]);
+assert.deepEqual(members(potions), [], "not scored: no members");
+assert.deepEqual([...smartMembers([potions, { ...smart("looks:stone type:image"), id: 3 }], all, {}, null, looks).values()].map((l) => l.map((a) => a.id)), [[1, 3], [2, 1]]);
+assert.deepEqual(ruleLooks([potions, smart("color:red"), { ...smart(""), rule: null }, smart("looks:a looks:b-c")]), ["red potion", "a", "b c"]);
 const sorted = visibleAssets([sound, texture, sprite], scope({}), { key: "size", desc: true });
 assert.deepEqual(sorted.map((a) => a.id), [2, 3, 1]); // ties keep input order
 assert.deepEqual(groupByFolder(sorted, [{ id: 1, path: "/games/lib" }]).map((g) => [g.label, g.items.length]), [["audio", 1], ["pack/sprites", 1], ["tex", 1]]);

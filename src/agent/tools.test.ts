@@ -35,4 +35,7 @@ assert.deepEqual(
   ["copy_to_folder"],
 );
 assert.deepEqual(TOOLS.find((t) => t.name === "batch")!.inputSchema.properties!.changes.items!.properties!.tool.enum, ["tag", "rate", "favorite", "note", "collect"]);
+// search by meaning: search says how to use looks: and the error it gives while that's off; overview says where it stands.
+assert.match(TOOLS.find((t) => t.name === "search")!.description, /`looks:red-potion-icon`.*not_indexed/);
+assert.match(TOOLS.find((t) => t.name === "overview")!.description, /search by meaning/);
 console.log(`tools: ${TOOLS.length} tools, agent-tools.json up to date`);

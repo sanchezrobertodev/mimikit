@@ -10,7 +10,7 @@ import type { SortKey } from "../lib/prefs";
 import { shortcut } from "../lib/shortcuts";
 import { useStore } from "../store";
 import { KINDS, type Asset } from "../types";
-import { AnalysisNote } from "./Analysis";
+import { AnalysisNote, LooksNote } from "./Analysis";
 import { FilterButton } from "./FilterPanel";
 import { Button, focusAssets, IconButton, KindDot, KindName, Kbd, Segmented, T } from "./ui";
 
@@ -246,6 +246,9 @@ export function BrowseBar({ count, folders, scopeAssets }: { count: number; fold
     return m;
   }, [scopeAssets]);
   const countText = t("header.assets", { count });
+  // `looks:` words in the search or the open smart collection's: what they cover, or why they match nothing.
+  const rule = s.view === "collections" ? s.collections.find((c) => c.id === s.colSel)?.rule : null;
+  const looks = parseQuery(s.query).looks.length > 0 || (!!rule && parseQuery(rule.query).looks.length > 0);
 
   // Screen readers hear the count when the search, chips or filters change, not on every batch a scan adds. During a
   // scan the count is still moving, so they wait for its "Scan finished" message instead.
@@ -262,7 +265,7 @@ export function BrowseBar({ count, folders, scopeAssets }: { count: number; fold
     <>
       <ScopeChips counts={counts} total={scopeAssets.length} className="px-7 pt-3.5 pb-1" />
       {(s.similar || s.filters.color || parseQuery(s.query).colors.length > 0) && <AnalysisNote className="px-7 pt-2 text-xs" />}
-      {s.meaningQuery && <AnalysisNote ns="meaning" className="px-7 pt-2 text-xs" />}
+      {s.meaningQuery ? <AnalysisNote ns="meaning" className="px-7 pt-2 text-xs" /> : looks && <LooksNote className="px-7 pt-2 text-xs" />}
       <div className="flex flex-none flex-wrap items-center gap-2 px-7 pt-2.5 pb-3 whitespace-nowrap">
         <span className="mr-auto text-muted">{s.grouped && folders > 1 ? t("header.assetsInFolders", { assets: countText, count: folders }) : countText}</span>
         <span role="status" className="sr-only">

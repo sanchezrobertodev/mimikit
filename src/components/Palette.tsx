@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, errorText } from "../api";
 import { openUpdates, useAppUpdate } from "../appUpdate";
 import { askPrompt, badWords, topTags } from "../lib/ask";
-import { matchesFilters, matchesQuery, parseQuery, ruleMatcher } from "../lib/filter";
+import { closeLooks, matchesFilters, matchesQuery, parseQuery, ruleMembers } from "../lib/filter";
 import { folderOf, rootLabel } from "../lib/format";
 import { bytes } from "../lib/fmt";
 import { t } from "../lib/i18n";
@@ -82,7 +82,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     setAsking(true);
     setAskError(null);
     try {
-      const { query } = await api.askSearch(askPrompt(topTags(s.assets)), words, s.ai);
+      const { query } = await api.askSearch(askPrompt(topTags(s.assets), meaningReady), words, s.ai);
       const bad = badWords(query);
       // A search the parser would read differently from what Claude meant is shown, never run.
       if (!query) setAskError({ text: t("palette.ask.empty"), settings: false });
@@ -117,6 +117,13 @@ export function Palette({ shown }: { shown?: Asset[] }) {
   useEffect(() => {
     if (wantsColors) void useStore.getState().loadPalettes();
   }, [wantsColors]);
+  // `looks:` words are scored once typing pauses, so the counts are right; closing search lets them go.
+  const looksKey = JSON.stringify(parseQuery(q).looks);
+  useEffect(() => {
+    const id = setTimeout(() => useStore.getState().resolveLooks("search", JSON.parse(looksKey)).catch(() => {}), 300);
+    return () => clearTimeout(id);
+  }, [looksKey]);
+  useEffect(() => () => void useStore.getState().resolveLooks("search", []), []);
 
   const sections = useMemo(() => {
     const out: { title: string; items: Item[] }[] = [];
@@ -126,12 +133,13 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     if (hasQuery) {
       // The library keeps the Filters panel, so the counts and results do too.
       const now = Date.now();
-      const matches = s.assets.filter((a) => matchesQuery(a, parsed, s.notes, s.palettes) && matchesFilters(a, s.filters, now, s.palettes));
-      // With a collection open, the first result searches inside it.
+      const scoring = meaningReady && parsed.looks.some((p) => !s.looks.has(p));
+      const found = s.assets.filter((a) => matchesQuery(a, parsed, s.notes, s.palettes, s.looks) && matchesFilters(a, s.filters, now, s.palettes));
+      const matches = closeLooks(found, parsed.looks, s.looks);
+      // With a collection open, the first result searches inside it: its own closest looks: matches, in its type chips, as it will show.
       const col = s.view === "collections" ? (s.collections.find((c) => c.id === s.colSel) ?? null) : null;
-      const inCol = col
-        ? matches.filter(col.rule ? ruleMatcher(col.rule, s.notes, undefined, s.palettes) : ((ids) => (a: Asset) => ids.has(a.id))(new Set(col.assetIds)))
-        : [];
+      const members = new Set(col?.rule ? ruleMembers(col.rule, s.assets, s.notes, now, s.palettes, s.looks).map((a) => a.id) : col?.assetIds);
+      const inCol = col ? closeLooks(found.filter((a) => members.has(a.id) && (!s.kinds.length || s.kinds.includes(a.kind))), parsed.looks, s.looks) : [];
       // In Duplicates, it keeps the groups that have a matching copy.
       const hits = s.view === "duplicates" && s.dups ? new Set(matches.map((a) => a.id)) : null;
       const inDups = hits ? s.dups!.filter((g) => g.ids.some((id) => hits.has(id))).length : 0;
@@ -158,7 +166,8 @@ export function Palette({ shown }: { shown?: Asset[] }) {
           : []),
         {
           key: "all",
-          label: matches.length === 1 ? t("palette.showMatch") : t("palette.showAll", { count: matches.length }),
+          // Until its looks: words are scored, nothing matches yet; say so rather than "No assets match".
+          ...(scoring ? { label: t("palette.meaning.seeking"), icon: <LoaderCircle aria-hidden className="size-4 animate-spin text-muted" /> } : { label: matches.length === 1 ? t("palette.showMatch") : t("palette.showAll", { count: matches.length }) }),
           sub: q.trim(),
           run: () => {
             s.go("library", { query: q.trim(), kinds: [], folder: null });
@@ -275,6 +284,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       !parsed.tags.length &&
       !parsed.notes.length &&
       !parsed.colors.length &&
+      !parsed.looks.length &&
       parsed.minRating === 0 &&
       parsed.maxRating === 5 &&
       parsed.minMs === null &&
@@ -284,7 +294,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     return out;
     // Only what it reads: the whole store changes on every scan tick, and this searches every asset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, s.assets, s.notes, s.palettes, s.filters, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking]);
+  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.kinds, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking]);
 
   const flat = sections.flatMap((sec) => sec.items);
   const run = (item?: Item) => {

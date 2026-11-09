@@ -26,9 +26,10 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   applies the search to the grid.
 - **Ask** (<kbd>Ctrl/⌘ Enter</kbd> in the search box): describe what you want in plain words and Claude writes the
   search for you, which you see and can change. Needs your own Anthropic API key. See [Ask](#ask).
-- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box): find images by describing them, in any language
-  ("red potion icon", "poción roja"), tagged or not. Runs on your computer after a one-time download, with no account
-  or key. See [Search by meaning](#search-by-meaning).
+- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box, or `looks:red-potion-icon`): find images by
+  describing them, in any language ("red potion icon", "poción roja"), tagged or not, also in smart collections, Ask
+  and AI agents. Runs on your computer after a one-time download, with no account or key. See
+  [Search by meaning](#search-by-meaning).
 - **Side panel** (<kbd>Space</kbd>) and **full screen** (<kbd>Enter</kbd>) previews:
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
     TGA/PSD/TIFF via a decoded preview), and **Animate** to play a sprite sheet with a remembered grid and fps
@@ -209,6 +210,8 @@ model: that part is up to the agent app.
 - "Which sounds would work for a jump? Under a second." `search` with `type:audio dur:<1s`.
 - "What's the license of the Kenney pack?" `read_text` on its LICENSE or readme.
 - "Find more tiles like this one." `similar`, Mimikit's Find similar.
+- "Find a red potion icon and give me its path." With [search by meaning](#search-by-meaning) on, `search` with
+  `type:image looks:red-potion-icon` finds it even when its name and tags don't say so, then `get_assets`.
 - "Copy the five best explosion sprites into my Godot project." The agent picks them with Mimikit, then copies them with
   `copy_to_folder` (Claude Code can also copy by path with its own tools).
 
@@ -224,8 +227,8 @@ With **Allow changes** on:
 
 | Tool | What it does |
 |---|---|
-| `overview` | The library in brief: assets of each type, the folders, the most used tags, the collections, how much of the image analysis is done. Start here. |
-| `search` | The search language (`type:`, `in:`, `#tag`, `size:`, `dur:`, `rating:`, `note:`, `color:`), the Filters panel, a collection, a library folder, favorites, a sort and pages. Short rows. |
+| `overview` | The library in brief: assets of each type, the folders, the most used tags, the collections, how much of the image analysis is done, and whether search by meaning is on. Start here. |
+| `search` | The search language (`type:`, `in:`, `#tag`, `size:`, `dur:`, `rating:`, `note:`, `color:`, `looks:`), the Filters panel, a collection, a library folder, favorites, a sort and pages. Short rows; with `looks:`, best first. |
 | `get_assets` | Full details of up to 50 assets: file path, size, date, pixel size or audio format, tags, rating, note, collections, main colours, sprite-sheet grid. |
 | `similar` | Images that look like one image, closest first. |
 | `view` | Pictures: one numbered contact sheet of up to 16 assets, or up to 4 larger ones. Images, models and videos show their thumbnail, fonts sample letters. |
@@ -248,9 +251,9 @@ minute.
 | `batch` | Up to 20 `tag`, `rate`, `favorite`, `note` and `collect` changes as one step, all checked before any is made. |
 
 An error says what happened and what to do, with a code: `not_running`, `not_allowed`, `no_answer`, `paused`,
-`read_only`, `rate_limited`, `not_found`, `not_an_image`, `not_text`, `unreadable`, `name_taken`, `smart_collection`,
-`not_copied`, `not_a_folder`, `too_many`, `too_large`, `invalid_input`, `unknown_tool`, `refused`, `busy`, `timeout`,
-`lost`, `internal`.
+`read_only`, `rate_limited`, `not_found`, `not_an_image`, `not_text`, `unreadable`, `not_indexed`, `name_taken`,
+`smart_collection`, `not_copied`, `not_a_folder`, `too_many`, `too_large`, `invalid_input`, `unknown_tool`, `refused`,
+`busy`, `timeout`, `lost`, `internal`.
 
 ### What you control
 
@@ -313,6 +316,19 @@ key or connection once the model is downloaded.
   on gives that pack's best forest tiles first.
 - **How many.** The images that score close to the best match, at most 200. While indexing is still going, a note
   says how many images the results cover, and the results grow as it goes.
+- **In the search language.** `looks:` followed by the description, with hyphens for spaces, searches by meaning
+  among whatever the rest of the search matches: `type:image looks:dark-forest-tileset rating:>=4`. It ranks the same
+  way, best first whatever the sort, and works anywhere a search does:
+  - **smart collections**: **Save as smart collection** keeps the `looks:` word, and the collection's members follow
+    the index as it grows;
+  - **[Ask](#ask)**: with search by meaning on, Ask writes `looks:` for requests that describe pictures, so "dark
+    forest tileset I rated highly" becomes `type:image looks:dark-forest-tileset rating:>=4`;
+  - **[AI agents](#ai-agents-mcp)**: `search` takes `looks:` and returns the best matches first, and `overview` says
+    whether search by meaning is on and how much is indexed. Agents get the ranked assets, never the index, and
+    can't turn search by meaning on or start its download.
+
+  With search by meaning off, `looks:` matches nothing, and a note says so with a link to Settings; an agent gets the
+  error `not_indexed`.
 - **Speed and memory.** The first search takes about 2 seconds while the text model loads, later ones about 50 ms. The
   text model takes about 800 MB of memory while loaded and is unloaded after 10 minutes without a search.
 - **Private.** After the download nothing goes online, and nothing about your files leaves the computer. **Delete
@@ -418,8 +434,9 @@ src/agent/tools.test.ts` rewrites it.
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
   scan only when **Keep new and changed images analysed** is on.
 - Search by meaning covers images only (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF and ICO; not SVG),
-  not 3D models, videos, fonts or sounds, and doesn't read text inside pictures. Smart collections, Ask and AI agents
-  can't use it yet, and it doesn't combine with Find similar.
+  not 3D models, videos, fonts or sounds, and doesn't read text inside pictures. It doesn't combine with Find similar.
+  Several `looks:` words in one search each keep their own best matches, so they rarely overlap: one description
+  works better.
 - Search by meaning isn't available on Intel Macs, since Microsoft publishes no ONNX Runtime build for them. On
   Windows it needs Microsoft's Visual C++ runtime; Settings links to it when it's missing.
 - Syntax highlighting for text and code is not built yet.

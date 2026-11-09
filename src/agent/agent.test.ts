@@ -60,6 +60,12 @@ const library: Library = {
   collections,
   notes: { 1: "Used in level 1", 4: ESCAPE },
   analysis: { done: 3, total: 4, running: false, paused: false, keep: false },
+  meaning: { on: true, installed: true, done: 3, total: 4, model: "siglip2-b32-256" },
+};
+// Search by meaning's scores for the indexed images: the coin looks most like a gold coin, the tileset like a stone wall.
+const scores: Record<string, Map<number, number>> = {
+  "gold coin": new Map([[1, 0.16], [4, 0.13], [7, 0.08]]),
+  "stone wall": new Map([[1, 0.02], [4, 0.04], [7, 0.15]]),
 };
 const palettes = new Map([
   [1, toLab([[250, 205, 40, 85], [40, 30, 20, 15]])],
@@ -76,6 +82,7 @@ let pictureCalls: { ids: number[]; layout: string }[] = [];
 const io = (over: Partial<Io> = {}): Io => ({
   library: () => library,
   palettes: async () => palettes,
+  looks: async (phrases) => new Map(phrases.map((p) => [p, scores[p] ?? new Map()])),
   sheet: async (id): Promise<SpriteSheet | null> => (id === 7 ? { cols: 8, rows: 8, fps: 10 } : null),
   similar: async (id) => (id === 1 ? [4, 2, 99] : []),
   text: async (id) => texts[id],
@@ -140,6 +147,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     { id: 2, name: "Coins", smart: true, assets: 2 }, // coin.png and coin_pickup.wav match "coin" now
   ]);
   assert.deepEqual(o.imageAnalysis, { analysed: 3, images: 4 });
+  assert.deepEqual(o.meaningSearch, { on: true, indexed: 3, images: 4, model: "siglip2-b32-256" });
   assert.deepEqual(payload(await call("overview", {})), o, "an empty object is the same as no arguments");
 }
 
@@ -215,6 +223,42 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     payload(await call("search", { filters: { color: "blue" } })).assets.map((a: { id: number }) => a.id),
     [2],
   );
+}
+
+// ---------- search by meaning: looks: ----------
+{
+  const ids = (r: ToolResult) => payload(r).assets.map((a: { id: number }) => a.id);
+  const gold = payload(await call("search", { query: "looks:gold-coin" }));
+  assert.deepEqual(gold.assets.map((a: { id: number }) => a.id), [1, 4], "the close matches, best first");
+  assert.match(gold.note, /3 of 4 images/);
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", sort: "name", desc: true })), [1, 4], "whatever the sort");
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin in:tiles" })), [7], "a folder gets its own best match");
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", filters: { minW: 32 } })), [7]);
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin type:audio" })), []);
+  // The folder argument and favorites inside a collection narrow first too: the tileset is the best in its own folder.
+  const moved = { library: () => ({ ...library, assets: library.assets.map((x) => (x.id === 7 ? { ...x, rootId: 2, favorite: true } : x.id === 1 ? { ...x, favorite: false } : x)) }) };
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", folder: 2 }, moved)), [7]);
+  const faves = { library: () => ({ ...moved.library(), collections: [{ id: 9, name: "Mixed", assetIds: [1, 7], rule: null }] }) };
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", collection: 9, favorites: true }, faves)), [7]);
+  // Smart collections that search by meaning: counted, listed and searched like the others.
+  const walls = { id: 4, name: "Walls", assetIds: [], rule: { query: "looks:stone-wall", filters: {} } };
+  const smart = { library: () => ({ ...library, collections: [...collections, walls] }) };
+  assert.deepEqual(payload(await call("overview", {}, smart)).collections[2], { id: 4, name: "Walls", smart: true, assets: 1 });
+  assert.equal(payload(await call("list_collections", {}, smart)).collections[2].assets, 1);
+  assert.deepEqual(ids(await call("search", { collection: 4 }, smart)), [7]);
+  assert.deepEqual(payload(await call("get_assets", { ids: [7, 1] }, smart)).assets.map((a: { collections: { id: number }[] }) => a.collections.map((c) => c.id)), [[4], [1, 2]]);
+  // Off, or nothing indexed yet: the agent hears why, and what to do.
+  const off = (meaning: Partial<Library["meaning"]>) => ({ library: () => ({ ...library, collections: [...collections, walls], meaning: { ...library.meaning, ...meaning } }) });
+  for (const m of [{ on: false }, { installed: false }, { done: 0 }]) {
+    assert.equal(errorCode(await call("search", { query: "looks:gold-coin" }, off(m))), "not_indexed", JSON.stringify(m));
+    assert.equal(errorCode(await call("search", { collection: 4 }, off(m))), "not_indexed");
+  }
+  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false }))), /Settings › AI features\)\. Meanwhile/);
+  // Only a model that isn't there yet needs the user to start a download.
+  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false, installed: false }))), /downloads a model first/);
+  assert.equal(payload(await call("overview", {}, off({ on: false }))).collections[2].assets, 0);
+  assert.equal(payload(await call("overview", {}, off({ on: false }))).meaningSearch.on, false);
+  assert.equal(payload(await call("search", { query: "coin" }, off({ on: false }))).total, 2, "other searches still work");
 }
 
 // ---------- get_assets ----------

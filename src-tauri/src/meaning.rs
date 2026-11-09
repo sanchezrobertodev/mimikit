@@ -778,6 +778,8 @@ pub struct Status {
     vc_runtime: bool,
     /// Bytes in `models/`, finished or not: what Delete model and index frees besides the index.
     downloaded: u64,
+    /// The model's id, for agents' `overview`.
+    model: &'static str,
 }
 
 static DOWNLOAD: Mutex<Option<Progress>> = Mutex::new(None);
@@ -803,6 +805,7 @@ fn status(conn: &Connection, data_dir: &Path) -> rusqlite::Result<Status> {
             .filter(|m| m.is_file())
             .map(|m| m.len())
             .sum(),
+        model: MODEL,
     })
 }
 
