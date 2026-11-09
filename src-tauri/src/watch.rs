@@ -75,6 +75,7 @@ pub fn start(app: AppHandle, root_id: i64, root: PathBuf) -> Result<Watcher, Str
         };
         let _ = app.emit("assets-changed", root_id);
         crate::analysis::changed(&app, &touched);
+        crate::meaning::changed(&app, &touched);
         // Audio details are read without the lock: an MP3 is read to the end to count its frames.
         if !touched.is_empty()
             && let Err(e) =

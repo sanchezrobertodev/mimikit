@@ -28,7 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { openUpdates, useAppUpdate } from "../appUpdate";
-import { AnalysisProgress } from "./Analysis";
+import { AnalysisProgress, MeaningProgress } from "./Analysis";
 import { TaggingProgress } from "./SuggestTags";
 import { UpdateNotice } from "./AppUpdate";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -198,6 +198,7 @@ export function Sidebar() {
       {rail ? (
         <div className="flex flex-1 flex-col items-center justify-end pb-2">
           <AnalysisProgress compact />
+          <MeaningProgress compact />
           <TaggingProgress compact />
         </div>
       ) : (
@@ -242,6 +243,7 @@ export function Sidebar() {
 
           <div className="flex flex-none flex-col gap-2 px-3 pt-4 pb-3">
             <AnalysisProgress />
+            <MeaningProgress />
             <TaggingProgress />
             <UpdateNotice />
             <div className="flex min-w-0 flex-col gap-0.5 text-xs">

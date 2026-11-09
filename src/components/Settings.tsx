@@ -4,7 +4,7 @@ import { Check, ExternalLink, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { useAgents } from "../agent/bridge";
 import { agentName } from "../agent/run";
-import { api } from "../api";
+import { api, errorText } from "../api";
 import { useAppUpdate } from "../appUpdate";
 import { baseName } from "../lib/format";
 import { ago, bytes } from "../lib/fmt";
@@ -275,6 +275,7 @@ export function SettingsDialog() {
       </Section>
       <Section title={t("settings.sections.ai")}>
         <ApiKey />
+        <MeaningSearch />
       </Section>
       <Section title={t("settings.sections.backups")}>
         <Backups />
@@ -392,8 +393,8 @@ function IgnoredFolders() {
  * threads); real textures decode slower and smaller CPUs get fewer workers. */
 const PER_SECOND = 150;
 
-function duration(images: number) {
-  const min = Math.round(images / PER_SECOND / 60);
+function duration(images: number, perSecond = PER_SECOND) {
+  const min = Math.round(images / perSecond / 60);
   if (min < 1) return t("settings.analysis.underMinute");
   if (min < 90) return t("settings.analysis.minutes", { count: min });
   return t("settings.analysis.hours", { count: Math.round(min / 60) });
@@ -769,6 +770,179 @@ function RemoveAiTags() {
         )}
       </div>
     </Row>
+  );
+}
+
+// Images a second while indexing for search by meaning: a guess between this machine's 2- and 4-thread speeds
+// (21 to 30 a second) and a slower laptop. shortcut: a fixed estimate; time the first batch if it's often far off.
+const MEANING_PER_SECOND = 20;
+// Index bytes per image: 768 int8 values, a scale and the row.
+const INDEX_BYTES = 800;
+
+/** Settings › AI features › Search by meaning: the switch, the download's consent panel, progress, and Delete. */
+function MeaningSearch() {
+  const m = useStore((s) => s.meaning);
+  const [ask, setAsk] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const deleteButton = useRef<HTMLButtonElement>(null);
+  const focusSwitch = () => requestAnimationFrame(() => wrap.current?.querySelector<HTMLElement>("[role=switch]")?.focus());
+  const run = (p: Promise<unknown>) => void p.catch(useStore.getState().setError);
+  const label = t("meaning.settings.title");
+  if (!m.files.length) return <Row label={label} hint={t("meaning.settings.unavailable")} />;
+
+  const download = m.files.reduce((n, f) => n + f.size, 0);
+  // Also a cancelled download's files, which can be hundreds of MB.
+  const freed = m.downloaded + m.done * INDEX_BYTES;
+  const left = m.total - m.done;
+  const mono = [<span className="font-mono" />];
+  const toggle = (on: boolean) => {
+    if (!on) run(api.meaningDisable(false));
+    else if (m.installed) run(api.meaningEnable());
+    else setAsk(true);
+  };
+  const closeAsk = () => {
+    setAsk(false);
+    focusSwitch();
+  };
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await api.meaningDisable(true);
+      useStore.getState().showToast(t("meaning.settings.deleted"));
+      setConfirmDelete(false);
+      focusSwitch();
+    } catch (e) {
+      useStore.getState().setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const needsVc = !m.vcRuntime && !m.on;
+  let hint: ReactNode = t("meaning.settings.hint");
+  if (needsVc) hint = t("meaning.settings.needsVc");
+  else if (!m.on && m.installed) hint = `${t("meaning.settings.hint")} ${t("meaning.settings.offInstalled")}`;
+  else if (m.on && m.download)
+    hint = <T k="meaning.settings.downloading" vars={{ done: bytes(m.download.done), total: bytes(m.download.total) }} tags={mono} />;
+  else if (m.on && m.error) hint = <span className="text-danger">{errorText(m.error)}</span>;
+  else if (m.on && !m.installed) hint = t("meaning.settings.notDownloaded");
+  else if (m.on)
+    hint = (
+      <>
+        <T k="meaning.settings.progress" vars={{ done: m.done, count: m.total }} tags={mono} />{" "}
+        {left > 0 && !m.running
+          ? t("meaning.settings.remaining", { count: left, time: duration(left, MEANING_PER_SECOND) })
+          : t("meaning.settings.asYouGo")}
+      </>
+    );
+  // Starts the pass again: after an error, a cancelled download or a cancelled pass.
+  const again = m.on && !m.running && (m.error || !m.installed || left > 0);
+
+  return (
+    <div ref={wrap} className="flex flex-col">
+      <Row label={label} hint={hint}>
+        <div className="flex flex-none items-center gap-2">
+          {/* A download can't pause; Cancel keeps what came, and the next one goes on from there. */}
+          {m.running && !m.download && (
+            <Button size="sm" onClick={() => run(api.pauseMeaning(!m.paused))}>
+              {m.paused ? t("meaning.settings.resume") : t("meaning.settings.pause")}
+            </Button>
+          )}
+          {m.running && (
+            <Button
+              size="sm"
+              onClick={() => {
+                // Cancel goes away; keep focus nearby.
+                focusSwitch();
+                run(api.cancelMeaning());
+              }}
+            >
+              {t("settings.cancel")}
+            </Button>
+          )}
+          {again && (
+            <Button size="sm" onClick={() => run(api.meaningEnable())}>
+              {m.error ? t("meaning.settings.retry") : m.installed ? t("meaning.settings.index") : t("meaning.settings.download")}
+            </Button>
+          )}
+          {needsVc ? <Link to="vc-redist">{t("meaning.settings.vcLink")}</Link> : <Switch label={label} on={m.on || ask} onChange={toggle} />}
+        </div>
+      </Row>
+      {ask && !m.on && (
+        <div role="group" aria-labelledby="meaning-consent" className="mb-2 flex flex-col gap-2 rounded-lg border border-line-soft p-3 text-xs text-muted">
+          <p id="meaning-consent" className="text-fg">
+            {t("meaning.settings.consent", { size: bytes(download) })}
+          </p>
+          <div id="meaning-consent-details" className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-0.5">
+              {m.files.map((f) => (
+                <li key={f.name} className="flex gap-3">
+                  <span className="min-w-0 flex-1 truncate font-mono">{f.name}</span>
+                  <span>{t(`meaning.settings.${f.source}`)}</span>
+                  <span className="w-16 text-right font-mono">{bytes(f.size)}</span>
+                </li>
+              ))}
+              <li className="flex gap-3 border-t border-line-soft pt-0.5 text-fg">
+                <span className="flex-1">{t("meaning.settings.total")}</span>
+                <span className="w-16 text-right font-mono">{bytes(download)}</span>
+              </li>
+            </ul>
+            <p>{t("meaning.settings.licences")}</p>
+            <p>{t("meaning.settings.disk", { size: bytes(m.total * INDEX_BYTES) })}</p>
+            {m.total > 0 && <p>{t("meaning.settings.time", { count: m.total, time: duration(m.total, MEANING_PER_SECOND) })}</p>}
+            <p className="text-fg">{t("meaning.settings.promise")}</p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" onClick={closeAsk}>
+              {t("settings.cancel")}
+            </Button>
+            <Button
+              size="sm"
+              variant="accent"
+              autoFocus
+              aria-describedby="meaning-consent-details"
+              onClick={() => {
+                closeAsk();
+                run(api.meaningEnable());
+              }}
+            >
+              {t("meaning.settings.download")}
+            </Button>
+          </div>
+        </div>
+      )}
+      {/* Not while downloading: the download would write on. */}
+      {freed > 0 && !ask && !m.download && (
+        <Row
+          label={t("meaning.settings.delete")}
+          hint={confirmDelete ? t("meaning.settings.deleteConfirm", { size: bytes(freed) }) : t("meaning.settings.deleteHint", { size: bytes(freed) })}
+        >
+          {confirmDelete ? (
+            <div className="flex flex-none gap-2">
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmDelete(false);
+                  requestAnimationFrame(() => deleteButton.current?.focus());
+                }}
+              >
+                {t("settings.cancel")}
+              </Button>
+              <Button size="sm" variant="danger" disabled={busy} autoFocus onClick={() => void remove()}>
+                {t("meaning.settings.deleteButton")}
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" ref={deleteButton} onClick={() => setConfirmDelete(true)}>
+              {t("meaning.settings.deleteButton")}
+            </Button>
+          )}
+        </Row>
+      )}
+    </div>
   );
 }
 

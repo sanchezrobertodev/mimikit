@@ -81,6 +81,30 @@ export interface AnalysisStatus {
   keep: boolean;
 }
 
+/** Search by meaning: the offline model's download and the index of images it can search. */
+export interface MeaningStatus {
+  /** Images indexed, including ones that couldn't be read. */
+  done: number;
+  /** Images that can be indexed. */
+  total: number;
+  /** A pass with a progress line is running (downloading or indexing). */
+  running: boolean;
+  paused: boolean;
+  on: boolean;
+  /** The model and runtime are downloaded and checked. */
+  installed: boolean;
+  /** Bytes downloaded so far, while downloading. */
+  download: { done: number; total: number } | null;
+  /** Why the last pass stopped, if it failed. */
+  error: string | null;
+  /** What turning it on downloads; empty where search by meaning isn't available. */
+  files: { name: string; size: number; source: "huggingface" | "github" }[];
+  /** False on Windows without the Visual C++ runtime ONNX Runtime needs. */
+  vcRuntime: boolean;
+  /** Bytes downloaded so far, finished files or not. */
+  downloaded: number;
+}
+
 export interface ScanProgress {
   rootId: number;
   count: number;

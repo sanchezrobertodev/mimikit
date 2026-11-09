@@ -9,7 +9,7 @@ import type { AssetsDelta } from "./lib/delta";
 import { t, translateError } from "./lib/i18n";
 import type { AiPrefs } from "./lib/prefs";
 import type { TaggingStatus, TagModel } from "./lib/tagging";
-import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, Notes, Root, ScanProgress, SpriteSheet, TextPreview } from "./types";
+import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, MeaningStatus, Notes, Root, ScanProgress, SpriteSheet, TextPreview } from "./types";
 
 export interface AppUpdate {
   version: string;
@@ -74,6 +74,16 @@ export const api = {
   /** Stops the pass; what it analysed so far is kept. */
   cancelAnalysis: () => invoke<void>("cancel_analysis"),
   setKeepAnalysed: (on: boolean) => invoke<void>("set_keep_analysed", { on }),
+  meaningStatus: () => invoke<MeaningStatus>("meaning_status"),
+  /** Turns search by meaning on: downloads what's missing, then indexes every image; progress comes with onMeaningStatus. */
+  meaningEnable: () => invoke<void>("meaning_enable"),
+  pauseMeaning: (paused: boolean) => invoke<void>("meaning_pause", { paused }),
+  /** Stops the download or the pass; what's downloaded and indexed so far is kept. */
+  cancelMeaning: () => invoke<void>("meaning_cancel"),
+  /** Turns it off; `deleteFiles` also deletes the model and the index. */
+  meaningDisable: (deleteFiles: boolean) => invoke<void>("meaning_disable", { delete: deleteFiles }),
+  /** Every indexed image's score for `text`: little-endian pairs of an i32 id and an f32 score. */
+  meaningScores: (text: string) => invoke<ArrayBuffer>("meaning_scores", { text }),
   setDuplicateIgnored: (hash: string, ignored: boolean) => invoke<void>("set_duplicate_ignored", { hash, ignored }),
   trashDuplicates: (keep: number, remove: number[]) => invoke<number>("trash_duplicates", { keep, remove }),
   reveal: (id: number) => invoke<void>("reveal", { id }),
@@ -105,7 +115,7 @@ export const api = {
     });
     return typeof picked === "string" ? picked : null;
   },
-  openLink: (link: "releases" | "source" | "ko-fi" | "anthropic-keys") => invoke<void>("open_link", { link }),
+  openLink: (link: "releases" | "source" | "ko-fi" | "anthropic-keys" | "vc-redist") => invoke<void>("open_link", { link }),
   /** Whether an Anthropic API key is stored. The key itself never comes to the window. */
   apiKeyStatus: () => invoke<boolean>("api_key_status"),
   setApiKey: (key: string) => invoke<void>("set_api_key", { key }),
@@ -140,6 +150,7 @@ export const api = {
   onImageFeatures: (cb: (colors: [number, Swatch[]][]) => void): Promise<UnlistenFn> =>
     listen<[number, Swatch[]][]>("image-features", (e) => cb(e.payload)),
   onAnalysisStatus: (cb: (s: AnalysisStatus) => void): Promise<UnlistenFn> => listen<AnalysisStatus>("analysis-status", (e) => cb(e.payload)),
+  onMeaningStatus: (cb: (s: MeaningStatus) => void): Promise<UnlistenFn> => listen<MeaningStatus>("meaning-status", (e) => cb(e.payload)),
   onTaggingStatus: (cb: (s: TaggingStatus) => void): Promise<UnlistenFn> => listen<TaggingStatus>("tagging-status", (e) => cb(e.payload)),
   /** Requests finished so far in a Suggest tags run sent right away. */
   onTaggingDirect: (cb: (done: number) => void): Promise<UnlistenFn> => listen<number>("tagging-direct", (e) => cb(e.payload)),

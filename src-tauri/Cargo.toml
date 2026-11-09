@@ -49,10 +49,16 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "rus
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
 # Pictures in Suggest tags' requests (tagging.rs). Already in the build through Tauri.
 base64 = "0.22"
+# Search by meaning (meaning.rs): ONNX Runtime, loaded at run time from the library downloaded with the model, so the
+# installer doesn't grow and nothing is downloaded at build time. A release candidate, so the version is pinned.
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-17"] }
+# The downloaded model and runtime files are checked against hashes in meaning.rs. Already in the build through Tauri.
+sha2 = "0.10"
 
-# Whether an agent's relay is still running (bridge.rs `relays_alive`). Both were already in the build through Tauri.
+# Whether an agent's relay is still running (bridge.rs `relays_alive`), and whether the Visual C++ runtime ONNX Runtime
+# needs is installed (meaning.rs `vc_runtime`). Both were already in the build through Tauri.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_LibraryLoader", "Win32_System_Threading"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

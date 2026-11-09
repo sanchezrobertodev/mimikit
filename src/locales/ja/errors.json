@@ -37,5 +37,11 @@
   "aiKeyStore": "システムの資格情報ストアを使えませんでした：{{error}}",
   "aiError": "Anthropic がエラーを返しました：{{error}}",
   "tagNothing": "タグを付けるものがありません。",
-  "tagPromptTooLong": "タグ付けの指示が長すぎます。"
+  "tagPromptTooLong": "タグ付けの指示が長すぎます。",
+  "meaningOff": "意味で検索がオンになっていません。設定 › AI 機能でオンにしてください。",
+  "meaningUnsupported": "意味で検索はこのコンピューターではまだ使えません。",
+  "meaningOffline": "意味で検索のファイルをダウンロードできませんでした。インターネット接続を確認して、もう一度お試しください。",
+  "meaningDamaged": "意味で検索用にダウンロードしたファイルが壊れていたため、削除しました。もう一度お試しください。",
+  "meaningStart": "意味で検索を開始できませんでした：{{error}}",
+  "meaningVcRuntime": "意味で検索には Microsoft の Visual C++ ランタイムが必要です。インストールしてから、もう一度お試しください。"
 }

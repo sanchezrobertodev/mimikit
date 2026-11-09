@@ -21,6 +21,7 @@ import type fullView from "../locales/en/fullView.json";
 import type header from "../locales/en/header.json";
 import type homeView from "../locales/en/homeView.json";
 import type insightsView from "../locales/en/insightsView.json";
+import type meaning from "../locales/en/meaning.json";
 import type modelView from "../locales/en/modelView.json";
 import type palette from "../locales/en/palette.json";
 import type peek from "../locales/en/peek.json";
@@ -53,6 +54,7 @@ interface Resources {
   header: typeof header;
   homeView: typeof homeView;
   insightsView: typeof insightsView;
+  meaning: typeof meaning;
   modelView: typeof modelView;
   palette: typeof palette;
   peek: typeof peek;
