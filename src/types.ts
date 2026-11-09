@@ -103,6 +103,8 @@ export interface MeaningStatus {
   vcRuntime: boolean;
   /** Bytes downloaded so far, finished files or not. */
   downloaded: number;
+  /** The model's id, e.g. "siglip2-b32-256". */
+  model: string;
 }
 
 export interface ScanProgress {

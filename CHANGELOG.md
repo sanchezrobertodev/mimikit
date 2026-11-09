@@ -14,6 +14,10 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   Search by meaning (offline)**, which lists the one-time download first (Google's SigLIP 2 model and Microsoft's
   ONNX Runtime, about 810 MB), then indexes your images in the background with Pause and Cancel. After that nothing
   goes online. **Delete model and index** frees the space. See the README for what it covers.
+- `looks:red-potion-icon` in the search language searches by meaning too, with hyphens for spaces, so it combines with
+  the other search words and works in smart collections, in Ask (which writes it for requests that describe pictures,
+  once search by meaning is on) and for AI agents (`search` returns the best matches first, `overview` says whether
+  it's on, and the error `not_indexed` says when it isn't).
 
 ## [0.11.0] - 2026-11-06
 

@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { ArrowRight, Copy, Folder, ImageOff, LayoutGrid, Search, Sparkles, Tag, Unplug, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import changelog from "../../CHANGELOG.md?raw";
-import { rulesWantColors, smartMembers } from "../lib/filter";
+import { ruleLooks, rulesWantColors, smartMembers } from "../lib/filter";
 import { baseName, rootLabel } from "../lib/format";
 import { ago, bytes, kindLabel, num } from "../lib/fmt";
 import { t } from "../lib/i18n";
@@ -117,7 +117,8 @@ export function HomeView() {
   // Only the four collections shown; colours only when a rule needs them, as in the sidebar.
   const shown = useMemo(() => s.collections.slice(0, 4), [s.collections]);
   const palettes = rulesWantColors(shown) ? s.palettes : null;
-  const smart = useMemo(() => smartMembers(shown, s.assets, s.notes, palettes), [shown, s.assets, s.notes, palettes]);
+  const looks = ruleLooks(shown).length ? s.looks : null;
+  const smart = useMemo(() => smartMembers(shown, s.assets, s.notes, palettes, looks), [shown, s.assets, s.notes, palettes, looks]);
   const byId = useMemo(() => new Map(s.assets.map((a) => [a.id, a])), [s.assets]);
   // A folder emptied or deleted since it was opened isn't worth going back to.
   const folders = s.recentFolders

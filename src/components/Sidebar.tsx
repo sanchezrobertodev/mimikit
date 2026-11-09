@@ -33,7 +33,7 @@ import { TaggingProgress } from "./SuggestTags";
 import { UpdateNotice } from "./AppUpdate";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { rulesWantColors, smartMembers } from "../lib/filter";
+import { ruleLooks, rulesWantColors, smartMembers } from "../lib/filter";
 import { treeFor, type FolderNode } from "../lib/folders";
 import { baseName, rootLabel } from "../lib/format";
 import { bytes, kindLabel, num } from "../lib/fmt";
@@ -143,7 +143,8 @@ export function Sidebar() {
   }, [s.assets]);
   // Colours only matter to a colour rule; otherwise each batch of analysed images would recount every collection.
   const palettes = rulesWantColors(s.collections) ? s.palettes : null;
-  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes), [s.collections, s.assets, s.notes, palettes]);
+  const looks = ruleLooks(s.collections).length ? s.looks : null;
+  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks), [s.collections, s.assets, s.notes, palettes, looks]);
 
   const nav: { view: ViewName; label: string; icon: LucideIcon; count?: number; badge?: number }[] = [
     { view: "home", label: t("sidebar.home"), icon: House },

@@ -20,6 +20,7 @@
   "indexingNow": "Indexando ahora…",
   "resumeIndexing": "Reanudar la indexación",
   "indexNow": "Indexar el resto",
+  "looksOff": "La búsqueda por significado no está activada, así que las palabras {{word}} no encuentran nada. Actívala en Configuración › Funciones de IA.",
   "settings": {
     "title": "Búsqueda por significado (sin conexión)",
     "hint": "Encuentra imágenes describiéndolas, en cualquier idioma. Funciona en este equipo tras una única descarga.",

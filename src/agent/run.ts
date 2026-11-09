@@ -8,8 +8,8 @@
 // library. Each call is checked against its schema and limited in ids, pictures and size.
 import { NAMED_COLORS } from "../lib/colors.ts";
 import { folderOf } from "../lib/format.ts";
-import { noFilters, parseQuery, rulesWantColors, smartMembers, visibleAssets, type Filters, type Palettes } from "../lib/filter.ts";
-import type { AnalysisStatus, Asset, Collection, CollectionRule, Notes, Root, SpriteSheet, TextPreview } from "../types";
+import { noFilters, parseQuery, ruleLooks, rulesWantColors, smartMembers, visibleAssets, type Filters, type Looks, type Palettes } from "../lib/filter.ts";
+import type { AnalysisStatus, Asset, Collection, CollectionRule, MeaningStatus, Notes, Root, SpriteSheet, TextPreview } from "../types";
 import { isChange, LIMITS, TOOLS, type Schema } from "./tools.ts";
 
 export type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
@@ -25,6 +25,7 @@ export interface Library {
   collections: Collection[];
   notes: Notes;
   analysis: AnalysisStatus;
+  meaning: Pick<MeaningStatus, "on" | "installed" | "done" | "total" | "model">;
 }
 
 /** What the tools read, from the window's store and the backend. */
@@ -32,6 +33,8 @@ export interface Io {
   library: () => Library;
   /** Main colours by image id, loaded the first time they're asked for. */
   palettes: () => Promise<Palettes | null>;
+  /** Search by meaning's scores for `looks:` phrases, while it's on. */
+  looks: (phrases: string[]) => Promise<Looks>;
   sheet: (id: number) => Promise<SpriteSheet | null>;
   similar: (id: number, maxDistance: number) => Promise<number[]>;
   text: (id: number) => Promise<TextPreview>;
@@ -155,11 +158,26 @@ function tagCounts(assets: Asset[]) {
   return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([tag, count]) => ({ tag, count }));
 }
 
-/** Notes for the agent when an answer only covers analysed images. */
-function analysedNote(lib: Library, what: string) {
-  const left = lib.analysis.total - lib.analysis.done;
-  return left > 0 ? { note: `${what} only covers the ${lib.analysis.done} of ${lib.analysis.total} images Mimikit has analysed so far.` } : {};
-}
+/** What an answer covers when it depends on the images analysed (or indexed) so far; empty once all are. */
+const covers = (p: { done: number; total: number }, what: string, verb = "analysed") =>
+  p.total > p.done ? `${what} only covers the ${p.done} of ${p.total} images Mimikit has ${verb} so far.` : "";
+/** Those notes for the agent, as one. */
+const noted = (...notes: string[]) => {
+  const note = notes.filter(Boolean).join(" ");
+  return note ? { note } : {};
+};
+
+/** Search by meaning can score `looks:` phrases: it's on, downloaded and has indexed something. */
+const canLook = (lib: Library) => lib.meaning.on && lib.meaning.installed && lib.meaning.done > 0;
+const notIndexed = (lib: Library) =>
+  lib.meaning.on
+    ? errorResult("not_indexed", "Search by meaning is still being set up in Mimikit: its model is downloading or no images are indexed yet, so looks: can't match anything.", "Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, search without looks:.")
+    : errorResult("not_indexed", "Search by meaning isn't on in Mimikit, so looks: can't match anything.", "Ask the user to turn on Search by meaning in Mimikit (Settings › AI features); it downloads a model first, which only the user can start. Meanwhile, search without looks:.");
+/** Scores for the smart collections' `looks:` phrases; without search by meaning those collections have no members. */
+const ruleScores = (lib: Library, io: Io) => {
+  const phrases = ruleLooks(lib.collections);
+  return phrases.length && canLook(lib) ? io.looks(phrases) : null;
+};
 
 type Args = Record<string, unknown>;
 
@@ -447,7 +465,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     const lib = io.library();
     const byType: Record<string, number> = {};
     for (const a of lib.assets) byType[a.kind] = (byType[a.kind] ?? 0) + 1;
-    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null);
+    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null, await ruleScores(lib, io));
     const tags = tagCounts(lib.assets);
     return data({
       assets: lib.assets.length,
@@ -460,6 +478,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       collections: lib.collections.slice(0, 50).map((c) => ({ id: c.id, name: c.name, smart: !!c.rule, assets: members.get(c.id)?.length ?? c.assetIds.length })),
       ...(lib.collections.length > 50 ? { collectionsTotal: lib.collections.length } : {}),
       imageAnalysis: { analysed: lib.analysis.done, images: lib.analysis.total },
+      meaningSearch: { on: lib.meaning.on && lib.meaning.installed, indexed: lib.meaning.done, images: lib.meaning.total, model: lib.meaning.model },
     });
   },
 
@@ -472,8 +491,11 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     if (a.folder !== undefined && !lib.roots.some((r) => r.id === a.folder)) return errorResult("not_found", "There is no library folder with that id.", "Use overview for the ids.");
     const colors = !!filters.color || parseQuery(query).colors.length > 0;
     const palettes = colors || (collection && rulesWantColors([collection])) ? await io.palettes() : null;
+    const phrases = [...parseQuery(query).looks, ...(collection ? ruleLooks([collection]) : [])];
+    if (phrases.length && !canLook(lib)) return notIndexed(lib);
+    const looks = phrases.length ? await io.looks(phrases) : null;
     const sort = { key: (a.sort as "name") ?? "name", desc: a.desc === true };
-    const scope = { kinds: [], folder: null, subfolders: true, query, filters, collection, notes: lib.notes, palettes };
+    const scope = { kinds: [], folder: null, subfolders: true, query, filters, collection, notes: lib.notes, palettes, looks };
     let list = visibleAssets(lib.assets, { ...scope, view: collection ? "collections" : a.favorites ? "favorites" : "library" }, sort);
     // visibleAssets narrows a collection by neither favorites nor a folder.
     if (collection && a.favorites) list = list.filter((x) => x.favorite);
@@ -486,7 +508,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       offset,
       ...(offset + limit < list.length ? { nextOffset: offset + limit } : {}),
       assets: list.slice(offset, offset + limit).map((x) => row(x, names)),
-      ...(colors ? analysedNote(lib, "Colour search") : {}),
+      ...noted(colors ? covers(lib.analysis, "Colour search") : "", phrases.length ? covers(lib.meaning, "looks:", "indexed for search by meaning") : ""),
     });
   },
 
@@ -497,7 +519,8 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     const images = found.filter((x) => x.kind === "image");
     const palettes = images.length ? await io.palettes() : null;
     const sheets = new Map(await Promise.all(images.map(async (x) => [x.id, await io.sheet(x.id).catch(() => null)] as const)));
-    const smart = smartMembers(lib.collections, found, lib.notes, palettes);
+    // Over the whole library: a `looks:` collection keeps the best matches among everything its search matches.
+    const smart = smartMembers(lib.collections, lib.assets, lib.notes, palettes, await ruleScores(lib, io));
     const names = rootNames(lib.roots);
     return data({
       assets: found.map((x) => {
@@ -542,7 +565,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       of: row(target, names),
       total: found.length,
       assets: found.slice(0, (a.limit as number | undefined) ?? 30).map((x) => row(x, names)),
-      ...analysedNote(lib, "similar"),
+      ...noted(covers(lib.analysis, "similar")),
     });
   },
 
@@ -565,7 +588,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
 
   list_collections: async (_, io) => {
     const lib = io.library();
-    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null);
+    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null, await ruleScores(lib, io));
     return data({
       collections: lib.collections.map((c) => ({
         id: c.id,

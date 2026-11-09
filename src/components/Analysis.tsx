@@ -113,6 +113,20 @@ function PassProgress({
   );
 }
 
+/** Where `looks:` words search: what the results cover, or that search by meaning is off, so they match nothing. */
+export function LooksNote({ className }: { className?: string }) {
+  const m = useStore((s) => s.meaning);
+  if (m.on) return <AnalysisNote ns="meaning" className={className} />;
+  return (
+    <div className={clsx("flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-muted", className)}>
+      <span>{t("meaning.looksOff", { word: "looks:" })}</span>
+      <button type="button" onClick={() => useStore.getState().setModal("settings")} className="font-semibold text-accent hover:underline">
+        {t("palette.ask.openSettings")}
+      </button>
+    </div>
+  );
+}
+
 const NOTE = {
   analysis: { now: "analysis.analysingNow", resume: "analysis.resumeAnalysis", start: "analysis.analyseNow", pause: pauseAnalysis, run: analyse },
   meaning: { now: "meaning.indexingNow", resume: "meaning.resumeIndexing", start: "meaning.indexNow", pause: pauseMeaning, run: () => run(api.meaningEnable()) },

@@ -72,7 +72,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: "overview",
     description:
-      "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, and how much of the image analysis (colour search, similar) is done.",
+      "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:) is on and how many images it has indexed.",
     inputSchema: object(),
     annotations: read("Library overview"),
   },
@@ -90,6 +90,7 @@ export const TOOLS: ToolDef[] = [
       "- `rating:>=4`, `rating:3`",
       "- `note:redo` the user's note on the asset contains this",
       "- `color:red`, `color:#ff8800` a main colour of the image (analysed images only)",
+      "- `looks:red-potion-icon` images that show this, judged from the pictures themselves, so untagged images with unhelpful names are found too (Mimikit's search by meaning, indexed images only): a description with its words joined by hyphens, in any language. Only the closest matches are kept, and rows come best first whatever the sort. Needs search by meaning on (overview's meaningSearch); otherwise the error is not_indexed.",
     ].join("\n"),
     inputSchema: object({
       query: { type: "string", maxLength: 500, description: "Words in the search language above. Empty or left out: everything." },

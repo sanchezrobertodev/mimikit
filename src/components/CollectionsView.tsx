@@ -1,11 +1,12 @@
 import clsx from "clsx";
 import { Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { activeFilterCount, noFilters, rulesWantColors, smartMembers, type Group } from "../lib/filter";
+import { activeFilterCount, noFilters, parseQuery, ruleLooks, rulesWantColors, smartMembers, type Group } from "../lib/filter";
 import { bytes } from "../lib/fmt";
 import { t } from "../lib/i18n";
 import { useStore } from "../store";
 import type { Asset } from "../types";
+import { LooksNote } from "./Analysis";
 import { AssetBrowser } from "./AssetBrowser";
 import { BrowseBar } from "./Header";
 import { Thumb } from "./Thumb";
@@ -17,7 +18,8 @@ export function CollectionsView({ items, groups, scopeAssets }: { items: Asset[]
   const byId = useMemo(() => new Map(s.assets.map((a) => [a.id, a])), [s.assets]);
   // Colours only matter to a colour rule; otherwise each batch of analysed images would recount every collection.
   const palettes = rulesWantColors(s.collections) ? s.palettes : null;
-  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes), [s.collections, s.assets, s.notes, palettes]);
+  const looks = ruleLooks(s.collections).length ? s.looks : null;
+  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks), [s.collections, s.assets, s.notes, palettes, looks]);
   const searching = s.query.trim() !== "" || s.kinds.length > 0 || activeFilterCount(s.filters) > 0;
   const current = s.collections.find((c) => c.id === s.colSel) ?? null;
   const all = current ? (smart.get(current.id) ?? current.assetIds.map((id) => byId.get(id)).filter((a): a is Asset => !!a)) : [];
@@ -179,7 +181,9 @@ export function CollectionsView({ items, groups, scopeAssets }: { items: Asset[]
                 <Button onClick={s.clearFilters}>{t("collectionsView.noMatch.clear")}</Button>
               </Hint>
             ) : current.rule ? (
-              <Hint title={t("collectionsView.smartEmpty.title")} body={t("collectionsView.smartEmpty.body")} />
+              <Hint title={t("collectionsView.smartEmpty.title")} body={t("collectionsView.smartEmpty.body")}>
+                {parseQuery(current.rule.query).looks.length > 0 && <LooksNote className="justify-center" />}
+              </Hint>
             ) : (
               <Hint title={t("collectionsView.empty.title")} body={t("collectionsView.empty.body")} />
             )}

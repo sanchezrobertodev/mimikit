@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { api, errorText } from "./api";
 import { toLab, type LabSwatch, type Swatch } from "./lib/colors";
 import { applyDeltas, deltasAfter, type AssetsDelta } from "./lib/delta";
-import { noFilters, parseQuery, ruleMatcher, type Filters } from "./lib/filter";
+import { noFilters, parseQuery, ruleMembers, type Filters, type Looks } from "./lib/filter";
 import { ancestorKeys } from "./lib/folders";
 import { t, type TKey, type Vars } from "./lib/i18n";
 import { latestRequest } from "./lib/latest";
@@ -80,6 +80,8 @@ interface State extends Prefs {
   similar: { id: number; name: string; max: number; ids: number[] } | null;
   /** Search by meaning: images that show `text`, with every indexed image's score (cosine) by id. */
   meaningQuery: { text: string; scores: ReadonlyMap<number, number> } | null;
+  /** Search by meaning's scores for the `looks:` phrases being searched for, by phrase (see resolveLooks). */
+  looks: Looks;
   /** Assets an AI agent showed the user (its `show` tool), in its order, and the agent app's name. */
   shown: { ids: number[]; by: string } | null;
 
@@ -166,6 +168,12 @@ interface State extends Prefs {
   /** Drops a search by meaning started from search that hasn't opened yet, when search closes first; true if one was. */
   dropMeaningOpening: () => boolean;
   clearMeaning: () => void;
+  /**
+   * The `looks:` phrases one part of the window (`by`: the library, search or agents) searches for: scores those not
+   * scored yet into `looks`, which keeps only phrases some part wants, and returns the scores of `phrases`. Scores
+   * nothing while search by meaning is off.
+   */
+  resolveLooks: (by: string, phrases: string[]) => Promise<Looks>;
   /** Opens the library on just these assets, for an agent's `show`. */
   showAssets: (ids: number[], by: string) => void;
 }
@@ -205,6 +213,20 @@ const noMeaning = () => {
   meaningOpening = null;
   return { meaningQuery: null };
 };
+/** Scores by image id, from meaning_scores' pairs of id (i32) and score (f32). */
+const scoresOf = (buf: ArrayBuffer) => {
+  const view = new DataView(buf);
+  const scores = new Map<number, number>();
+  for (let i = 0; i + 8 <= buf.byteLength; i += 8) scores.set(view.getInt32(i, true), view.getFloat32(i + 4, true));
+  return scores;
+};
+/** The `looks:` phrases each part of the window searches for (resolveLooks). */
+const looksWanted = new Map<string, string[]>();
+const wantedLooks = () => new Set([...looksWanted.values()].flat());
+/** `looks:` phrases being scored. Replaced when the scores go stale, so answers already on their way aren't kept. */
+let looksAsked = new Map<string, Promise<Map<number, number>>>();
+/** `looks:` phrases are scored again as the index grows, at most every 2 s, like search by meaning (meaningAsk). */
+let looksAgain: ReturnType<typeof setTimeout> | null = null;
 /** Ends "Find similar" and search by meaning, including a request still on its way, and an agent's `show`. */
 const noSimilar = () => {
   similarAsk.cancel();
@@ -243,6 +265,24 @@ export const useStore = create<State>((set, get, store) => {
       expanded: new Set([...expanded, ...ancestorKeys(f).slice(0, -1)]),
       recentFolders: [f, ...recentFolders.filter((x) => !same(x))].slice(0, 6),
     };
+  };
+  /** Scores a `looks:` phrase once, however many ask; `looks` keeps the answer while some part of the window wants it. */
+  const askLook = (phrase: string) => {
+    const asked = looksAsked;
+    const had = asked.get(phrase);
+    if (had) return had;
+    const run = api.meaningScores(phrase).then(scoresOf);
+    asked.set(phrase, run);
+    run.then(
+      (scores) => {
+        if (asked !== looksAsked) return;
+        asked.delete(phrase);
+        const wanted = wantedLooks();
+        set((s) => ({ looks: new Map([...s.looks, [phrase, scores] as const].filter(([p]) => wanted.has(p))) }));
+      },
+      () => asked.delete(phrase),
+    );
+    return run;
   };
   const nameOf = (id: number) => get().assets.find((a) => a.id === id)?.name ?? t("store.unnamedAsset");
   /** A message about `ids`: `one` names the asset, `many` counts them. */
@@ -347,11 +387,12 @@ export const useStore = create<State>((set, get, store) => {
     notes: {},
     palettes: null,
     analysis: { done: 0, total: 0, running: false, paused: false, keep: false },
-    meaning: { done: 0, total: 0, running: false, paused: false, on: false, installed: false, download: null, error: null, files: [], vcRuntime: true, downloaded: 0 },
+    meaning: { done: 0, total: 0, running: false, paused: false, on: false, installed: false, download: null, error: null, files: [], vcRuntime: true, downloaded: 0, model: "" },
     tagging: { assets: 0, requests: 0, finished: 0, canceling: false, error: null, last: null },
     suggestFor: null,
     similar: null,
     meaningQuery: null,
+    looks: new Map(),
     shown: null,
     colSel: null,
     dups: null,
@@ -391,6 +432,16 @@ export const useStore = create<State>((set, get, store) => {
           meaningAsk.again((text) => {
             if (meaningOpening === null) void get().findByMeaning(text);
           });
+        // `looks:` scores too: dropped when it's turned off, asked again as the index grows (keeping the old ones meanwhile).
+        if (!meaning.on) {
+          looksAsked = new Map();
+          if (get().looks.size) set({ looks: new Map() });
+        } else if (meaning.done !== get().meaning.done && !looksAgain)
+          looksAgain = setTimeout(() => {
+            looksAgain = null;
+            looksAsked = new Map();
+            if (get().meaning.on) for (const p of wantedLooks()) askLook(p).catch(() => {});
+          }, 2000);
         set({ meaning });
       });
       api.meaningStatus().then((meaning) => set({ meaning }), get().setError);
@@ -655,11 +706,8 @@ export const useStore = create<State>((set, get, store) => {
       if (query !== undefined) meaningOpening = query;
       const current = meaningAsk.start(text);
       try {
-        const buf = await api.meaningScores(text);
+        const scores = scoresOf(await api.meaningScores(text));
         if (!current()) return;
-        const view = new DataView(buf);
-        const scores = new Map<number, number>();
-        for (let i = 0; i + 8 <= buf.byteLength; i += 8) scores.set(view.getInt32(i, true), view.getFloat32(i + 4, true));
         const s = get();
         const opening = meaningOpening;
         meaningOpening = null;
@@ -687,6 +735,13 @@ export const useStore = create<State>((set, get, store) => {
       return true;
     },
     clearMeaning: () => set(noMeaning()),
+    resolveLooks: async (by, phrases) => {
+      looksWanted.set(by, phrases);
+      const { meaning, looks } = get();
+      if (!meaning.on || !meaning.installed || !phrases.length) return new Map();
+      const scores = await Promise.all(phrases.map((p) => looks.get(p) ?? askLook(p)));
+      return new Map(phrases.map((p, i) => [p, scores[i]]));
+    },
     showAssets: (ids, by) =>
       set({ ...noSimilar(), view: "library", full: false, palette: false, query: "", kinds: [], folder: null, filters: noFilters, shown: { ids, by } }),
 
@@ -867,7 +922,7 @@ export const useStore = create<State>((set, get, store) => {
     copyCollection: async (id) => {
       const c = get().collections.find((x) => x.id === id);
       if (!c) return;
-      const ids = c.rule ? get().assets.filter(ruleMatcher(c.rule, get().notes, undefined, get().palettes)).map((a) => a.id) : c.assetIds;
+      const ids = c.rule ? ruleMembers(c.rule, get().assets, get().notes, undefined, get().palettes, get().looks).map((a) => a.id) : c.assetIds;
       if (!ids.length) return;
       const dest = await api.pickFolder(t("store.copyTo", { name: c.name }));
       if (!dest) return;

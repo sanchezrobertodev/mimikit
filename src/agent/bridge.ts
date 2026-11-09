@@ -274,8 +274,8 @@ export async function startAgents() {
 }
 
 const library = () => {
-  const { assets, roots, collections, notes, analysis } = useStore.getState();
-  return { assets, roots, collections, notes, analysis };
+  const { assets, roots, collections, notes, analysis, meaning } = useStore.getState();
+  return { assets, roots, collections, notes, analysis, meaning };
 };
 
 /** Patches the window's copy of the assets after a backend write, as the store's own actions do. */
@@ -348,6 +348,7 @@ function io(agent: Agent): Io {
       await useStore.getState().loadPalettes();
       return useStore.getState().palettes;
     },
+    looks: (phrases) => useStore.getState().resolveLooks("agent", phrases),
     sheet: api.getSpriteSheet,
     similar: api.findSimilar,
     text: api.readText,
