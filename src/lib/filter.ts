@@ -200,8 +200,14 @@ export interface Scope {
   notes: Notes;
   /** "Find similar" results, closest first: only these are shown, in this order. */
   similar?: number[] | null;
+  /** Search by meaning: each indexed image's score. Only these are shown, best first, cut to the close matches. */
+  meaning?: ReadonlyMap<number, number> | null;
   palettes?: Palettes | null;
 }
+
+/** Search by meaning keeps at most this many results, all within `MEANING_SPREAD` of the best score (phase 0 eval). */
+export const MEANING_TOP = 200;
+export const MEANING_SPREAD = 0.05;
 
 /** Tests assets against a smart collection's saved search. */
 export function ruleMatcher(rule: CollectionRule, notes: Notes, now = Date.now(), palettes?: Palettes | null): (a: Asset) => boolean {
@@ -233,6 +239,7 @@ export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; d
     if (members && !members.has(a.id)) return false;
     if (s.view === "favorites" && !a.favorite) return false;
     if (rank && !rank.has(a.id)) return false;
+    if (s.meaning && !s.meaning.has(a.id)) return false;
     if (s.kinds.length && !s.kinds.includes(a.kind)) return false;
     // Only the library and favorites show the open folder, so only they are narrowed by it.
     if (s.folder && (s.view === "library" || s.view === "favorites")) {
@@ -243,6 +250,16 @@ export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; d
     }
     return matchesFilters(a, s.filters, now, s.palettes) && matchesQuery(a, q, s.notes, s.palettes);
   });
+  const meaning = s.meaning;
+  if (meaning) {
+    // The cut is taken after the other filters, so a narrow folder still gets its own best matches; even unsorted
+    // (the type chips' counts), since it decides what's in.
+    const score = (a: Asset) => meaning.get(a.id)!;
+    out.sort((a, b) => score(b) - score(a));
+    const floor = out.length ? score(out[0]) - MEANING_SPREAD : 0;
+    const end = out.findIndex((a, i) => i >= MEANING_TOP || score(a) < floor);
+    return end < 0 ? out : out.slice(0, end);
+  }
   if (!sort) return out;
   if (rank) return out.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
   const dir = sort.desc ? -1 : 1;

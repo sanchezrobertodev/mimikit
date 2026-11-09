@@ -11,6 +11,11 @@
   "pause": "意味で検索のインデックス作成を一時停止",
   "cancel": "意味で検索をキャンセル",
   "progress": "{{done}}/{{total}}",
+  "pending_other": "{{count}}枚の画像はまだ登録されていません。結果に含まれるのは{{covered}}だけです。",
+  "covered_other": "登録済みの{{count}}枚",
+  "indexingNow": "登録しています…",
+  "resumeIndexing": "登録を再開",
+  "indexNow": "残りを登録",
   "settings": {
     "title": "意味で検索(オフライン)",
     "hint": "画像を言葉で説明して探せます。どの言語でも使えます。一度ダウンロードすれば、このコンピューター上で動作します。",

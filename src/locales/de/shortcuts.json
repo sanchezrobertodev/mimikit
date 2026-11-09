@@ -19,7 +19,7 @@
   "label": {
     "move": "Zwischen Assets wechseln (↑ ↓ springen im Raster eine Reihe weiter)",
     "parent": "Zum übergeordneten Ordner",
-    "back": "Textfeld verlassen, Vollbild schließen, dann den Seitenbereich, dann die Auswahl aufheben, dann zurück zum Fenster, wenn Mimikit den Bildschirm füllt",
+    "back": "Textfeld verlassen, Vollbild schließen, dann den Seitenbereich, dann die Auswahl aufheben, dann die Suche nach Bedeutung beenden, dann zurück zum Fenster, wenn Mimikit den Bildschirm füllt",
     "skip": "Am Fensteranfang: zu den Assets springen",
     "help": "Diese Tastenkürzel anzeigen",
     "sidebar": "Seitenleiste ein- oder ausklappen",
@@ -46,6 +46,7 @@
     "search-slash": "Suchen",
     "results": "Zwischen den Ergebnissen wechseln",
     "run": "Markiertes Ergebnis öffnen",
+    "meaning": "Bilder finden, die die eingegebenen Wörter zeigen (Suche nach Bedeutung)",
     "ask": "Claude deine Wörter in eine Suche verwandeln lassen",
     "close": "Suche schließen"
   },

@@ -78,6 +78,8 @@ interface State extends Prefs {
   suggestFor: number[] | null;
   /** "Find similar" scope of the library: images like `id` within `max` bits, closest first. */
   similar: { id: number; name: string; max: number; ids: number[] } | null;
+  /** Search by meaning: images that show `text`, with every indexed image's score (cosine) by id. */
+  meaningQuery: { text: string; scores: ReadonlyMap<number, number> } | null;
   /** Assets an AI agent showed the user (its `show` tool), in its order, and the agent app's name. */
   shown: { ids: number[]; by: string } | null;
 
@@ -156,6 +158,12 @@ interface State extends Prefs {
   loadPalettes: () => Promise<void>;
   findSimilar: (id: number, max?: number) => Promise<void>;
   clearSimilar: () => void;
+  /**
+   * Images that show `text`. With `query` (the other search words), opens the library on the results, keeping the open
+   * folder, type chips and filters; without, refreshes the open results.
+   */
+  findByMeaning: (text: string, query?: string) => Promise<void>;
+  clearMeaning: () => void;
   /** Opens the library on just these assets, for an agent's `show`. */
   showAssets: (ids: number[], by: string) => void;
 }
@@ -183,10 +191,16 @@ let noteSaves: Promise<unknown> = Promise.resolve();
 let paletteBacklog: [number, Swatch[]][] | null = null;
 /** "Find similar": answers to superseded (slider drags) or cancelled requests are dropped; re-asked as analysis goes on. */
 const similarAsk = latestRequest<{ id: number; max: number }>(2000);
-/** Ends "Find similar", including a request still on its way, and an agent's `show`. */
+/** Search by meaning, the same way: re-asked as the index grows. */
+const meaningAsk = latestRequest<string>(2000);
+const noMeaning = () => {
+  meaningAsk.cancel();
+  return { meaningQuery: null };
+};
+/** Ends "Find similar" and search by meaning, including a request still on its way, and an agent's `show`. */
 const noSimilar = () => {
   similarAsk.cancel();
-  return { similar: null, shown: null };
+  return { similar: null, shown: null, ...noMeaning() };
 };
 
 export const useStore = create<State>((set, get, store) => {
@@ -329,6 +343,7 @@ export const useStore = create<State>((set, get, store) => {
     tagging: { assets: 0, requests: 0, finished: 0, canceling: false, error: null, last: null },
     suggestFor: null,
     similar: null,
+    meaningQuery: null,
     shown: null,
     colSel: null,
     dups: null,
@@ -361,7 +376,12 @@ export const useStore = create<State>((set, get, store) => {
       });
       await api.onAnalysisStatus((analysis) => set({ analysis }));
       api.analysisStatus().then((analysis) => set({ analysis }), get().setError);
-      await api.onMeaningStatus((meaning) => set({ meaning }));
+      await api.onMeaningStatus((meaning) => {
+        // Turned off: its results would go stale and every re-ask fail. Images indexed since can match the open search.
+        if (!meaning.on && get().meaningQuery) set(noMeaning());
+        else if (meaning.on && meaning.done !== get().meaning.done) meaningAsk.again((text) => void get().findByMeaning(text));
+        set({ meaning });
+      });
       api.meaningStatus().then((meaning) => set({ meaning }), get().setError);
       await api.onTaggingStatus((tagging) => set({ tagging }));
       api.taggingStatus().then((tagging) => set({ tagging }), get().setError);
@@ -612,7 +632,7 @@ export const useStore = create<State>((set, get, store) => {
         if (!current()) return;
         // A new image opens the library on its results; a new slider position or a refresh keeps the view as it is.
         const nav = get().similar?.id === id ? {} : { view: "library" as const, full: false, palette: false, query: "", kinds: [], folder: null };
-        set({ ...nav, similar: { id, name: nameOf(id), max, ids }, shown: null });
+        set({ ...nav, similar: { id, name: nameOf(id), max, ids }, shown: null, ...noMeaning() });
       } catch (e) {
         if (!current()) return;
         similarAsk.cancel(); // or every analysis batch would ask again and show the same error
@@ -620,6 +640,29 @@ export const useStore = create<State>((set, get, store) => {
       }
     },
     clearSimilar: () => set(noSimilar()),
+    findByMeaning: async (text, query) => {
+      const current = meaningAsk.start(text);
+      try {
+        const buf = await api.meaningScores(text);
+        if (!current()) return;
+        const view = new DataView(buf);
+        const scores = new Map<number, number>();
+        for (let i = 0; i + 8 <= buf.byteLength; i += 8) scores.set(view.getInt32(i, true), view.getFloat32(i + 4, true));
+        const s = get();
+        // From the library or favorites, the open folder, type chips and filters narrow the results.
+        const nav =
+          query === undefined
+            ? {}
+            : { ...(s.view === "library" || s.view === "favorites" ? {} : { view: "library" as const, folder: null, kinds: [] }), full: false, palette: false, query };
+        similarAsk.cancel();
+        set({ ...nav, meaningQuery: { text, scores }, similar: null, shown: null });
+      } catch (e) {
+        if (!current()) return;
+        meaningAsk.cancel(); // or every indexed batch would ask again and show the same error
+        get().setError(e);
+      }
+    },
+    clearMeaning: () => set(noMeaning()),
     showAssets: (ids, by) =>
       set({ ...noSimilar(), view: "library", full: false, palette: false, query: "", kinds: [], folder: null, filters: noFilters, shown: { ids, by } }),
 

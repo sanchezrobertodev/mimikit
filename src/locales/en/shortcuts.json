@@ -19,7 +19,7 @@
   "label": {
     "move": "Move between assets (↑ ↓ go a row in the grid)",
     "parent": "Up to the parent folder",
-    "back": "Leave a text field, close full screen, then the side panel, then clear the selection, then go back to a window if Mimikit fills the screen",
+    "back": "Leave a text field, close full screen, then the side panel, then clear the selection, then the search by meaning, then go back to a window if Mimikit fills the screen",
     "skip": "From the top of the window: skip to the assets",
     "help": "Show these shortcuts",
     "sidebar": "Collapse or expand the sidebar",
@@ -46,6 +46,7 @@
     "search-slash": "Search",
     "results": "Move through the results",
     "run": "Open the highlighted result",
+    "meaning": "Find images that show the typed words (search by meaning)",
     "ask": "Ask Claude to turn your words into a search",
     "close": "Close search"
   },

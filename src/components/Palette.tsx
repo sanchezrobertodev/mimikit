@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { CircleAlert, LoaderCircle, Search, Sparkles } from "lucide-react";
+import { CircleAlert, LoaderCircle, ScanSearch, Search, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, errorText } from "../api";
 import { openUpdates, useAppUpdate } from "../appUpdate";
@@ -54,6 +54,18 @@ export function Palette({ shown }: { shown?: Asset[] }) {
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<{ text: string; settings: boolean } | null>(null);
   const [asked, setAsked] = useState<{ words: string; query: string } | null>(null);
+  // Search by meaning: a search in flight (the first one loads the model, about 2 s).
+  const [seeking, setSeeking] = useState(false);
+  const seek = async (text: string, query: string) => {
+    setSeeking(true);
+    ran.current = true;
+    try {
+      await s.findByMeaning(text, query);
+    } finally {
+      setSeeking(false);
+    }
+  };
+  const meaningReady = s.meaning.on && s.meaning.installed && s.meaning.done > 0;
   useEffect(() => {
     api.apiKeyStatus().then(setHasKey, () => setHasKey(null));
   }, []);
@@ -165,7 +177,29 @@ export function Palette({ shown }: { shown?: Asset[] }) {
         })),
       ];
       out.push({ title: t("palette.assets", { count: matches.length }), items });
-      // Plain words can be asked as a search; first when they match nothing, so Enter asks.
+      // Plain words can be searched by meaning and asked as a search; first when they match nothing, so Enter runs them.
+      const extra: { title: string; items: Item[] }[] = [];
+      if (parsed.text.length && meaningReady) {
+        // The plain words are what the images should show; the search words (type:, #tag, rating:…) still narrow them.
+        const typed = q.trim().split(/\s+/);
+        const plain = (w: string) => parseQuery(w).text.length > 0;
+        const text = typed.filter(plain).join(" ");
+        const rest = typed.filter((w) => !plain(w)).join(" ");
+        extra.push({
+          title: t("palette.meaning.title"),
+          items: [
+            {
+              key: "meaning",
+              label: seeking ? t("palette.meaning.seeking") : t("palette.meaning.label", { text }),
+              sub: rest || undefined,
+              right: shortcut("meaning").keys,
+              icon: seeking ? <LoaderCircle aria-hidden className="size-4 animate-spin text-muted" /> : <ScanSearch aria-hidden className="size-4 text-accent" />,
+              keep: true,
+              run: () => void seek(text, rest),
+            },
+          ],
+        });
+      }
       if (parsed.text.length && q.trim() !== asked?.query) {
         const askItem: Item = {
           key: "ask",
@@ -176,10 +210,10 @@ export function Palette({ shown }: { shown?: Asset[] }) {
           keep: true,
           run: () => void ask.current(),
         };
-        const section = { title: t("palette.ask.title"), items: [askItem] };
-        if (matches.length) out.push(section);
-        else out.unshift(section);
+        extra.push({ title: t("palette.ask.title"), items: [askItem] });
       }
+      if (matches.length) out.push(...extra);
+      else out.unshift(...extra);
     }
     if (parsed.text.length) {
       const seen = new Map<string, { rootId: number; path: string; n: number }>();
@@ -248,7 +282,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     return out;
     // Only what it reads: the whole store changes on every scan tick, and this searches every asset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, s.assets, s.notes, s.palettes, s.filters, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown]);
+  }, [q, s.assets, s.notes, s.palettes, s.filters, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking]);
 
   const flat = sections.flatMap((sec) => sec.items);
   const run = (item?: Item) => {
@@ -284,13 +318,16 @@ export function Palette({ shown }: { shown?: Asset[] }) {
           <input
             ref={input}
             value={q}
-            readOnly={asking}
-            aria-busy={asking}
+            readOnly={asking || seeking}
+            aria-busy={asking || seeking}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (isMac ? e.metaKey : e.ctrlKey)) {
                 e.preventDefault();
                 void ask.current();
+              } else if (e.key === "Enter" && e.shiftKey) {
+                e.preventDefault();
+                run(flat.find((i) => i.key === "meaning"));
               } else if (e.key === "ArrowDown") {
                 e.preventDefault();
                 setPi((p) => Math.min(flat.length - 1, p + 1));
@@ -317,10 +354,10 @@ export function Palette({ shown }: { shown?: Asset[] }) {
           <Kbd>{shortcut("close").keys}</Kbd>
         </div>
         <div role="status" className="flex items-center gap-2 border-b border-line px-[18px] py-2 text-xs empty:hidden">
-          {asking ? (
+          {asking || seeking ? (
             <>
               <LoaderCircle aria-hidden className="size-3.5 flex-none animate-spin text-muted" />
-              <span className="text-muted">{t("palette.ask.asking")}</span>
+              <span className="text-muted">{asking ? t("palette.ask.asking") : t("palette.meaning.seeking")}</span>
             </>
           ) : askError ? (
             <>

@@ -113,19 +113,28 @@ function PassProgress({
   );
 }
 
-/** Where results depend on analysis (Find similar, colour search): what they cover, and a way to analyse the rest. */
-export function AnalysisNote({ className }: { className?: string }) {
-  const a = useStore((s) => s.analysis);
+const NOTE = {
+  analysis: { now: "analysis.analysingNow", resume: "analysis.resumeAnalysis", start: "analysis.analyseNow", pause: pauseAnalysis, run: analyse },
+  meaning: { now: "meaning.indexingNow", resume: "meaning.resumeIndexing", start: "meaning.indexNow", pause: pauseMeaning, run: () => run(api.meaningEnable()) },
+} as const;
+
+/**
+ * Where results depend on analysis (Find similar, colour search) or on the index for search by meaning: what they
+ * cover, and a way to do the rest.
+ */
+export function AnalysisNote({ className, ns = "analysis" }: { className?: string; ns?: "analysis" | "meaning" }) {
+  const a = useStore((s) => s[ns]);
   const left = a.total - a.done;
   if (left <= 0) return null;
+  const n = NOTE[ns];
   return (
     <div className={clsx("flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-muted", className)}>
-      <span>{t("analysis.pending", { count: left, covered: t("analysis.covered", { count: a.done }) })}</span>
+      <span>{t(`${ns}.pending`, { count: left, covered: t(`${ns}.covered`, { count: a.done }) })}</span>
       {a.running && !a.paused ? (
-        <span>{t("analysis.analysingNow")}</span>
+        <span>{t(n.now)}</span>
       ) : (
-        <button type="button" onClick={() => (a.running ? pauseAnalysis(false) : analyse())} className="font-semibold text-accent hover:underline">
-          {a.running ? t("analysis.resumeAnalysis") : t("analysis.analyseNow")}
+        <button type="button" onClick={() => (a.running ? n.pause(false) : n.run())} className="font-semibold text-accent hover:underline">
+          {a.running ? t(n.resume) : t(n.start)}
         </button>
       )}
     </div>

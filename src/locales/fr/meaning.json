@@ -13,6 +13,13 @@
   "pause": "Mettre en pause l'indexation pour la recherche par le sens",
   "cancel": "Annuler la recherche par le sens",
   "progress": "{{done}} sur {{total}}",
+  "pending_one": "{{count}} image n'est pas encore indexée — les résultats ne portent que sur {{covered}}.",
+  "pending_other": "{{count}} images ne sont pas encore indexées — les résultats ne portent que sur {{covered}}.",
+  "covered_one": "{{count}} image indexée",
+  "covered_other": "{{count}} images indexées",
+  "indexingNow": "Indexation en cours…",
+  "resumeIndexing": "Reprendre l'indexation",
+  "indexNow": "Indexer le reste",
   "settings": {
     "title": "Recherche par le sens (hors ligne)",
     "hint": "Trouvez des images en les décrivant, dans n'importe quelle langue. Fonctionne sur cet ordinateur après un seul téléchargement.",

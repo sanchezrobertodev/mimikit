@@ -13,6 +13,13 @@
   "pause": "Pause indexing for search by meaning",
   "cancel": "Cancel search by meaning",
   "progress": "{{done}} of {{total}}",
+  "pending_one": "{{count}} image isn't indexed yet — results only cover {{covered}}.",
+  "pending_other": "{{count}} images aren't indexed yet — results only cover {{covered}}.",
+  "covered_one": "the {{count}} that is",
+  "covered_other": "the {{count}} that are",
+  "indexingNow": "Indexing now…",
+  "resumeIndexing": "Resume indexing",
+  "indexNow": "Index the rest",
   "settings": {
     "title": "Search by meaning (offline)",
     "hint": "Find images by describing them, in any language. Runs on this computer after a one-time download.",

@@ -55,6 +55,7 @@ const ROWS: [id: string, group: Group, keys: string][] = [
   ["search-slash", "search", "/"],
   ["results", "search", "↑ ↓"],
   ["run", "search", "↵"],
+  ["meaning", "search", `${shift}↵`],
   ["ask", "search", `${mod}↵`],
   ["close", "search", t("shortcuts.keys.esc")],
 ];

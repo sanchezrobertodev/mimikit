@@ -21,6 +21,10 @@
     "slider": "類似画像として許容する違い",
     "sliderValue_other": "64ビット中最大{{max}}ビットの違い、{{count}}枚"
   },
+  "meaning": {
+    "label": "「{{text}}」の画像",
+    "stop": "「{{text}}」の画像の検索をやめる"
+  },
   "sort": {
     "label": "並べ替え",
     "name": "名前",

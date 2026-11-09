@@ -23,6 +23,10 @@
     "sliderValue_one": "Up to {{max}} of 64 bits differ, {{count}} image",
     "sliderValue_other": "Up to {{max}} of 64 bits differ, {{count}} images"
   },
+  "meaning": {
+    "label": "Images that show “{{text}}”",
+    "stop": "Clear the search for images that show “{{text}}”"
+  },
   "sort": {
     "label": "Sort",
     "name": "Name",

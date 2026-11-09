@@ -45,6 +45,11 @@
     "invalid": "Claude hat „{{query}}“ geschrieben, aber Mimikit versteht {{words}} nicht, deshalb wurde nicht gesucht.",
     "openSettings": "Einstellungen öffnen"
   },
+  "meaning": {
+    "title": "Suche nach Bedeutung",
+    "label": "Bilder, die „{{text}}“ zeigen",
+    "seeking": "Bilder werden nach Bedeutung gesucht…"
+  },
   "dialog": "Suche",
   "input": "Assets, Ordner und Aktionen durchsuchen",
   "placeholder": "Assets, Ordner, Aktionen suchen",

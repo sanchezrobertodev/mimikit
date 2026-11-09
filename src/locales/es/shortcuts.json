@@ -19,7 +19,7 @@
   "label": {
     "move": "Moverse entre recursos (↑ ↓ cambian de fila en la cuadrícula)",
     "parent": "Subir a la carpeta superior",
-    "back": "Salir de un campo de texto, cerrar la pantalla completa, luego el panel lateral, después quitar la selección y, por último, volver a una ventana si Mimikit ocupa toda la pantalla",
+    "back": "Salir de un campo de texto, cerrar la pantalla completa, luego el panel lateral, después quitar la selección, luego la búsqueda por significado y, por último, volver a una ventana si Mimikit ocupa toda la pantalla",
     "skip": "Desde arriba de la ventana: saltar a los recursos",
     "help": "Mostrar estos atajos",
     "sidebar": "Contraer o expandir la barra lateral",
@@ -46,6 +46,7 @@
     "search-slash": "Buscar",
     "results": "Moverse por los resultados",
     "run": "Abrir el resultado resaltado",
+    "meaning": "Buscar imágenes que muestran las palabras escritas (búsqueda por significado)",
     "ask": "Pedir a Claude que convierta tus palabras en una búsqueda",
     "close": "Cerrar la búsqueda"
   },

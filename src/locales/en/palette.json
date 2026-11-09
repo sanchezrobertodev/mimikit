@@ -45,6 +45,11 @@
     "invalid": "Claude wrote “{{query}}”, but Mimikit can't read {{words}}, so it wasn't run.",
     "openSettings": "Open Settings"
   },
+  "meaning": {
+    "title": "Search by meaning",
+    "label": "Images that show “{{text}}”",
+    "seeking": "Searching images by meaning…"
+  },
   "dialog": "Search",
   "input": "Search assets, folders and actions",
   "placeholder": "Search assets, folders, actions",
