@@ -248,7 +248,9 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     assert.equal(errorCode(await call("search", { query: "looks:gold-coin" }, off(m))), "not_indexed", JSON.stringify(m));
     assert.equal(errorCode(await call("search", { collection: 4 }, off(m))), "not_indexed");
   }
-  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false }))), /Settings › AI features/);
+  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false }))), /Settings › AI features\)\. Meanwhile/);
+  // Only a model that isn't there yet needs the user to start a download.
+  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false, installed: false }))), /downloads a model first/);
   assert.equal(payload(await call("overview", {}, off({ on: false }))).collections[2].assets, 0);
   assert.equal(payload(await call("overview", {}, off({ on: false }))).meaningSearch.on, false);
   assert.equal(payload(await call("search", { query: "coin" }, off({ on: false }))).total, 2, "other searches still work");

@@ -172,7 +172,7 @@ const canLook = (lib: Library) => lib.meaning.on && lib.meaning.installed && lib
 const notIndexed = (lib: Library) =>
   lib.meaning.on
     ? errorResult("not_indexed", "Search by meaning is still being set up in Mimikit: its model is downloading or no images are indexed yet, so looks: can't match anything.", "Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, search without looks:.")
-    : errorResult("not_indexed", "Search by meaning isn't on in Mimikit, so looks: can't match anything.", "Ask the user to turn on Search by meaning in Mimikit (Settings › AI features); it downloads a model first, which only the user can start. Meanwhile, search without looks:.");
+    : errorResult("not_indexed", "Search by meaning isn't on in Mimikit, so looks: can't match anything.", `Ask the user to turn on Search by meaning in Mimikit (Settings › AI features)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, search without looks:.`);
 /** Scores for the smart collections' `looks:` phrases; without search by meaning those collections have no members. */
 const ruleScores = (lib: Library, io: Io) => {
   const phrases = ruleLooks(lib.collections);

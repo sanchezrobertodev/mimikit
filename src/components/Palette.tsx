@@ -133,6 +133,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     if (hasQuery) {
       // The library keeps the Filters panel, so the counts and results do too.
       const now = Date.now();
+      const scoring = meaningReady && parsed.looks.some((p) => !s.looks.has(p));
       const matches = closeLooks(
         s.assets.filter((a) => matchesQuery(a, parsed, s.notes, s.palettes, s.looks) && matchesFilters(a, s.filters, now, s.palettes)),
         parsed.looks,
@@ -168,7 +169,8 @@ export function Palette({ shown }: { shown?: Asset[] }) {
           : []),
         {
           key: "all",
-          label: matches.length === 1 ? t("palette.showMatch") : t("palette.showAll", { count: matches.length }),
+          // Until its looks: words are scored, nothing matches yet; say so rather than "No assets match".
+          ...(scoring ? { label: t("palette.meaning.seeking"), icon: <LoaderCircle aria-hidden className="size-4 animate-spin text-muted" /> } : { label: matches.length === 1 ? t("palette.showMatch") : t("palette.showAll", { count: matches.length }) }),
           sub: q.trim(),
           run: () => {
             s.go("library", { query: q.trim(), kinds: [], folder: null });
