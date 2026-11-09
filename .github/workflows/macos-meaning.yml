@@ -1,0 +1,105 @@
+name: macOS search by meaning
+
+# Manual only: checks that the released macOS app can load ONNX Runtime, before a release that changes signing or the
+# runtime. Builds and signs the .app as release.yml does (universal, ad-hoc), then runs that signed app with one
+# picture in its library and search by meaning on. The Apple Silicon slice downloads the model and runtime itself
+# (about 810 MB, onto the runner) and passes once the picture has a vector: ONNX Runtime loaded in the app and the image
+# model ran. The Intel slice, under Rosetta, passes when it says search by meaning is unavailable and downloads nothing.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: macos-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # As release.yml, without the update archive (it needs the updater key; the .app is signed the same) or the .dmg.
+      - name: Build and sign
+        run: npx tauri build --target universal-apple-darwin --bundles app --config src-tauri/tauri.no-updater.conf.json
+        env:
+          APPLE_SIGNING_IDENTITY: "-"
+      - name: Search by meaning in the signed app
+        run: |
+          set -euo pipefail
+          app=src-tauri/target/universal-apple-darwin/release/bundle/macos/Mimikit.app
+          bin="$app/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          echo "Machine: $(uname -m), macOS $(sw_vers -productVersion)"
+          codesign --verify --strict "$app"
+          codesign -dv --entitlements - "$app" 2>&1
+          data="$HOME/Library/Application Support/dev.sanchezroberto.assetden"
+          db="$data/asset-den.db"
+          models="$data/models/siglip2-b32-256"
+          library="$RUNNER_TEMP/library"
+          mkdir -p "$library"
+          cp src-tauri/icons/128x128.png "$library/picture.png"
+
+          # Runs the app's $1 slice on a new library holding the picture's folder, with search by meaning on as
+          # Settings leaves it, until $2 (a shell test) holds, a "meaning: " error shows or 15 minutes pass.
+          run() {
+            rm -rf "$data" app.log
+            # The first launch creates the library.
+            arch "-$1" "$bin" >> app.log 2>&1 &
+            local pid=$! ok=1
+            for _ in $(seq 60); do
+              [ -f "$db" ] && sqlite3 "$db" "SELECT 1 FROM settings LIMIT 0" 2>/dev/null && break
+              sleep 1
+            done
+            sleep 5
+            kill "$pid"
+            wait "$pid" 2>/dev/null || true
+            sqlite3 "$db" "INSERT INTO roots (path) VALUES ('$library');
+              INSERT OR REPLACE INTO settings (key, value) VALUES ('meaning_model', 'siglip2-b32-256');"
+            # The second scans the folder, downloads what search by meaning needs, loads it and indexes the picture.
+            arch "-$1" "$bin" >> app.log 2>&1 &
+            pid=$!
+            for _ in $(seq 180); do
+              if eval "$2"; then ok=0; break; fi
+              # Every "meaning: " line but the timing one is an error.
+              if grep '^meaning: ' app.log | grep -qv ' images in '; then break; fi
+              if ! kill -0 "$pid" 2>/dev/null; then echo "The app quit."; break; fi
+              sleep 5
+            done
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            echo "--- $1 log"
+            cat app.log
+            echo "--- $1 downloaded"
+            ls -l "$models" 2>/dev/null || echo "nothing"
+            return "$ok"
+          }
+
+          vectors() { sqlite3 "$data/meaning.db" "SELECT count(*) FROM vectors WHERE length(vec) > 0" 2>/dev/null || echo 0; }
+          failed=0
+          if run arm64 '[ "$(vectors)" -ge 1 ]'; then
+            echo "Passed on Apple Silicon: the picture has a vector."
+          else
+            echo "::error::Apple Silicon: no vector for the picture."
+            failed=1
+          fi
+          # Who signed the downloaded runtime, and whether macOS quarantined it (Gatekeeper would then check it).
+          codesign -dv "$models/libonnxruntime.dylib" 2>&1 || true
+          echo "Extended attributes: $(xattr "$models/libonnxruntime.dylib" 2>&1 || true)"
+
+          arch -x86_64 /usr/bin/true 2>/dev/null || sudo softwareupdate --install-rosetta --agree-to-license
+          if run x86_64 "grep -q \"isn't available on this computer\" app.log" && [ ! -e "$data/models" ]; then
+            echo "Passed on Intel: unavailable, nothing downloaded."
+          else
+            echo "::error::Intel: didn't say search by meaning is unavailable, or downloaded something."
+            failed=1
+          fi
+          exit "$failed"
