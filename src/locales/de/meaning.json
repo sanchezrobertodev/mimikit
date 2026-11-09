@@ -13,6 +13,13 @@
   "pause": "Indexierung für die Suche nach Bedeutung pausieren",
   "cancel": "Suche nach Bedeutung abbrechen",
   "progress": "{{done}} von {{total}}",
+  "pending_one": "{{count}} Bild ist noch nicht indexiert – die Ergebnisse umfassen nur {{covered}}.",
+  "pending_other": "{{count}} Bilder sind noch nicht indexiert – die Ergebnisse umfassen nur {{covered}}.",
+  "covered_one": "das eine indexierte",
+  "covered_other": "die {{count}} indexierten",
+  "indexingNow": "Wird indexiert…",
+  "resumeIndexing": "Indexierung fortsetzen",
+  "indexNow": "Rest indexieren",
   "settings": {
     "title": "Suche nach Bedeutung (offline)",
     "hint": "Finde Bilder, indem du sie beschreibst, in jeder Sprache. Läuft nach einem einmaligen Download auf diesem Computer.",

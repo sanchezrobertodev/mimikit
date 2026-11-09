@@ -152,20 +152,22 @@ export default function App() {
   const collection = s.collections.find((c) => c.id === s.colSel) ?? null;
   // "Find similar" results, or the assets an agent showed: only these, in their order.
   const similar = s.similar?.ids ?? s.shown?.ids ?? null;
+  // Search by meaning: only scored images, best first.
+  const meaning = s.meaningQuery?.scores ?? null;
   const wantsColors = !!s.filters.color || parseQuery(s.query).colors.length > 0 || rulesWantColors(s.collections);
   // Colours only matter to a colour filter; otherwise their updates during an analysis pass mustn't re-sort the list.
   const palettes = wantsColors ? s.palettes : null;
-  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, palettes };
+  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, palettes };
   const visible = useMemo(
     () => visibleAssets(s.assets, scope, s.sort),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, palettes],
+    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, palettes],
   );
   // Same scope without the type chips, so each chip can show its count. Only counted, so not sorted.
   const scopeAssets = useMemo(
     () => visibleAssets(s.assets, { ...scope, kinds: [] }, null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, palettes],
+    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, palettes],
   );
   useEffect(() => {
     if (wantsColors) void useStore.getState().loadPalettes();
@@ -173,9 +175,9 @@ export default function App() {
   const browse = s.view === "library" || s.view === "favorites";
   const navigable = browse || s.view === "collections";
   const groups = useMemo(
-    // "Find similar" results stay in one list, closest first.
-    () => ((browse || s.view === "collections") && s.grouped && !similar ? groupByFolder(visible, s.roots, browse ? s.folder : null) : null),
-    [browse, s.view, s.grouped, similar, visible, s.roots, s.folder],
+    // "Find similar" and search by meaning results stay in one list, closest first.
+    () => ((browse || s.view === "collections") && s.grouped && !similar && !meaning ? groupByFolder(visible, s.roots, browse ? s.folder : null) : null),
+    [browse, s.view, s.grouped, similar, meaning, visible, s.roots, s.folder],
   );
   // In Duplicates, full screen steps through the copies of the open group.
   const copies = useMemo(() => {
@@ -253,8 +255,9 @@ export default function App() {
       if (e.key === "Escape") {
         if (st.full) st.setFull(false);
         else if (st.peek) st.setPeek(false);
-        else if (st.selected.size || !st.fullscreen) st.setSelected([]);
-        else st.setFullscreen(false);
+        else if (st.selected.size) st.setSelected([]);
+        else if (st.meaningQuery) st.clearMeaning();
+        else if (st.fullscreen) st.setFullscreen(false);
         return;
       }
       if (viewerKey(e, letter(e))) {
@@ -317,7 +320,7 @@ export default function App() {
   }, [order, groups, navigable]);
 
   const scanning = Object.keys(s.scanning).length > 0;
-  const filtered = s.query || s.kinds.length > 0 || s.folder !== null || activeFilterCount(s.filters) > 0 || !!similar;
+  const filtered = s.query || s.kinds.length > 0 || s.folder !== null || activeFilterCount(s.filters) > 0 || !!similar || !!meaning;
   // Whether the open folder holds any files itself, before any filter; decides which empty state fits.
   const hasDirectFiles = useMemo(
     () => !!s.folder && s.assets.some((a) => a.rootId === s.folder!.rootId && folderOf(a.relPath) === s.folder!.path),

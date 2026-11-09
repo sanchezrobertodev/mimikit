@@ -45,6 +45,11 @@
     "invalid": "Claude a écrit « {{query}} », mais Mimikit ne comprend pas {{words}} : la recherche n'a pas été lancée.",
     "openSettings": "Ouvrir les Paramètres"
   },
+  "meaning": {
+    "title": "Recherche par le sens",
+    "label": "Images qui montrent « {{text}} »",
+    "seeking": "Recherche d'images par le sens…"
+  },
   "dialog": "Recherche",
   "input": "Rechercher des ressources, dossiers et actions",
   "placeholder": "Rechercher ressources, dossiers, actions",

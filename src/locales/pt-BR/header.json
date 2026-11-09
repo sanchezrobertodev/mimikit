@@ -25,6 +25,10 @@
     "sliderValue_one": "Até {{max}} de 64 bits diferentes, {{count}} imagem",
     "sliderValue_other": "Até {{max}} de 64 bits diferentes, {{count}} imagens"
   },
+  "meaning": {
+    "label": "Imagens que mostram “{{text}}”",
+    "stop": "Limpar a busca por imagens que mostram “{{text}}”"
+  },
   "sort": {
     "label": "Ordenar",
     "name": "Nome",

@@ -5,6 +5,16 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **Search by meaning**: find images by describing them ("red potion icon", "dark forest tileset"), in any language,
+  whether they have tags or not. Type the description in the search box and press **Shift+Enter**, or pick **Images
+  that show “…”**. The closest images come first, narrowed by the open folder, type chips, **More filters** and other
+  search words; the chip's × or **Esc** ends it. It runs on your computer: turn it on in **Settings › AI features ›
+  Search by meaning (offline)**, which lists the one-time download first (Google's SigLIP 2 model and Microsoft's
+  ONNX Runtime, about 810 MB), then indexes your images in the background with Pause and Cancel. After that nothing
+  goes online. **Delete model and index** frees the space. See the README for what it covers.
+
 ## [0.11.0] - 2026-11-06
 
 ### Added

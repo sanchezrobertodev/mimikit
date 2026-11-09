@@ -202,6 +202,20 @@ export function ScopeChips({ counts, total, className }: { counts: Map<string, n
         </button>
       )}
       {s.similar && <SimilarChip chip={chip(true)} />}
+      {s.meaningQuery && (
+        <button
+          type="button"
+          className={clsx(chip(true), "pr-2")}
+          onClick={() => {
+            s.clearMeaning();
+            focusAssets();
+          }}
+          aria-label={t("header.meaning.stop", { text: s.meaningQuery.text })}
+        >
+          <span className="max-w-[320px] truncate">{t("header.meaning.label", { text: s.meaningQuery.text })}</span>
+          <X aria-hidden className="size-3.5 opacity-55" />
+        </button>
+      )}
       {s.shown && (
         <button
           type="button"
@@ -217,8 +231,8 @@ export function ScopeChips({ counts, total, className }: { counts: Map<string, n
         </button>
       )}
       <FilterButton />
-      {/* A smart collection saves only the search, type chips and filters: not Favorites or the open folder. */}
-      {s.view === "library" && !s.folder && (s.query.trim() || s.kinds.length > 0 || activeFilterCount(s.filters) > 0) && <SaveSmart />}
+      {/* A smart collection saves only the search, type chips and filters: not Favorites, the open folder or a search by meaning. */}
+      {s.view === "library" && !s.folder && !s.meaningQuery && (s.query.trim() || s.kinds.length > 0 || activeFilterCount(s.filters) > 0) && <SaveSmart />}
     </div>
   );
 }
@@ -235,7 +249,7 @@ export function BrowseBar({ count, folders, scopeAssets }: { count: number; fold
 
   // Screen readers hear the count when the search, chips or filters change, not on every batch a scan adds. During a
   // scan the count is still moving, so they wait for its "Scan finished" message instead.
-  const scope = JSON.stringify([s.view, s.query, s.kinds, s.folder, s.subfolders, s.filters, s.similar?.id, s.shown]);
+  const scope = JSON.stringify([s.view, s.query, s.kinds, s.folder, s.subfolders, s.filters, s.similar?.id, s.meaningQuery?.text, s.shown]);
   const lastScope = useRef(scope);
   const [said, setSaid] = useState("");
   useEffect(() => {
@@ -248,6 +262,7 @@ export function BrowseBar({ count, folders, scopeAssets }: { count: number; fold
     <>
       <ScopeChips counts={counts} total={scopeAssets.length} className="px-7 pt-3.5 pb-1" />
       {(s.similar || s.filters.color || parseQuery(s.query).colors.length > 0) && <AnalysisNote className="px-7 pt-2 text-xs" />}
+      {s.meaningQuery && <AnalysisNote ns="meaning" className="px-7 pt-2 text-xs" />}
       <div className="flex flex-none flex-wrap items-center gap-2 px-7 pt-2.5 pb-3 whitespace-nowrap">
         <span className="mr-auto text-muted">{s.grouped && folders > 1 ? t("header.assetsInFolders", { assets: countText, count: folders }) : countText}</span>
         <span role="status" className="sr-only">

@@ -23,6 +23,10 @@
     "sliderValue_one": "Jusqu'à {{max}} bits sur 64 d'écart, {{count}} image",
     "sliderValue_other": "Jusqu'à {{max}} bits sur 64 d'écart, {{count}} images"
   },
+  "meaning": {
+    "label": "Images qui montrent « {{text}} »",
+    "stop": "Effacer la recherche d'images qui montrent « {{text}} »"
+  },
   "sort": {
     "label": "Trier",
     "name": "Nom",

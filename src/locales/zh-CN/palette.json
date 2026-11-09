@@ -40,6 +40,11 @@
     "invalid": "Claude 写出了“{{query}}”，但 Mimikit 无法识别 {{words}}，因此没有执行搜索。",
     "openSettings": "打开设置"
   },
+  "meaning": {
+    "title": "按含义搜索",
+    "label": "内容为“{{text}}”的图片",
+    "seeking": "正在按含义搜索图片…"
+  },
   "dialog": "搜索",
   "input": "搜索资源、文件夹和操作",
   "placeholder": "搜索资源、文件夹、操作",

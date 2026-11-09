@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import type { Asset } from "../types";
 import { toLab } from "./colors.ts";
-import { activeFilterCount, groupByFolder, matchesFilters, matchesQuery, noFilters, parseQuery, ruleMatcher, rulesWantColors, visibleAssets, type Scope } from "./filter.ts";
+import { activeFilterCount, groupByFolder, matchesFilters, matchesQuery, MEANING_TOP, noFilters, parseQuery, ruleMatcher, rulesWantColors, visibleAssets, type Scope } from "./filter.ts";
 
 const now = Date.UTC(2026, 9, 19);
 const day = 86_400_000;
@@ -152,6 +152,24 @@ assert.equal(rulesWantColors([smart("", { color: "blue" })]), true);
 // "Find similar" shows only its results, closest first, whatever the sort.
 assert.deepEqual(visibleAssets(all, scope({ similar: [3, 1] }), { key: "name", desc: false }).map((a) => a.id), [3, 1]);
 assert.deepEqual(visibleAssets(all, scope({ similar: [3, 1], kinds: ["image"] }), { key: "name", desc: false }).map((a) => a.id), [1]);
+// Search by meaning: only scored images, best first whatever the sort, cut to MEANING_SPREAD below the best in the set.
+const byName = { key: "name", desc: false } as const;
+const seen = (list: { id: number }[]) => list.map((a) => a.id);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: new Map([[1, 0.12], [2, 0.15]]) }), byName)), [2, 1]);
+const apart = new Map([[1, 0.12], [2, 0.2]]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: apart }), byName)), [2]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: apart }), null)), [2], "the type chips' counts are cut the same way");
+// The best is taken after the other filters, so a folder or filter gets its own best matches.
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: apart, folder: { rootId: 1, path: "pack" } }), byName)), [1]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: apart, filters: f({ minRating: 4 }) }), byName)), [1]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: apart, query: "tex" }), byName)), [2]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: apart, kinds: ["audio"] }), byName)), []);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: new Map() }), byName)), [], "nothing indexed shows nothing");
+const many = Array.from({ length: MEANING_TOP + 50 }, (_, i) => asset({ id: 100 + i }));
+const close = new Map(many.map((a, i) => [a.id, 0.1 + i * 1e-5]));
+const top = visibleAssets(many, scope({ meaning: close }), byName);
+assert.equal(top.length, MEANING_TOP);
+assert.equal(top[0].id, 100 + MEANING_TOP + 49);
 const sorted = visibleAssets([sound, texture, sprite], scope({}), { key: "size", desc: true });
 assert.deepEqual(sorted.map((a) => a.id), [2, 3, 1]); // ties keep input order
 assert.deepEqual(groupByFolder(sorted, [{ id: 1, path: "/games/lib" }]).map((g) => [g.label, g.items.length]), [["audio", 1], ["pack/sprites", 1], ["tex", 1]]);

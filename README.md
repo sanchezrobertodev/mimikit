@@ -26,6 +26,9 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   applies the search to the grid.
 - **Ask** (<kbd>Ctrl/⌘ Enter</kbd> in the search box): describe what you want in plain words and Claude writes the
   search for you, which you see and can change. Needs your own Anthropic API key. See [Ask](#ask).
+- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box): find images by describing them, in any language
+  ("red potion icon", "poción roja"), tagged or not. Runs on your computer after a one-time download, with no account
+  or key. See [Search by meaning](#search-by-meaning).
 - **Side panel** (<kbd>Space</kbd>) and **full screen** (<kbd>Enter</kbd>) previews:
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
     TGA/PSD/TIFF via a decoded preview), and **Animate** to play a sprite sheet with a remembered grid and fps
@@ -289,6 +292,34 @@ An error says what happened and what to do, with a code: `not_running`, `not_all
 - On Windows, an update closes every running copy of `mimikit.exe`, the agent apps' `mimikit mcp` included. Reconnect
   them afterwards (in Claude Code, `/mcp`).
 
+## Search by meaning
+
+Describe a picture and Mimikit finds the images that show it: "red potion icon", "dark forest tileset", "hooded
+ghost", in English or in another language ("poción roja", "Totenkopf", "ドラゴン"). It looks at the pictures
+themselves, so it finds images with no tags and unhelpful file names. It runs on your computer and needs no account,
+key or connection once the model is downloaded.
+
+- **Turn it on** in **Settings → AI features → Search by meaning (offline)**. Before anything downloads, it lists each
+  file, its size and where it comes from: Google's SigLIP 2 model (Apache-2.0) from Hugging Face, and Microsoft's ONNX
+  Runtime (MIT) from Mimikit's GitHub releases, about 810 MB in all. Then Mimikit indexes every image in the
+  background on spare CPU, with **Pause** and **Cancel** in the sidebar (about 2 minutes for 3,400 images on a recent
+  desktop CPU), and indexes new and changed images as they come in.
+- **Search.** Type a description in the search box (<kbd>Ctrl/⌘ K</kbd>) and press <kbd>Shift+Enter</kbd>, or pick
+  **Images that show “…”**, the first result when your words match no file names. The library shows the closest images
+  first, with a chip in the header; its × or <kbd>Esc</kbd> ends the search by meaning and keeps everything else.
+- **Narrow it.** The open folder, **Include subfolders**, the type chips, **More filters** (pixel size, square, date,
+  rating, colour) and search words such as `rating:>=4` or `#ui` typed with the description all narrow the results,
+  and the best matches are picked from what's left. So "dark forest tileset" with a tileset pack open and **Square**
+  on gives that pack's best forest tiles first.
+- **How many.** The images that score close to the best match, at most 200. While indexing is still going, a note
+  says how many images the results cover, and the results grow as it goes.
+- **Speed and memory.** The first search takes about 2 seconds while the text model loads, later ones about 50 ms. The
+  text model takes about 800 MB of memory while loaded and is unloaded after 10 minutes without a search.
+- **Private.** After the download nothing goes online, and nothing about your files leaves the computer. **Delete
+  model and index** in Settings removes both. The index takes about 0.8 KB per image and isn't in backups.
+- **How good.** On 30 test descriptions over a library of 3,400 game-art images, 84% of the top 10 results
+  were right. It reads what a picture shows, not text inside it.
+
 ## Ask
 
 Type what you want in the search box in plain words, such as "dark forest ambience longer than a minute" or "red
@@ -386,6 +417,9 @@ src/agent/tools.test.ts` rewrites it.
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
   scan only when **Keep new and changed images analysed** is on.
+- Search by meaning covers images only (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF and ICO; not SVG),
+  not 3D models, videos, fonts or sounds, and doesn't read text inside pictures. Smart collections, Ask and AI agents
+  can't use it yet, and it doesn't combine with Find similar.
 - Search by meaning isn't available on Intel Macs, since Microsoft publishes no ONNX Runtime build for them. On
   Windows it needs Microsoft's Visual C++ runtime; Settings links to it when it's missing.
 - Syntax highlighting for text and code is not built yet.

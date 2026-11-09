@@ -13,6 +13,13 @@
   "pause": "Pausar la indexación para la búsqueda por significado",
   "cancel": "Cancelar la búsqueda por significado",
   "progress": "{{done}} de {{total}}",
+  "pending_one": "{{count}} imagen aún no está indexada — los resultados solo cubren {{covered}}.",
+  "pending_other": "{{count}} imágenes aún no están indexadas — los resultados solo cubren {{covered}}.",
+  "covered_one": "la única que sí lo está",
+  "covered_other": "las {{count}} que sí lo están",
+  "indexingNow": "Indexando ahora…",
+  "resumeIndexing": "Reanudar la indexación",
+  "indexNow": "Indexar el resto",
   "settings": {
     "title": "Búsqueda por significado (sin conexión)",
     "hint": "Encuentra imágenes describiéndolas, en cualquier idioma. Funciona en este equipo tras una única descarga.",

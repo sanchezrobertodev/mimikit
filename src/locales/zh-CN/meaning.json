@@ -11,6 +11,11 @@
   "pause": "暂停为按含义搜索建立索引",
   "cancel": "取消按含义搜索",
   "progress": "{{done}} / {{total}}",
+  "pending_other": "{{count}} 张图片尚未建立索引，结果仅包含{{covered}}。",
+  "covered_other": "已建立索引的 {{count}} 张",
+  "indexingNow": "正在建立索引…",
+  "resumeIndexing": "继续建立索引",
+  "indexNow": "索引其余图片",
   "settings": {
     "title": "按含义搜索(离线)",
     "hint": "用文字描述即可找到图片，支持任何语言。一次性下载后在这台电脑上运行。",

@@ -19,7 +19,7 @@
   "label": {
     "move": "Passer d'une ressource à l'autre (↑ ↓ changent de rangée dans la grille)",
     "parent": "Remonter au dossier parent",
-    "back": "Quitter un champ de texte, fermer le plein écran, puis le panneau latéral, puis effacer la sélection, puis revenir à une fenêtre si Mimikit occupe tout l'écran",
+    "back": "Quitter un champ de texte, fermer le plein écran, puis le panneau latéral, puis effacer la sélection, puis la recherche par le sens, puis revenir à une fenêtre si Mimikit occupe tout l'écran",
     "skip": "Depuis le haut de la fenêtre : aller aux ressources",
     "help": "Afficher ces raccourcis",
     "sidebar": "Réduire ou déplier la barre latérale",
@@ -46,6 +46,7 @@
     "search-slash": "Rechercher",
     "results": "Parcourir les résultats",
     "run": "Ouvrir le résultat en surbrillance",
+    "meaning": "Trouver les images qui montrent les mots saisis (recherche par le sens)",
     "ask": "Demander à Claude de transformer vos mots en recherche",
     "close": "Fermer la recherche"
   },

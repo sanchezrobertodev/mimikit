@@ -40,6 +40,11 @@
     "invalid": "Claude は「{{query}}」と書きましたが、Mimikit は {{words}} を読めないため、検索は実行していません。",
     "openSettings": "設定を開く"
   },
+  "meaning": {
+    "title": "意味で検索",
+    "label": "「{{text}}」の画像",
+    "seeking": "意味で画像を検索しています…"
+  },
   "dialog": "検索",
   "input": "アセット、フォルダー、アクションを検索",
   "placeholder": "アセット、フォルダー、アクションを検索",

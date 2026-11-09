@@ -47,6 +47,11 @@
     "invalid": "O Claude escreveu “{{query}}”, mas o Mimikit não entende {{words}}, então a busca não foi executada.",
     "openSettings": "Abrir Configurações"
   },
+  "meaning": {
+    "title": "Busca por significado",
+    "label": "Imagens que mostram “{{text}}”",
+    "seeking": "Buscando imagens por significado…"
+  },
   "dialog": "Busca",
   "input": "Buscar recursos, pastas e ações",
   "placeholder": "Buscar recursos, pastas, ações",

@@ -19,7 +19,7 @@
   "label": {
     "move": "Mover entre recursos (↑ ↓ mudam de linha na grade)",
     "parent": "Subir para a pasta superior",
-    "back": "Sair de um campo de texto, fechar a tela cheia, depois o painel lateral, depois limpar a seleção e, por fim, voltar a uma janela se o Mimikit ocupar a tela inteira",
+    "back": "Sair de um campo de texto, fechar a tela cheia, depois o painel lateral, depois limpar a seleção, depois a busca por significado e, por fim, voltar a uma janela se o Mimikit ocupar a tela inteira",
     "skip": "No topo da janela: pular para os recursos",
     "help": "Mostrar estes atalhos",
     "sidebar": "Recolher ou expandir a barra lateral",
@@ -46,6 +46,7 @@
     "search-slash": "Buscar",
     "results": "Percorrer os resultados",
     "run": "Abrir o resultado destacado",
+    "meaning": "Encontrar imagens que mostram as palavras digitadas (busca por significado)",
     "ask": "Pedir ao Claude para transformar suas palavras em uma busca",
     "close": "Fechar a busca"
   },

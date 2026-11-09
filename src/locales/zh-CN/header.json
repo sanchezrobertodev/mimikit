@@ -21,6 +21,10 @@
     "slider": "相似图片允许的差异程度",
     "sliderValue_other": "最多 {{max}}/64 位不同，{{count}} 张图片"
   },
+  "meaning": {
+    "label": "内容为“{{text}}”的图片",
+    "stop": "停止显示内容为“{{text}}”的图片"
+  },
   "sort": {
     "label": "排序",
     "name": "名称",
