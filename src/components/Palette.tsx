@@ -134,15 +134,12 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       // The library keeps the Filters panel, so the counts and results do too.
       const now = Date.now();
       const scoring = meaningReady && parsed.looks.some((p) => !s.looks.has(p));
-      const matches = closeLooks(
-        s.assets.filter((a) => matchesQuery(a, parsed, s.notes, s.palettes, s.looks) && matchesFilters(a, s.filters, now, s.palettes)),
-        parsed.looks,
-        s.looks,
-      );
-      // With a collection open, the first result searches inside it.
+      const found = s.assets.filter((a) => matchesQuery(a, parsed, s.notes, s.palettes, s.looks) && matchesFilters(a, s.filters, now, s.palettes));
+      const matches = closeLooks(found, parsed.looks, s.looks);
+      // With a collection open, the first result searches inside it: its own closest looks: matches, in its type chips, as it will show.
       const col = s.view === "collections" ? (s.collections.find((c) => c.id === s.colSel) ?? null) : null;
       const members = new Set(col?.rule ? ruleMembers(col.rule, s.assets, s.notes, now, s.palettes, s.looks).map((a) => a.id) : col?.assetIds);
-      const inCol = col ? matches.filter((a) => members.has(a.id)) : [];
+      const inCol = col ? closeLooks(found.filter((a) => members.has(a.id) && (!s.kinds.length || s.kinds.includes(a.kind))), parsed.looks, s.looks) : [];
       // In Duplicates, it keeps the groups that have a matching copy.
       const hits = s.view === "duplicates" && s.dups ? new Set(matches.map((a) => a.id)) : null;
       const inDups = hits ? s.dups!.filter((g) => g.ids.some((id) => hits.has(id))).length : 0;
@@ -297,7 +294,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     return out;
     // Only what it reads: the whole store changes on every scan tick, and this searches every asset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking]);
+  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.kinds, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking]);
 
   const flat = sections.flatMap((sec) => sec.items);
   const run = (item?: Item) => {

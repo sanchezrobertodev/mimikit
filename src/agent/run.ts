@@ -495,11 +495,10 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     if (phrases.length && !canLook(lib)) return notIndexed(lib);
     const looks = phrases.length ? await io.looks(phrases) : null;
     const sort = { key: (a.sort as "name") ?? "name", desc: a.desc === true };
-    const scope = { kinds: [], folder: null, subfolders: true, query, filters, collection, notes: lib.notes, palettes, looks };
-    let list = visibleAssets(lib.assets, { ...scope, view: collection ? "collections" : a.favorites ? "favorites" : "library" }, sort);
-    // visibleAssets narrows a collection by neither favorites nor a folder.
-    if (collection && a.favorites) list = list.filter((x) => x.favorite);
-    if (a.folder !== undefined) list = list.filter((x) => x.rootId === a.folder);
+    // The folder, and favorites inside a collection, narrow before looks: takes the closest matches, so a folder gets its own.
+    const within = (x: Asset) => (a.folder === undefined || x.rootId === a.folder) && (!collection || !a.favorites || x.favorite);
+    const scope = { kinds: [], folder: null, subfolders: true, query, filters, collection, notes: lib.notes, palettes, looks, within };
+    const list = visibleAssets(lib.assets, { ...scope, view: collection ? "collections" : a.favorites ? "favorites" : "library" }, sort);
     const offset = (a.offset as number | undefined) ?? 0;
     const limit = (a.limit as number | undefined) ?? 30;
     const names = rootNames(lib.roots);

@@ -235,6 +235,11 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin in:tiles" })), [7], "a folder gets its own best match");
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", filters: { minW: 32 } })), [7]);
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin type:audio" })), []);
+  // The folder argument and favorites inside a collection narrow first too: the tileset is the best in its own folder.
+  const moved = { library: () => ({ ...library, assets: library.assets.map((x) => (x.id === 7 ? { ...x, rootId: 2, favorite: true } : x.id === 1 ? { ...x, favorite: false } : x)) }) };
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", folder: 2 }, moved)), [7]);
+  const faves = { library: () => ({ ...moved.library(), collections: [{ id: 9, name: "Mixed", assetIds: [1, 7], rule: null }] }) };
+  assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", collection: 9, favorites: true }, faves)), [7]);
   // Smart collections that search by meaning: counted, listed and searched like the others.
   const walls = { id: 4, name: "Walls", assetIds: [], rule: { query: "looks:stone-wall", filters: {} } };
   const smart = { library: () => ({ ...library, collections: [...collections, walls] }) };

@@ -215,6 +215,8 @@ export interface Scope {
   meaning?: ReadonlyMap<number, number> | null;
   palettes?: Palettes | null;
   looks?: Looks | null;
+  /** More narrowing (an agent's folder, or favorites inside a collection), before `looks:` takes its closest matches. */
+  within?: (a: Asset) => boolean;
 }
 
 /** Search by meaning keeps at most this many results, all within `MEANING_SPREAD` of the best score (phase 0 eval). */
@@ -275,6 +277,7 @@ export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; d
     // A collection's members, narrowed by the type chips, search and Filters panel like any other view.
     if (members && !members.has(a.id)) return false;
     if (s.view === "favorites" && !a.favorite) return false;
+    if (s.within && !s.within(a)) return false;
     if (rank && !rank.has(a.id)) return false;
     if (s.meaning && !s.meaning.has(a.id)) return false;
     if (s.kinds.length && !s.kinds.includes(a.kind)) return false;
