@@ -50,5 +50,6 @@
   "unfavoriteAll": "すべてお気に入りから外す",
   "copyPath": "パスをコピー",
   "favorite": "お気に入り（{{key}}）",
-  "findSimilar": "類似を検索"
+  "findSimilar": "類似を検索",
+  "findRelated": "関連を検索"
 }

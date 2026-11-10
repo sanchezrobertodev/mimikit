@@ -210,9 +210,11 @@ export function ScopeChips({ counts, total, className }: { counts: Map<string, n
             s.clearMeaning();
             focusAssets();
           }}
-          aria-label={t("header.meaning.stop", { text: s.meaningQuery.text })}
+          aria-label={s.meaningQuery.id === undefined ? t("header.meaning.stop", { text: s.meaningQuery.text }) : t("header.related.stop", { name: s.meaningQuery.text })}
         >
-          <span className="max-w-[320px] truncate">{t("header.meaning.label", { text: s.meaningQuery.text })}</span>
+          <span className="max-w-[320px] truncate">
+            {s.meaningQuery.id === undefined ? t("header.meaning.label", { text: s.meaningQuery.text }) : t("header.related.label", { name: s.meaningQuery.text })}
+          </span>
           <X aria-hidden className="size-3.5 opacity-55" />
         </button>
       )}
@@ -252,7 +254,7 @@ export function BrowseBar({ count, folders, scopeAssets }: { count: number; fold
 
   // Screen readers hear the count when the search, chips or filters change, not on every batch a scan adds. During a
   // scan the count is still moving, so they wait for its "Scan finished" message instead.
-  const scope = JSON.stringify([s.view, s.query, s.kinds, s.folder, s.subfolders, s.filters, s.similar?.id, s.meaningQuery?.text, s.shown]);
+  const scope = JSON.stringify([s.view, s.query, s.kinds, s.folder, s.subfolders, s.filters, s.similar?.id, s.meaningQuery?.id ?? s.meaningQuery?.text, s.shown]);
   const lastScope = useRef(scope);
   const [said, setSaid] = useState("");
   useEffect(() => {

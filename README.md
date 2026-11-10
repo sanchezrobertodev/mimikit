@@ -28,8 +28,8 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   search for you, which you see and can change. Needs your own Anthropic API key. See [Ask](#ask).
 - **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box, or `looks:red-potion-icon`): find images by
   describing them, in any language ("red potion icon", "poción roja"), tagged or not, also in smart collections, Ask
-  and AI agents. Runs on your computer after a one-time download, with no account or key. See
-  [Search by meaning](#search-by-meaning).
+  and AI agents, and **Find related** in the side panel shows the images closest in meaning to the open one. Runs on
+  your computer after a one-time download, with no account or key. See [Search by meaning](#search-by-meaning).
 - **Side panel** (<kbd>Space</kbd>) and **full screen** (<kbd>Enter</kbd>) previews:
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
     TGA/PSD/TIFF via a decoded preview), and **Animate** to play a sprite sheet with a remembered grid and fps
@@ -321,6 +321,11 @@ key or connection once the model is downloaded.
   on gives that pack's best forest tiles first.
 - **How many.** The images that score close to the best match, at most 200. While indexing is still going, a note
   says how many images the results cover, and the results grow as it goes.
+- **Find related.** **Find related** in the side panel, next to **Find similar**, shows the images closest in meaning
+  to the open one, narrowed the same way: other dragons for a dragon, ropes and chains for a rope. Find similar finds
+  copies of one picture; Find related finds pictures of the same kind of thing. It shows the closest 200 however they
+  score, since near-copies score far above the rest and would leave little else, and it reads only the index, so it
+  loads no model. An image that isn't indexed yet says so.
 - **In the search language.** `looks:` followed by the description, with hyphens for spaces, searches by meaning
   among whatever the rest of the search matches: `type:image looks:dark-forest-tileset rating:>=4`. It ranks the same
   way, best first whatever the sort, and works anywhere a search does:

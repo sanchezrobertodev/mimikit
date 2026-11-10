@@ -52,6 +52,9 @@ const OFFLINE: &str =
     "Couldn't download the files for search by meaning. Check your internet connection and try again.";
 const DAMAGED: &str = "A file downloaded for search by meaning was damaged, so it was deleted. Try again.";
 const VC_RUNTIME: &str = "Search by meaning needs Microsoft's Visual C++ runtime. Install it, then try again.";
+const NOT_INDEXED: &str = "This image isn't indexed for search by meaning yet.";
+/// The same text as thumbs.rs's.
+const UNREADABLE: &str = "Mimikit couldn't read this image.";
 
 /// A file to download: where from, and what it must be.
 #[derive(Serialize, Clone, Copy, Debug)]
@@ -336,11 +339,14 @@ impl Index {
         Ok(index)
     }
 
-    /// The cosine of every image with `q` (a unit vector), as (id i32, score f32) little-endian pairs: the window
-    /// ranks within whatever else is applied.
-    fn scores(&self, q: &[f32]) -> Vec<u8> {
+    /// The cosine of every image but `skip` with `q` (a unit vector), as (id i32, score f32) little-endian pairs: the
+    /// window ranks within whatever else is applied.
+    fn scores(&self, q: &[f32], skip: Option<i64>) -> Vec<u8> {
         let mut out = Vec::with_capacity(self.ids.len() * 8);
         for ((id, v), scale) in self.ids.iter().zip(self.vecs.chunks(DIMS)).zip(&self.scales) {
+            if skip == Some(*id) {
+                continue;
+            }
             let dot: f32 = v.iter().zip(q).map(|(&a, &b)| a as f32 * b).sum();
             out.extend_from_slice(&(*id as i32).to_le_bytes());
             out.extend_from_slice(&(dot * scale).to_le_bytes());
@@ -352,6 +358,41 @@ impl Index {
 /// Loaded on the first search. Reloaded after a batch is stored (`DIRTY`): about 100 ms at 100,000 images.
 static INDEX: Mutex<Option<Index>> = Mutex::new(None);
 static DIRTY: AtomicBool = AtomicBool::new(false);
+
+/// [`Index::scores`] against the index, loaded first if it isn't or has grown.
+fn score_all(db: &Mutex<Connection>, q: &[f32], skip: Option<i64>) -> Result<Vec<u8>, String> {
+    // INDEX before the db lock, never the other way round.
+    let mut index = INDEX.lock().unwrap();
+    if index.is_none() || DIRTY.swap(false, SeqCst) {
+        *index = Some(Index::load(&db.lock().unwrap()).map_err(err)?);
+    }
+    Ok(index.as_ref().unwrap().scores(q, skip))
+}
+
+/// Find related's query: the vector of `id`'s current version. The errors say why it has none.
+fn related_query(conn: &Connection, id: i64) -> Result<Vec<f32>, String> {
+    if !on(conn) {
+        return Err(NOT_ON.into());
+    }
+    let blob: Option<Vec<u8>> = conn
+        .query_row(
+            "SELECT v.vec FROM meaning.vectors v JOIN assets a ON a.id = v.asset_id AND a.size = v.size AND a.mtime = v.mtime
+             WHERE v.asset_id = ?1 AND v.model = ?2",
+            params![id, MODEL],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(err)?;
+    match blob {
+        None => Err(NOT_INDEXED.into()),
+        Some(b) if b.len() != DIMS + 4 => Err(UNREADABLE.into()),
+        Some(b) => {
+            let scale = f32::from_le_bytes(b[DIMS..].try_into().unwrap());
+            let v: Vec<f32> = b[..DIMS].iter().map(|&x| x as i8 as f32 * scale).collect();
+            Ok(unit(&v))
+        }
+    }
+}
 
 /// The model's input for one picture: the whole picture fitted into the square (a wide sprite sheet is seen whole),
 /// transparency on mid-grey, and small pixel art (64 px or less) enlarged with sharp edges. Channels first, -1 to 1.
@@ -1022,12 +1063,20 @@ pub async fn meaning_scores(app: AppHandle, text: String) -> Result<tauri::ipc::
             return Err(NOT_ON.to_string());
         }
         let q = query(&dir, &text)?;
-        // INDEX before the db lock, never the other way round.
-        let mut index = INDEX.lock().unwrap();
-        if index.is_none() || DIRTY.swap(false, SeqCst) {
-            *index = Some(Index::load(&state.db.lock().unwrap()).map_err(err)?);
-        }
-        Ok(tauri::ipc::Response::new(index.as_ref().unwrap().scores(&q)))
+        Ok(tauri::ipc::Response::new(score_all(&state.db, &q, None)?))
+    })
+    .await
+    .map_err(err)?
+}
+
+/// Find related: the score of every other indexed image for image `id`'s own vector, as in [`meaning_scores`]. Needs
+/// no model, so it downloads and loads nothing but the index.
+#[tauri::command]
+pub async fn meaning_related(app: AppHandle, id: i64) -> Result<tauri::ipc::Response, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        let q = related_query(&state.db.lock().unwrap(), id)?;
+        Ok(tauri::ipc::Response::new(score_all(&state.db, &q, Some(id))?))
     })
     .await
     .map_err(err)?
@@ -1235,7 +1284,7 @@ mod tests {
             index.vecs.extend(b[..DIMS].iter().map(|&x| x as i8));
             index.scales.push(f32::from_le_bytes(b[DIMS..].try_into().unwrap()));
         }
-        let bytes = index.scores(&q);
+        let bytes = index.scores(&q, None);
         let int8: Vec<(i32, f32)> = bytes
             .chunks(8)
             .map(|c| {
@@ -1284,7 +1333,7 @@ mod tests {
         // Searching gives every indexed image a score; this one leans to the reddest picture.
         let mut q = vec![0.0; DIMS];
         (q[0], q[1]) = (1.0, 4.0);
-        let scores = index.scores(&unit(&q));
+        let scores = index.scores(&unit(&q), None);
         assert_eq!(scores.len(), 3 * 8);
         let best = scores
             .chunks(8)
@@ -1330,6 +1379,48 @@ mod tests {
         let db = Mutex::new(conn);
         assert_eq!(index_all(&db, &thumbs_dir), 3);
         assert_eq!(counts(&db.lock().unwrap()).unwrap(), (0, 3));
+    }
+
+    #[test]
+    fn find_related_ranks_the_other_images_closest_first() {
+        let (dir, mut conn, thumbs_dir) = scanned(4);
+        std::fs::write(dir.path().join("lib/broken.png"), "not a png").unwrap();
+        scan::tests::scan(&mut conn, 1, &dir.path().join("lib"));
+        let id = |c: &Connection, n: &str| -> i64 {
+            c.query_row("SELECT id FROM assets WHERE name = ?1", [n], |r| r.get(0))
+                .unwrap()
+        };
+        let img0 = id(&conn, "img0.png");
+        assert_eq!(related_query(&conn, img0), Err(NOT_INDEXED.into()));
+        let db = Mutex::new(conn);
+        index_all(&db, &thumbs_dir);
+        let conn = db.into_inner().unwrap();
+        assert_eq!(related_query(&conn, id(&conn, "broken.png")), Err(UNREADABLE.into()));
+
+        // The fake model's vectors follow each picture's red, so img0's nearest are img1, img2, img3 in that order.
+        let q = related_query(&conn, img0).unwrap();
+        let mut ranked: Vec<(i64, f32)> = Index::load(&conn)
+            .unwrap()
+            .scores(&q, Some(img0))
+            .chunks(8)
+            .map(|c| {
+                (
+                    i32::from_le_bytes(c[..4].try_into().unwrap()) as i64,
+                    f32::from_le_bytes(c[4..].try_into().unwrap()),
+                )
+            })
+            .collect();
+        ranked.sort_by(|a, b| b.1.total_cmp(&a.1));
+        let order: Vec<i64> = ranked.iter().map(|r| r.0).collect();
+        assert_eq!(order, ["img1.png", "img2.png", "img3.png"].map(|n| id(&conn, n)));
+        assert!(ranked[0].1 < 1.0 && ranked[2].1 > 0.0);
+
+        // A changed file needs indexing again, and nothing is related while search by meaning is off.
+        conn.execute("UPDATE assets SET mtime = mtime + 1 WHERE id = ?1", [img0])
+            .unwrap();
+        assert_eq!(related_query(&conn, img0), Err(NOT_INDEXED.into()));
+        conn.execute("DELETE FROM settings WHERE key = ?1", [SETTING]).unwrap();
+        assert_eq!(related_query(&conn, id(&conn, "img1.png")), Err(NOT_ON.into()));
     }
 
     #[test]

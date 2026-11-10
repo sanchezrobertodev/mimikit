@@ -43,5 +43,6 @@
   "meaningOffline": "Impossible de télécharger les fichiers de la recherche par le sens. Vérifiez votre connexion Internet et réessayez.",
   "meaningDamaged": "Un fichier téléchargé pour la recherche par le sens était endommagé et a été supprimé. Réessayez.",
   "meaningStart": "Impossible de démarrer la recherche par le sens : {{error}}",
-  "meaningVcRuntime": "La recherche par le sens nécessite le runtime Visual C++ de Microsoft. Installez-le, puis réessayez."
+  "meaningVcRuntime": "La recherche par le sens nécessite le runtime Visual C++ de Microsoft. Installez-le, puis réessayez.",
+  "meaningNotIndexed": "Cette image n'est pas encore indexée pour la recherche par le sens."
 }

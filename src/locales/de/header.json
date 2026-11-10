@@ -27,6 +27,10 @@
     "label": "Bilder, die „{{text}}“ zeigen",
     "stop": "Suche nach Bildern, die „{{text}}“ zeigen, beenden"
   },
+  "related": {
+    "label": "Verwandt mit {{name}}",
+    "stop": "Bilder verwandt mit {{name}} nicht mehr anzeigen"
+  },
   "sort": {
     "label": "Sortieren",
     "name": "Name",

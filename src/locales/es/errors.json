@@ -43,5 +43,6 @@
   "meaningOffline": "No se pudieron descargar los archivos de la búsqueda por significado. Comprueba tu conexión a internet y vuelve a intentarlo.",
   "meaningDamaged": "Un archivo descargado para la búsqueda por significado estaba dañado, así que se eliminó. Vuelve a intentarlo.",
   "meaningStart": "No se pudo iniciar la búsqueda por significado: {{error}}",
-  "meaningVcRuntime": "La búsqueda por significado necesita el entorno de ejecución de Visual C++ de Microsoft. Instálalo y vuelve a intentarlo."
+  "meaningVcRuntime": "La búsqueda por significado necesita el entorno de ejecución de Visual C++ de Microsoft. Instálalo y vuelve a intentarlo.",
+  "meaningNotIndexed": "Esta imagen aún no está indexada para la búsqueda por significado."
 }

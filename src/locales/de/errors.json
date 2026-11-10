@@ -43,5 +43,6 @@
   "meaningOffline": "Die Dateien für die Suche nach Bedeutung ließen sich nicht herunterladen. Prüfe deine Internetverbindung und versuche es erneut.",
   "meaningDamaged": "Eine für die Suche nach Bedeutung heruntergeladene Datei war beschädigt und wurde gelöscht. Versuche es erneut.",
   "meaningStart": "Die Suche nach Bedeutung ließ sich nicht starten: {{error}}",
-  "meaningVcRuntime": "Die Suche nach Bedeutung braucht Microsofts Visual-C++-Laufzeit. Installiere sie und versuche es erneut."
+  "meaningVcRuntime": "Die Suche nach Bedeutung braucht Microsofts Visual-C++-Laufzeit. Installiere sie und versuche es erneut.",
+  "meaningNotIndexed": "Dieses Bild ist für die Suche nach Bedeutung noch nicht indexiert."
 }

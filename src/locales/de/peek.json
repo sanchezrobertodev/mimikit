@@ -53,5 +53,6 @@
   "unfavoriteAll": "Alle aus Favoriten",
   "copyPath": "Pfad kopieren",
   "favorite": "Favorit ({{key}})",
-  "findSimilar": "Ähnliche finden"
+  "findSimilar": "Ähnliche finden",
+  "findRelated": "Verwandte finden"
 }

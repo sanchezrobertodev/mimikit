@@ -5,6 +5,14 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **Find related** in the side panel, next to **Find similar**: the images closest in meaning to the open one (other
+  dragons for a dragon, ropes and chains for a rope), from search by meaning's index. They come closest first, at most
+  200, narrowed by the open folder, type chips and **More filters**; the chip's × or **Esc** ends it. Find similar
+  still finds copies. It needs search by meaning on and the image indexed, and says so otherwise; it downloads
+  nothing and loads no model.
+
 ## [0.12.0] - 2026-11-09
 
 ### Added

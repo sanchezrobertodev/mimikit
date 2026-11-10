@@ -25,6 +25,10 @@
     "label": "「{{text}}」の画像",
     "stop": "「{{text}}」の画像の検索をやめる"
   },
+  "related": {
+    "label": "{{name}}に関連",
+    "stop": "「{{name}}」に関連する画像の表示をやめる"
+  },
   "sort": {
     "label": "並べ替え",
     "name": "名前",

@@ -145,15 +145,24 @@ function GroupHead({ group }: { group: Group }) {
   );
 }
 
-/** Scrolls the active asset into view when it changes, and once `ready` (the grid knows its width, so its lines). */
+/**
+ * Scrolls the active asset into view when it changes, and once `ready` (the grid knows its width, so its lines). A new
+ * search by meaning or Find related starts at its closest match instead: the list's scroll position would otherwise
+ * land on its weakest ones, and Find related leaves out the active image.
+ */
 function useActiveScroll(order: Asset[], lineOf: (index: number) => number, scrollTo: (line: number) => void, ready = true) {
   const activeId = useStore((s) => s.activeId);
+  const ranked = useStore((s) => s.meaningQuery?.id ?? s.meaningQuery?.text);
   useEffect(() => {
     if (!ready) return;
     const i = order.findIndex((a) => a.id === activeId);
     if (i >= 0) scrollTo(lineOf(i));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, ready]);
+  useEffect(() => {
+    if (ready && ranked !== undefined) scrollTo(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ranked, ready]);
 }
 
 function Grid({ assets, groups }: { assets: Asset[]; groups: Group[] | null }) {
