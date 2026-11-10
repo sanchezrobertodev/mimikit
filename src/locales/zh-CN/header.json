@@ -25,6 +25,10 @@
     "label": "内容为“{{text}}”的图片",
     "stop": "停止显示内容为“{{text}}”的图片"
   },
+  "related": {
+    "label": "与 {{name}} 相关",
+    "stop": "停止显示与 {{name}} 相关的图片"
+  },
   "sort": {
     "label": "排序",
     "name": "名称",

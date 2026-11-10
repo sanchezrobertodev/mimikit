@@ -50,5 +50,6 @@
   "unfavoriteAll": "全部取消收藏",
   "copyPath": "复制路径",
   "favorite": "收藏（{{key}}）",
-  "findSimilar": "查找相似"
+  "findSimilar": "查找相似",
+  "findRelated": "查找相关"
 }

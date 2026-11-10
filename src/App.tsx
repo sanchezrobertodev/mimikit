@@ -152,8 +152,9 @@ export default function App() {
   const collection = s.collections.find((c) => c.id === s.colSel) ?? null;
   // "Find similar" results, or the assets an agent showed: only these, in their order.
   const similar = s.similar?.ids ?? s.shown?.ids ?? null;
-  // Search by meaning: only scored images, best first.
+  // Search by meaning or Find related: only scored images, best first.
   const meaning = s.meaningQuery?.scores ?? null;
+  const related = s.meaningQuery?.id !== undefined;
   const wantsColors = !!s.filters.color || parseQuery(s.query).colors.length > 0 || rulesWantColors(s.collections);
   // Colours only matter to a colour filter; otherwise their updates during an analysis pass mustn't re-sort the list.
   const palettes = wantsColors ? s.palettes : null;
@@ -165,17 +166,17 @@ export default function App() {
     st.resolveLooks("window", JSON.parse(looksKey)).catch(st.setError);
   }, [looksKey, meaningOn]);
   const looks = looksKey !== "[]" ? s.looks : null;
-  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, palettes, looks };
+  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, related, palettes, looks };
   const visible = useMemo(
     () => visibleAssets(s.assets, scope, s.sort),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, palettes, looks],
+    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, related, palettes, looks],
   );
   // Same scope without the type chips, so each chip can show its count. Only counted, so not sorted.
   const scopeAssets = useMemo(
     () => visibleAssets(s.assets, { ...scope, kinds: [] }, null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, palettes, looks],
+    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, related, palettes, looks],
   );
   useEffect(() => {
     if (wantsColors) void useStore.getState().loadPalettes();
