@@ -44,5 +44,6 @@
   "meaningDamaged": "A file downloaded for search by meaning was damaged, so it was deleted. Try again.",
   "meaningStart": "Couldn't start search by meaning: {{error}}",
   "meaningVcRuntime": "Search by meaning needs Microsoft's Visual C++ runtime. Install it, then try again.",
-  "meaningNotIndexed": "This image isn't indexed for search by meaning yet."
+  "meaningNotIndexed": "This asset isn't indexed for search by meaning yet.",
+  "meaningUndrawn": "Mimikit couldn't draw a preview of this asset."
 }

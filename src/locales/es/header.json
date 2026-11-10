@@ -24,12 +24,12 @@
     "sliderValue_other": "Hasta {{max}} de 64 bits distintos, {{count}} imágenes"
   },
   "meaning": {
-    "label": "Imágenes que muestran “{{text}}”",
-    "stop": "Quitar la búsqueda de imágenes que muestran “{{text}}”"
+    "label": "Recursos que muestran “{{text}}”",
+    "stop": "Quitar la búsqueda de recursos que muestran “{{text}}”"
   },
   "related": {
-    "label": "Relacionadas con {{name}}",
-    "stop": "Dejar de mostrar imágenes relacionadas con {{name}}"
+    "label": "Relacionados con {{name}}",
+    "stop": "Dejar de mostrar recursos relacionados con {{name}}"
   },
   "sort": {
     "label": "Ordenar",

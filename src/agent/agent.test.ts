@@ -87,6 +87,7 @@ const io = (over: Partial<Io> = {}): Io => ({
   similar: async (id) => (id === 1 ? [4, 2, 99] : []),
   // The coin is indexed (99 has left the library); the hero isn't yet.
   related: async (id) => {
+    if (id === 8) return new Map([[1, 0.6]]); // the font, by its sample
     if (id !== 1) throw new Error("This image isn't indexed for search by meaning yet.");
     return new Map([[7, 0.75], [99, 0.9], [4, 0.8]]);
   },
@@ -152,7 +153,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     { id: 2, name: "Coins", smart: true, assets: 2 }, // coin.png and coin_pickup.wav match "coin" now
   ]);
   assert.deepEqual(o.imageAnalysis, { analysed: 3, images: 4 });
-  assert.deepEqual(o.meaningSearch, { on: true, indexed: 3, images: 4, model: "siglip2-b32-256" });
+  assert.deepEqual(o.meaningSearch, { on: true, indexed: 3, assets: 4, model: "siglip2-b32-256" });
   assert.deepEqual(payload(await call("overview", {})), o, "an empty object is the same as no arguments");
 }
 
@@ -235,7 +236,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
   const ids = (r: ToolResult) => payload(r).assets.map((a: { id: number }) => a.id);
   const gold = payload(await call("search", { query: "looks:gold-coin" }));
   assert.deepEqual(gold.assets.map((a: { id: number }) => a.id), [1, 4], "the close matches, best first");
-  assert.match(gold.note, /3 of 4 images/);
+  assert.match(gold.note, /3 of 4 assets/);
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", sort: "name", desc: true })), [1, 4], "whatever the sort");
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin in:tiles" })), [7], "a folder gets its own best match");
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", filters: { minW: 32 } })), [7]);
@@ -318,9 +319,10 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     "closest first; ids no longer in the library left out",
   );
   assert.equal(r.total, 2);
-  assert.match(r.note, /3 of 4 images/);
+  assert.match(r.note, /3 of 4 assets/);
   assert.equal(payload(await call("related", { id: 1, limit: 1 })).assets.length, 1);
-  assert.equal(errorCode(await call("related", { id: 3 })), "not_an_image");
+  assert.deepEqual(payload(await call("related", { id: 8 })).assets.map((a: { id: number }) => a.id), [1], "a font finds pictures");
+  assert.equal(errorCode(await call("related", { id: 3 })), "no_picture", "a sound has nothing to show");
   assert.equal(errorCode(await call("related", { id: 2 })), "not_indexed", "an image not indexed yet");
   // As in the window, the closest 200 whatever their scores.
   const many = Array.from({ length: 250 }, (_, i) => asset({ id: 100 + i, relPath: `many/${i}.png` }));

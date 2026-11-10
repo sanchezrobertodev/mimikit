@@ -26,9 +26,10 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   applies the search to the grid.
 - **Ask** (<kbd>Ctrl/⌘ Enter</kbd> in the search box): describe what you want in plain words and Claude writes the
   search for you, which you see and can change. Needs your own Anthropic API key. See [Ask](#ask).
-- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box, or `looks:red-potion-icon`): find images by
-  describing them, in any language ("red potion icon", "poción roja"), tagged or not, also in smart collections, Ask
-  and AI agents, and **Find related** in the side panel shows the images closest in meaning to the open one. Runs on
+- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box, or `looks:red-potion-icon`): find images, 3D models,
+  videos and fonts by describing them, in any language ("red potion icon", "poción roja"), tagged or not, also in smart
+  collections, Ask and AI agents, and **Find related** in the side panel shows the assets closest in meaning to the
+  open one. Runs on
   your computer after a one-time download, with no account or key. See [Search by meaning](#search-by-meaning).
 - **Side panel** (<kbd>Space</kbd>) and **full screen** (<kbd>Enter</kbd>) previews:
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
@@ -238,7 +239,7 @@ With **Allow changes** on:
 | `search` | The search language (`type:`, `in:`, `#tag`, `size:`, `dur:`, `rating:`, `note:`, `color:`, `looks:`), the Filters panel, a collection, a library folder, favorites, a sort and pages. Short rows; with `looks:`, best first. |
 | `get_assets` | Full details of up to 50 assets: file path, size, date, pixel size or audio format, tags, rating, note, collections, main colours, sprite-sheet grid. |
 | `similar` | Images that look like one image, closest first. |
-| `related` | Images closest in meaning to one image (other dragons for a dragon), closest first, from search by meaning's index. |
+| `related` | Assets closest in meaning to one image, model, video or font (other dragons for a dragon), closest first, from search by meaning's index. |
 | `view` | Pictures: one numbered contact sheet of up to 16 assets, or up to 4 larger ones. Images, models and videos show their thumbnail, fonts sample letters. |
 | `list_tags` | Every tag and how many assets have it. |
 | `list_collections` | The collections and their sizes; a smart collection's saved search. |
@@ -259,9 +260,9 @@ minute.
 | `batch` | Up to 20 `tag`, `rate`, `favorite`, `note` and `collect` changes as one step, all checked before any is made. |
 
 An error says what happened and what to do, with a code: `not_running`, `not_allowed`, `no_answer`, `paused`,
-`read_only`, `rate_limited`, `not_found`, `not_an_image`, `not_text`, `unreadable`, `not_indexed`, `name_taken`,
-`smart_collection`, `not_copied`, `not_a_folder`, `too_many`, `too_large`, `invalid_input`, `unknown_tool`, `refused`,
-`busy`, `timeout`, `lost`, `internal`.
+`read_only`, `rate_limited`, `not_found`, `not_an_image`, `no_picture`, `not_text`, `unreadable`, `not_indexed`,
+`name_taken`, `smart_collection`, `not_copied`, `not_a_folder`, `too_many`, `too_large`, `invalid_input`,
+`unknown_tool`, `refused`, `busy`, `timeout`, `lost`, `internal`.
 
 ### What you control
 
@@ -307,34 +308,39 @@ An error says what happened and what to do, with a code: `not_running`, `not_all
 
 Describe a picture and Mimikit finds the images that show it: "red potion icon", "dark forest tileset", "hooded
 ghost", in English or in another language ("poción roja", "Totenkopf", "ドラゴン"). It looks at the pictures
-themselves, so it finds images with no tags and unhelpful file names. It runs on your computer and needs no account,
-key or connection once the model is downloaded.
+themselves, so it finds images with no tags and unhelpful file names. 3D models, videos and fonts are found by their
+previews: a model's thumbnail, a video's frame about a tenth of the way in, and a line of sample text in the font. It
+runs on your computer and needs no account, key or connection once the model is downloaded.
 
 - **Turn it on** in **Settings → AI features → Search by meaning (offline)**. Before anything downloads, it lists each
   file, its size and where it comes from: Google's SigLIP 2 model (Apache-2.0) from Hugging Face, and Microsoft's ONNX
   Runtime (MIT) from Mimikit's GitHub releases, about 810 MB in all. Then Mimikit indexes every image in the
   background on spare CPU, with **Pause** and **Cancel** in the sidebar (about 2 minutes for 3,400 images on a recent
-  desktop CPU), and indexes new and changed images as they come in.
+  desktop CPU), and indexes new and changed assets as they come in. Models, videos and fonts are indexed from the
+  previews the window draws of them; those it hasn't drawn yet are drawn then, one at a time, as on screen, which takes
+  longer per asset than an image (a model is loaded and rendered, a video decoded for up to 15 seconds). One that
+  can't be drawn, such as a video in a codec the system can't play, counts as indexed and isn't found.
 - **Search.** Type a description in the search box (<kbd>Ctrl/⌘ K</kbd>) and press <kbd>Shift+Enter</kbd>, or pick
-  **Images that show “…”**, the first result when your words match no file names. The library shows the closest images
+  **Assets that show “…”**, the first result when your words match no file names. The library shows the closest matches
   first, with a chip in the header; its × or <kbd>Esc</kbd> ends the search by meaning and keeps everything else.
 - **Narrow it.** The open folder, **Include subfolders**, the type chips, **More filters** (pixel size, square, date,
   rating, colour) and search words such as `rating:>=4` or `#ui` typed with the description all narrow the results,
   and the best matches are picked from what's left. So "dark forest tileset" with a tileset pack open and **Square**
   on gives that pack's best forest tiles first.
-- **How many.** The images that score close to the best match, at most 200. While indexing is still going, a note
-  says how many images the results cover, and the results grow as it goes.
-- **Find related.** **Find related** in the side panel, next to **Find similar**, shows the images closest in meaning
-  to the open one, narrowed the same way: other dragons for a dragon, ropes and chains for a rope. Find similar finds
+- **How many.** The assets that score close to the best match, at most 200. While indexing is still going, a note
+  says how many assets the results cover, and the results grow as it goes.
+- **Find related.** **Find related** in the side panel, next to **Find similar**, shows the assets closest in meaning
+  to the open one, narrowed the same way: other dragons for a dragon, ropes and chains for a rope. It works on models,
+  videos and fonts too, and across kinds: a goblin model finds goblin pictures. Find similar finds
   copies of one picture; Find related finds pictures of the same kind of thing. It shows the closest 200 however they
   score, since near-copies score far above the rest and would leave little else, and it reads only the index, so it
-  loads no model. An image that isn't indexed yet says so. AI agents get it as the tool `related`.
+  loads no model. An asset that isn't indexed yet says so. AI agents get it as the tool `related`.
 - **In the search language.** `looks:` followed by the description, with hyphens for spaces, searches by meaning
   among whatever the rest of the search matches: `type:image looks:dark-forest-tileset rating:>=4`. It ranks the same
   way, best first whatever the sort, and works anywhere a search does:
   - **smart collections**: **Save as smart collection** keeps the `looks:` word, and the collection's members follow
     the index as it grows;
-  - **[Ask](#ask)**: with search by meaning on, Ask writes `looks:` for requests that describe pictures, so "dark
+  - **[Ask](#ask)**: with search by meaning on, Ask writes `looks:` for requests that describe what assets show, so "dark
     forest tileset I rated highly" becomes `type:image looks:dark-forest-tileset rating:>=4`;
   - **[AI agents](#ai-agents-mcp)**: `search` takes `looks:` and returns the best matches first, `related` is Find
     related, and `overview` says whether search by meaning is on and how much is indexed. Agents get the ranked
@@ -345,7 +351,7 @@ key or connection once the model is downloaded.
 - **Speed and memory.** The first search takes about 2 seconds while the text model loads, later ones about 50 ms. The
   text model takes about 800 MB of memory while loaded and is unloaded after 10 minutes without a search.
 - **Private.** After the download nothing goes online, and nothing about your files leaves the computer. **Delete
-  model and index** in Settings removes both. The index takes about 0.8 KB per image and isn't in backups.
+  model and index** in Settings removes both. The index takes about 0.8 KB per asset and isn't in backups.
 - **How good.** On 30 test descriptions over a library of 3,400 game-art images, 84% of the top 10 results
   were right. It reads what a picture shows, not text inside it.
 
@@ -446,8 +452,9 @@ src/agent/tools.test.ts` rewrites it.
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
   scan only when **Keep new and changed images analysed** is on.
-- Search by meaning covers images only (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF and ICO; not SVG),
-  not 3D models, videos, fonts or sounds, and doesn't read text inside pictures. It doesn't combine with Find similar.
+- Search by meaning covers images (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF and ICO; not SVG), and 3D
+  models, videos and fonts by one picture each (a video by one frame, a font by one line of sample text), not sounds
+  or text files, and doesn't read text inside pictures. It doesn't combine with Find similar.
   Several `looks:` words in one search each keep their own best matches, so they rarely overlap: one description
   works better.
 - Search by meaning isn't available on Intel Macs, since Microsoft publishes no ONNX Runtime build for them. On

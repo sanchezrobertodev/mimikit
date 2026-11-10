@@ -22,12 +22,12 @@
     "sliderValue_other": "最多 {{max}}/64 位不同，{{count}} 张图片"
   },
   "meaning": {
-    "label": "内容为“{{text}}”的图片",
-    "stop": "停止显示内容为“{{text}}”的图片"
+    "label": "内容为“{{text}}”的资源",
+    "stop": "停止显示内容为“{{text}}”的资源"
   },
   "related": {
     "label": "与 {{name}} 相关",
-    "stop": "停止显示与 {{name}} 相关的图片"
+    "stop": "停止显示与 {{name}} 相关的资源"
   },
   "sort": {
     "label": "排序",

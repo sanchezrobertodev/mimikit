@@ -72,7 +72,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: "overview",
     description:
-      "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:, related) is on and how many images it has indexed.",
+      "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:, related) is on and how many assets it has indexed.",
     inputSchema: object(),
     annotations: read("Library overview"),
   },
@@ -90,7 +90,7 @@ export const TOOLS: ToolDef[] = [
       "- `rating:>=4`, `rating:3`",
       "- `note:redo` the user's note on the asset contains this",
       "- `color:red`, `color:#ff8800` a main colour of the image (analysed images only)",
-      "- `looks:red-potion-icon` images that show this, judged from the pictures themselves, so untagged images with unhelpful names are found too (Mimikit's search by meaning, indexed images only): a description with its words joined by hyphens, in any language. Only the closest matches are kept, and rows come best first whatever the sort. Needs search by meaning on (overview's meaningSearch); otherwise the error is not_indexed.",
+      "- `looks:red-potion-icon` assets that show this, judged from their pictures (an image itself; a 3D model, video or font by its preview), so untagged assets with unhelpful names are found too (Mimikit's search by meaning, indexed assets only): a description with its words joined by hyphens, in any language. Only the closest matches are kept, and rows come best first whatever the sort. Needs search by meaning on (overview's meaningSearch); otherwise the error is not_indexed.",
     ].join("\n"),
     inputSchema: object({
       query: { type: "string", maxLength: 500, description: "Words in the search language above. Empty or left out: everything." },
@@ -129,10 +129,10 @@ export const TOOLS: ToolDef[] = [
   {
     name: "related",
     description:
-      "Images closest in meaning to one image, closest first (Mimikit's Find related, from search by meaning's index): other dragons for a dragon, ropes and chains for a rope, whatever their names and tags. similar finds copies and close variants instead. Only indexed images take part; needs search by meaning on (overview's meaningSearch), otherwise the error is not_indexed.",
+      "Assets closest in meaning to one asset, closest first (Mimikit's Find related, from search by meaning's index): other dragons for a dragon, ropes and chains for a rope, whatever their names and tags. Works on images, and on 3D models, videos and fonts by their previews, across kinds (a goblin model finds goblin pictures). similar finds copies and close variants of an image instead. Only indexed assets take part; needs search by meaning on (overview's meaningSearch), otherwise the error is not_indexed.",
     inputSchema: object(
       {
-        id: int("The image to start from."),
+        id: int("The image, model, video or font to start from."),
         limit: { type: "integer", minimum: 1, maximum: LIMITS.page, default: 30, description: `Rows, at most ${LIMITS.page}.` },
       },
       ["id"],

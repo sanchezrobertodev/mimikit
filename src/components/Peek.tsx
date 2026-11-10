@@ -480,6 +480,9 @@ function PeekBody({ a }: { a: Asset }) {
   const findRelated = useStore((s) => s.findRelated);
   // Where search by meaning can run; while it's off, Find related says so.
   const meaningHere = useStore((s) => s.meaning.files.length > 0);
+  const similar = a.kind === "image" && ANALYSABLE.includes(a.ext);
+  // Search by meaning indexes those images, and models, videos and fonts by their previews (meaning.rs).
+  const related = meaningHere && (similar || a.kind === "model" || a.kind === "video" || a.kind === "font");
   const where = useLocation(a);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto px-[18px] pt-[18px] pb-5">
@@ -508,12 +511,14 @@ function PeekBody({ a }: { a: Asset }) {
         </div>
       </div>
       <DuplicateBanner a={a} />
-      {a.kind === "image" && ANALYSABLE.includes(a.ext) && (
+      {(similar || related) && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => void findSimilar(a.id)}>
-            {t("peek.findSimilar")}
-          </Button>
-          {meaningHere && (
+          {similar && (
+            <Button size="sm" onClick={() => void findSimilar(a.id)}>
+              {t("peek.findSimilar")}
+            </Button>
+          )}
+          {related && (
             <Button size="sm" onClick={() => void findRelated(a.id)}>
               {t("peek.findRelated")}
             </Button>

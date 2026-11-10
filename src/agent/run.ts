@@ -37,7 +37,7 @@ export interface Io {
   looks: (phrases: string[]) => Promise<Looks>;
   sheet: (id: number) => Promise<SpriteSheet | null>;
   similar: (id: number, maxDistance: number) => Promise<number[]>;
-  /** Find related: every other indexed image's score for image `id`; throws if that image isn't indexed. */
+  /** Find related: every other indexed asset's score for asset `id`; throws if that asset isn't indexed. */
   related: (id: number) => Promise<Map<number, number>>;
   text: (id: number) => Promise<TextPreview>;
   /** Base64 PNGs: one numbered contact sheet, or one picture per asset. */
@@ -160,9 +160,9 @@ function tagCounts(assets: Asset[]) {
   return [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([tag, count]) => ({ tag, count }));
 }
 
-/** What an answer covers when it depends on the images analysed (or indexed) so far; empty once all are. */
-const covers = (p: { done: number; total: number }, what: string, verb = "analysed") =>
-  p.total > p.done ? `${what} only covers the ${p.done} of ${p.total} images Mimikit has ${verb} so far.` : "";
+/** What an answer covers when it depends on the images analysed (or assets indexed) so far; empty once all are. */
+const covers = (p: { done: number; total: number }, what: string, verb = "analysed", noun = "images") =>
+  p.total > p.done ? `${what} only covers the ${p.done} of ${p.total} ${noun} Mimikit has ${verb} so far.` : "";
 /** Those notes for the agent, as one. */
 const noted = (...notes: string[]) => {
   const note = notes.filter(Boolean).join(" ");
@@ -176,7 +176,7 @@ const notIndexed = (lib: Library, what = "looks: can't match anything", instead 
   !lib.meaning.files.length
     ? errorResult("not_indexed", `Search by meaning isn't available on this computer (Mimikit has no ONNX Runtime for it, as on Intel Macs), so ${what}.`, `Instead, ${instead}. Don't ask the user to turn it on: they can't here.`)
     : lib.meaning.on
-    ? errorResult("not_indexed", `Search by meaning is still being set up in Mimikit: its model is downloading or no images are indexed yet, so ${what}.`, `Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, ${instead}.`)
+    ? errorResult("not_indexed", `Search by meaning is still being set up in Mimikit: its model is downloading or nothing is indexed yet, so ${what}.`, `Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, ${instead}.`)
     : errorResult("not_indexed", `Search by meaning isn't on in Mimikit, so ${what}.`, `Ask the user to turn on Search by meaning in Mimikit (Settings › AI features)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, ${instead}.`);
 /** Scores for the smart collections' `looks:` phrases; without search by meaning those collections have no members. */
 const ruleScores = (lib: Library, io: Io) => {
@@ -483,7 +483,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       collections: lib.collections.slice(0, 50).map((c) => ({ id: c.id, name: c.name, smart: !!c.rule, assets: members.get(c.id)?.length ?? c.assetIds.length })),
       ...(lib.collections.length > 50 ? { collectionsTotal: lib.collections.length } : {}),
       imageAnalysis: { analysed: lib.analysis.done, images: lib.analysis.total },
-      meaningSearch: { on: lib.meaning.on && lib.meaning.installed, indexed: lib.meaning.done, images: lib.meaning.total, model: lib.meaning.model },
+      meaningSearch: { on: lib.meaning.on && lib.meaning.installed, indexed: lib.meaning.done, assets: lib.meaning.total, model: lib.meaning.model },
     });
   },
 
@@ -512,7 +512,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       offset,
       ...(offset + limit < list.length ? { nextOffset: offset + limit } : {}),
       assets: list.slice(offset, offset + limit).map((x) => row(x, names)),
-      ...noted(colors ? covers(lib.analysis, "Colour search") : "", phrases.length ? covers(lib.meaning, "looks:", "indexed for search by meaning") : ""),
+      ...noted(colors ? covers(lib.analysis, "Colour search") : "", phrases.length ? covers(lib.meaning, "looks:", "indexed for search by meaning", "assets") : ""),
     });
   },
 
@@ -577,13 +577,14 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     const lib = io.library();
     const target = lib.assets.find((x) => x.id === a.id);
     if (!target) return noAssets();
-    if (target.kind !== "image") return errorResult("not_an_image", "related compares images only.", "Pass the id of an image.");
-    if (!canLook(lib)) return notIndexed(lib, "related can't find anything", "use similar for copies and close variants");
+    // What search by meaning indexes: images, and models, videos and fonts by their previews (meaning.rs).
+    if (!["image", "model", "video", "font"].includes(target.kind)) return errorResult("no_picture", "related compares what assets show: images, 3D models, videos and fonts, not sounds or other files.", "Pass the id of an image, model, video or font.");
+    if (!canLook(lib)) return notIndexed(lib, "related can't find anything", "use similar for copies of an image");
     let scores: Map<number, number>;
     try {
       scores = await io.related(target.id);
     } catch {
-      return errorResult("not_indexed", "That image isn't indexed for search by meaning yet, or Mimikit couldn't read it.", "Try again later (overview's meaningSearch shows how far indexing is), or use similar.");
+      return errorResult("not_indexed", "That asset isn't indexed for search by meaning yet, or Mimikit couldn't read or draw it.", "Try again later (overview's meaningSearch shows how far indexing is); for an image, similar finds copies meanwhile.");
     }
     // As Find related in the window: the closest MEANING_TOP whatever their scores, which bunch up between pictures.
     const { found } = pick(lib, [...scores].sort((x, y) => y[1] - x[1]).map(([id]) => id));
@@ -593,7 +594,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       of: row(target, names),
       total: top.length,
       assets: top.slice(0, (a.limit as number | undefined) ?? 30).map((x) => row(x, names)),
-      ...noted(covers(lib.meaning, "related", "indexed for search by meaning")),
+      ...noted(covers(lib.meaning, "related", "indexed for search by meaning", "assets")),
     });
   },
 

@@ -1,12 +1,13 @@
 //! Search by meaning: SigLIP 2 B/32 turns each image, and the words of a search, into vectors whose closeness follows
-//! what they show, so "red potion icon" finds red potion icons whatever their names or tags. Both run on this computer
+//! what they show, so "red potion icon" finds red potion icons whatever their names or tags. Models, videos and fonts
+//! are indexed from the previews the window draws of them. Both run on this computer
 //! with ONNX Runtime, downloaded with the model once the user turns the feature on and confirms the sizes. After that,
 //! nothing here goes online. Source files are only read.
 //!
 //! The vectors live in `meaning.db` in the data folder, attached to the library's connection: not in the cache, so
 //! clearing thumbnails doesn't cost hours of indexing, and not in backups (`VACUUM INTO` copies only `main`).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst};
@@ -24,7 +25,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::analysis::{self, Pass, Todo};
 use crate::db::abs_path;
-use crate::{AppState, err, kind};
+use crate::{AppState, err, kind, thumbs};
 
 /// The model's id, stored with each vector: another model's vectors are stale.
 pub const MODEL: &str = "siglip2-b32-256";
@@ -52,9 +53,11 @@ const OFFLINE: &str =
     "Couldn't download the files for search by meaning. Check your internet connection and try again.";
 const DAMAGED: &str = "A file downloaded for search by meaning was damaged, so it was deleted. Try again.";
 const VC_RUNTIME: &str = "Search by meaning needs Microsoft's Visual C++ runtime. Install it, then try again.";
-const NOT_INDEXED: &str = "This image isn't indexed for search by meaning yet.";
+const NOT_INDEXED: &str = "This asset isn't indexed for search by meaning yet.";
 /// The same text as thumbs.rs's.
 const UNREADABLE: &str = "Mimikit couldn't read this image.";
+/// A model, video or font whose preview the window couldn't draw.
+const UNDRAWN: &str = "Mimikit couldn't draw a preview of this asset.";
 
 /// A file to download: where from, and what it must be.
 #[derive(Serialize, Clone, Copy, Debug)]
@@ -191,8 +194,8 @@ pub fn on(conn: &Connection) -> bool {
         == Some(MODEL)
 }
 
-/// One vector per version (size, mtime) of an image, for one model: int8 × [`DIMS`], then the f32 scale. Empty when
-/// the image couldn't be read, so it isn't retried until it changes. A foreign key can't reach across files, so a
+/// One vector per version (size, mtime) of an asset, for one model: int8 × [`DIMS`], then the f32 scale. Empty when
+/// it couldn't be read or drawn, so it isn't retried until it changes. A foreign key can't reach across files, so a
 /// TEMP trigger (one may touch any attached database) deletes a deleted asset's vector at once, also for a removed
 /// folder's assets: asset ids get reused, and a new image with the same id, size and mtime must not inherit it.
 pub const SCHEMA: &str = "
@@ -225,14 +228,35 @@ pub fn open(conn: &Connection, data_dir: &Path, restored: bool) -> rusqlite::Res
     conn.execute_batch(SCHEMA)
 }
 
-/// Images without an up-to-date vector from this model.
+/// What gets a vector: images the backend decodes (the same set as image analysis), and models, videos and fonts from
+/// their [`preview`].
+fn indexed() -> String {
+    format!(
+        "((a.kind = 'image' AND a.ext IN ({})) OR a.kind IN ('model', 'video', 'font'))",
+        kind::decodable_sql()
+    )
+}
+
+/// The picture a model, video or font is indexed from: the thumbnail the window renders (a model's three-quarter view,
+/// a video's frame about 10% in), or the sample line it draws of a font, as for Suggest tags. Named after the file's
+/// version, so a changed file gets a new picture and then a new vector. None for an image, read from its own file.
+fn preview(thumbs_dir: &Path, t: &Todo) -> Option<PathBuf> {
+    let path = t.path.display().to_string();
+    match kind::kind_of(&t.ext) {
+        "model" | "video" => Some(thumbs_dir.join(thumbs::cache_name(&path, t.size, t.mtime))),
+        "font" => Some(thumbs_dir.join(thumbs::sample_name(&path, t.size, t.mtime))),
+        _ => None,
+    }
+}
+
+/// Assets without an up-to-date vector from this model.
 pub fn stale(conn: &Connection) -> rusqlite::Result<Vec<Todo>> {
-    let exts = kind::decodable_sql();
     let mut stmt = conn.prepare(&format!(
         "SELECT a.id, r.path, a.rel_path, a.ext, a.size, a.mtime FROM assets a JOIN roots r ON r.id = a.root_id
          LEFT JOIN meaning.vectors v ON v.asset_id = a.id
-         WHERE a.kind = 'image' AND a.ext IN ({exts})
-           AND (v.asset_id IS NULL OR v.size != a.size OR v.mtime != a.mtime OR v.model != ?1)"
+         WHERE {}
+           AND (v.asset_id IS NULL OR v.size != a.size OR v.mtime != a.mtime OR v.model != ?1)",
+        indexed()
     ))?;
     stmt.query_map([MODEL], |r| {
         let root: String = r.get(1)?;
@@ -249,20 +273,20 @@ pub fn stale(conn: &Connection) -> rusqlite::Result<Vec<Todo>> {
     .collect()
 }
 
-/// The stale images among `ids` (images that just changed).
+/// The stale assets among `ids` (assets that just changed).
 fn todo(conn: &Connection, ids: &[i64]) -> rusqlite::Result<Vec<Todo>> {
-    let ids: std::collections::HashSet<i64> = ids.iter().copied().collect();
+    let ids: HashSet<i64> = ids.iter().copied().collect();
     Ok(stale(conn)?.into_iter().filter(|t| ids.contains(&t.id)).collect())
 }
 
-/// Images indexed (including ones that couldn't be read), and images that can be.
+/// Assets indexed (including ones that couldn't be read or drawn), and assets that can be.
 pub fn counts(conn: &Connection) -> rusqlite::Result<(usize, usize)> {
-    let exts = kind::decodable_sql();
     conn.query_row(
         &format!(
             "SELECT count(v.asset_id), count(*) FROM assets a
              LEFT JOIN meaning.vectors v ON v.asset_id = a.id AND v.size = a.size AND v.mtime = a.mtime AND v.model = ?1
-             WHERE a.kind = 'image' AND a.ext IN ({exts})"
+             WHERE {}",
+            indexed()
         ),
         [MODEL],
         |r| Ok((r.get::<_, i64>(0)? as usize, r.get::<_, i64>(1)? as usize)),
@@ -310,7 +334,7 @@ fn unit(v: &[f32]) -> Vec<f32> {
     v.iter().map(|x| x / n).collect()
 }
 
-/// Every indexed image's vector, for searching.
+/// Every indexed asset's vector, for searching.
 struct Index {
     ids: Vec<i64>,
     vecs: Vec<i8>,
@@ -339,7 +363,7 @@ impl Index {
         Ok(index)
     }
 
-    /// The cosine of every image but `skip` with `q` (a unit vector), as (id i32, score f32) little-endian pairs: the
+    /// The cosine of every asset but `skip` with `q` (a unit vector), as (id i32, score f32) little-endian pairs: the
     /// window ranks within whatever else is applied.
     fn scores(&self, q: &[f32], skip: Option<i64>) -> Vec<u8> {
         let mut out = Vec::with_capacity(self.ids.len() * 8);
@@ -374,19 +398,19 @@ fn related_query(conn: &Connection, id: i64) -> Result<Vec<f32>, String> {
     if !on(conn) {
         return Err(NOT_ON.into());
     }
-    let blob: Option<Vec<u8>> = conn
+    let row: Option<(Vec<u8>, String)> = conn
         .query_row(
-            "SELECT v.vec FROM meaning.vectors v JOIN assets a ON a.id = v.asset_id AND a.size = v.size AND a.mtime = v.mtime
+            "SELECT v.vec, a.kind FROM meaning.vectors v JOIN assets a ON a.id = v.asset_id AND a.size = v.size AND a.mtime = v.mtime
              WHERE v.asset_id = ?1 AND v.model = ?2",
             params![id, MODEL],
-            |r| r.get(0),
+            |r| Ok((r.get(0)?, r.get(1)?)),
         )
         .optional()
         .map_err(err)?;
-    match blob {
+    match row {
         None => Err(NOT_INDEXED.into()),
-        Some(b) if b.len() != DIMS + 4 => Err(UNREADABLE.into()),
-        Some(b) => {
+        Some((b, kind)) if b.len() != DIMS + 4 => Err(if kind == "image" { UNREADABLE } else { UNDRAWN }.into()),
+        Some((b, _)) => {
             let scale = f32::from_le_bytes(b[DIMS..].try_into().unwrap());
             let v: Vec<f32> = b[..DIMS].iter().map(|&x| x as i8 as f32 * scale).collect();
             Ok(unit(&v))
@@ -610,9 +634,15 @@ type Row = (i64, i64, i64, Vec<u8>);
 /// Prepared pictures by their place in a group; None for one that couldn't be read.
 type Prepared = Vec<(usize, Option<Vec<f32>>)>;
 
-/// Reads and prepares `group` on half the decode permits. None for an image that couldn't be read; left out when its
-/// drive was unplugged, so it stays stale for when it's back. True when `gate()` stopped it.
-fn prepare_group<G>(group: &[Todo], thumbs_dir: &Path, gate: &(impl Fn() -> Option<G> + Sync)) -> (Prepared, bool) {
+/// Reads and prepares `group` on half the decode permits. A missing preview is asked of `draw`, which says whether the
+/// window answered. None for an asset that couldn't be read or drawn; left out when its drive was unplugged or the
+/// window didn't answer, so it stays stale for later. True when `gate()` stopped it.
+fn prepare_group<G>(
+    group: &[&Todo],
+    thumbs_dir: &Path,
+    gate: &(impl Fn() -> Option<G> + Sync),
+    draw: &(impl Fn(&Todo) -> bool + Sync),
+) -> (Prepared, bool) {
     let next = AtomicUsize::new(0);
     let stopped = AtomicBool::new(false);
     let mut out: Vec<_> = std::thread::scope(|s| {
@@ -628,7 +658,12 @@ fn prepare_group<G>(group: &[Todo], thumbs_dir: &Path, gate: &(impl Fn() -> Opti
                             stopped.store(true, SeqCst);
                             break;
                         };
-                        match analysis::pixels(&t.path, &t.ext, &t.thumb(thumbs_dir)) {
+                        let picture = match preview(thumbs_dir, t) {
+                            None => analysis::pixels(&t.path, &t.ext, &t.thumb(thumbs_dir)),
+                            Some(p) if !p.exists() && !(t.root.is_dir() && draw(t)) => continue,
+                            Some(p) => image::open(p).map(|img| img.into_rgba8()).map_err(err),
+                        };
+                        match picture {
                             Ok(img) => out.push((i, Some(prepare(&img)))),
                             Err(_) if !t.root.is_dir() => {}
                             Err(_) => out.push((i, None)),
@@ -648,7 +683,8 @@ fn prepare_group<G>(group: &[Todo], thumbs_dir: &Path, gate: &(impl Fn() -> Opti
 type Embed<'a> = dyn FnMut(Vec<Vec<f32>>) -> Result<Vec<Vec<f32>>, String> + Send + 'a;
 
 /// Indexes `todo` [`STORE`] images at a time, each batch stored in one transaction, so the lock is only held for the
-/// write. The work runs on low-priority threads. `gate()` runs before each image is read and its result (a decode
+/// write. Images go first; then models, videos and fonts, [`BATCH`] at a time, as their previews can wait on the window
+/// (`draw`). The work runs on low-priority threads. `gate()` runs before each asset is read and its result (a decode
 /// permit) is held meanwhile; None stops the work, and what was done so far is still stored. `after(conn, n)` runs
 /// after each commit with the lock held.
 fn index_and_store<G>(
@@ -656,16 +692,18 @@ fn index_and_store<G>(
     todo: &[Todo],
     thumbs_dir: &Path,
     gate: impl Fn() -> Option<G> + Sync,
+    draw: impl Fn(&Todo) -> bool + Sync,
     embed: &mut Embed,
     mut after: impl FnMut(&Connection, usize),
 ) -> Result<(), String> {
-    for chunk in todo.chunks(STORE) {
+    let (images, previews): (Vec<&Todo>, Vec<&Todo>) = todo.iter().partition(|t| preview(thumbs_dir, t).is_none());
+    for chunk in images.chunks(STORE).chain(previews.chunks(BATCH)) {
         let (rows, stopped) = std::thread::scope(|s| {
             s.spawn(|| -> Result<(Vec<Row>, bool), String> {
                 crate::low_priority();
                 let mut rows = Vec::new();
                 for group in chunk.chunks(BATCH) {
-                    let (pics, stopped) = prepare_group(group, thumbs_dir, &gate);
+                    let (pics, stopped) = prepare_group(group, thumbs_dir, &gate, &draw);
                     let (read, unread): (Vec<_>, Vec<_>) = pics.into_iter().partition(|p| p.1.is_some());
                     rows.extend(
                         unread
@@ -799,9 +837,9 @@ fn download(dir: &Path, cancelled: impl Fn() -> bool, mut progress: impl FnMut(P
 #[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
-    /// Images indexed, including ones that couldn't be read.
+    /// Assets indexed, including ones that couldn't be read or drawn.
     done: usize,
-    /// Images that can be indexed.
+    /// Assets that can be indexed.
     total: usize,
     /// A pass the UI shows is running (downloading or indexing).
     running: bool,
@@ -870,7 +908,86 @@ static PASS: Pass = Pass::new(|app, all, ids, cancels| {
     emit_status(app, &app.state::<AppState>().db.lock().unwrap());
 });
 
-/// Downloads what's missing, then indexes the whole library (`all`) or the stale images among `ids`.
+/// How long the window may take to draw one preview: it gives up on a video after 15 s, and a big model takes a while.
+const DRAW_TIMEOUT: Duration = Duration::from_secs(60);
+/// Set once the window listens for `meaning-preview`: the pass at launch starts before it has loaded.
+static WINDOW: AtomicBool = AtomicBool::new(false);
+/// Previews asked of the window, by asset id, with where its answer goes.
+static DRAWING: Mutex<Vec<(i64, std::sync::mpsc::Sender<()>)>> = Mutex::new(Vec::new());
+/// One preview asked at a time, as bulk Suggest tags draws them: asked all at once, big models would time out in its queue.
+static DRAW_ONE: Mutex<()> = Mutex::new(());
+
+/// What the window needs to draw an asset's preview: the fields its thumbnail and font code read.
+#[derive(Serialize, Clone)]
+struct Wanted<'a> {
+    id: i64,
+    path: String,
+    ext: &'a str,
+    kind: &'static str,
+    size: i64,
+    mtime: i64,
+}
+
+/// Asks the window to draw `t`'s preview with `emit` (event `meaning-preview`), as it does for its cards and for
+/// Suggest tags, and waits for its [`meaning_drawn`]. True once it answered, whether or not it could draw one. Waits
+/// while `paused()`, and gives up as soon as `stopped()` (Cancel, or search by meaning turned off).
+fn draw_in_window(
+    t: &Todo,
+    emit: impl FnOnce(&Wanted) -> bool,
+    paused: impl Fn() -> bool,
+    stopped: impl Fn() -> bool,
+) -> bool {
+    let _one = DRAW_ONE.lock().unwrap();
+    let tick = Duration::from_millis(200);
+    // A pause that came while the one before was drawn.
+    while paused() && !stopped() {
+        std::thread::sleep(tick);
+    }
+    let since = Instant::now();
+    while !WINDOW.load(SeqCst) && !stopped() && since.elapsed() < DRAW_TIMEOUT {
+        std::thread::sleep(tick);
+    }
+    if stopped() || !WINDOW.load(SeqCst) {
+        return false;
+    }
+    let (tx, rx) = std::sync::mpsc::channel();
+    DRAWING.lock().unwrap().push((t.id, tx));
+    let wanted = Wanted {
+        id: t.id,
+        path: t.path.display().to_string(),
+        ext: &t.ext,
+        kind: kind::kind_of(&t.ext),
+        size: t.size,
+        mtime: t.mtime,
+    };
+    let asked = Instant::now();
+    let answered = emit(&wanted)
+        && loop {
+            match rx.recv_timeout(tick) {
+                Ok(()) => break true,
+                Err(_) if stopped() || asked.elapsed() > DRAW_TIMEOUT => break false,
+                Err(_) => {}
+            }
+        };
+    DRAWING.lock().unwrap().retain(|(id, _)| *id != t.id);
+    answered
+}
+
+/// The window listens for `meaning-preview` from now on.
+#[tauri::command]
+pub fn meaning_window() {
+    WINDOW.store(true, SeqCst);
+}
+
+/// The window's answer to `meaning-preview`: it drew asset `id`'s preview, or couldn't.
+#[tauri::command]
+pub fn meaning_drawn(id: i64) {
+    for (_, tx) in DRAWING.lock().unwrap().iter().filter(|(i, _)| *i == id) {
+        let _ = tx.send(());
+    }
+}
+
+/// Downloads what's missing, then indexes the whole library (`all`) or the stale assets among `ids`.
 fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<(), String> {
     let state = app.state::<AppState>();
     let emit = || emit_status(app, &state.db.lock().unwrap());
@@ -902,6 +1019,20 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<(), S
         emit_status(app, conn);
     };
     let gate = || PASS.gate(&state, cancels);
+    // Previews the window didn't answer for wait for the next pass, or this one would ask again forever.
+    let missed = Mutex::new(HashSet::new());
+    let draw = |t: &Todo| {
+        let answered = draw_in_window(
+            t,
+            |w| app.emit("meaning-preview", w).is_ok(),
+            || PASS.paused.load(SeqCst),
+            || PASS.cancelled(cancels),
+        );
+        if !answered {
+            missed.lock().unwrap().insert(t.id);
+        }
+        answered
+    };
     // Loaded only when there's something to index: 376 MB while a pass runs.
     let mut vision: Option<Session> = None;
     let mut run = |todo: &[Todo], after: &mut dyn FnMut(&Connection, usize)| -> Result<(), String> {
@@ -914,6 +1045,7 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<(), S
             todo,
             &state.thumbs_dir,
             gate,
+            draw,
             &mut |pics| embed_pictures(session, pics),
             after,
         )
@@ -921,13 +1053,14 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<(), S
     if all {
         PASS.shown.store(true, SeqCst);
         emit();
-        // Every stale image, then again for the ones scans or the watcher added or changed meanwhile.
+        // Every stale asset, then again for the ones scans or the watcher added or changed meanwhile.
         while PASS.ready(&state, cancels) {
             let offline = analysis::offline(&state.db).map_err(err)?;
+            let missed = missed.lock().unwrap().clone();
             let todo: Vec<_> = stale(&state.db.lock().unwrap())
                 .map_err(err)?
                 .into_iter()
-                .filter(|t| !offline.contains(&t.root))
+                .filter(|t| !offline.contains(&t.root) && !missed.contains(&t.id))
                 .collect();
             if todo.is_empty() {
                 break;
@@ -946,7 +1079,7 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<(), S
     }
     let secs = started.elapsed().as_secs_f32();
     eprintln!(
-        "meaning: {indexed} images in {secs:.1}s ({:.1}/s)",
+        "meaning: {indexed} assets in {secs:.1}s ({:.1}/s)",
         indexed as f32 / secs
     );
     Ok(())
@@ -959,7 +1092,7 @@ pub fn resume(app: &AppHandle) {
     }
 }
 
-/// After a scan or file events changed `ids`: indexes the images among them while search by meaning is on.
+/// After a scan or file events changed `ids`: indexes the assets among them while search by meaning is on.
 pub fn changed(app: &AppHandle, ids: &[i64]) {
     let state = app.state::<AppState>();
     let conn = state.db.lock().unwrap();
@@ -1052,8 +1185,8 @@ fn remove_models(models: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// The score of every indexed image for `text`, as raw bytes: (asset id i32, cosine f32) little-endian pairs, about
-/// 800 KB at 100,000 images.
+/// The score of every indexed asset for `text`, as raw bytes: (asset id i32, cosine f32) little-endian pairs, about
+/// 800 KB at 100,000 assets.
 #[tauri::command]
 pub async fn meaning_scores(app: AppHandle, text: String) -> Result<tauri::ipc::Response, String> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -1069,7 +1202,7 @@ pub async fn meaning_scores(app: AppHandle, text: String) -> Result<tauri::ipc::
     .map_err(err)?
 }
 
-/// Find related: the score of every other indexed image for image `id`'s own vector, as in [`meaning_scores`]. Needs
+/// Find related: the score of every other indexed asset for asset `id`'s own vector, as in [`meaning_scores`]. Needs
 /// no model, so it downloads and loads nothing but the index.
 #[tauri::command]
 pub async fn meaning_related(app: AppHandle, id: i64) -> Result<tauri::ipc::Response, String> {
@@ -1132,11 +1265,17 @@ mod tests {
             .collect())
     }
 
-    fn index_all(db: &Mutex<Connection>, thumbs_dir: &Path) -> usize {
+    /// Indexes everything stale, with `draw` standing in for the window.
+    fn index_drawn(db: &Mutex<Connection>, thumbs_dir: &Path, draw: impl Fn(&Todo) -> bool + Sync) -> usize {
         let todo = stale(&db.lock().unwrap()).unwrap();
         let mut stored = 0;
-        index_and_store(db, &todo, thumbs_dir, || Some(()), &mut fake, |_, n| stored += n).unwrap();
+        index_and_store(db, &todo, thumbs_dir, || Some(()), draw, &mut fake, |_, n| stored += n).unwrap();
         stored
+    }
+
+    /// The same without a window to draw previews.
+    fn index_all(db: &Mutex<Connection>, thumbs_dir: &Path) -> usize {
+        index_drawn(db, thumbs_dir, |_| false)
     }
 
     #[test]
@@ -1424,6 +1563,115 @@ mod tests {
     }
 
     #[test]
+    fn the_window_is_asked_one_preview_at_a_time_and_pause_and_cancel_stop_it() {
+        meaning_window();
+        let (paused, stopped) = (AtomicBool::new(false), AtomicBool::new(false));
+        let (asked, asks) = std::sync::mpsc::channel();
+        let quiet = Duration::from_millis(500);
+        std::thread::scope(|s| {
+            let draws: Vec<_> = [9001, 9002]
+                .map(|id| {
+                    let t = Todo {
+                        id,
+                        path: "m.glb".into(),
+                        root: ".".into(),
+                        ext: "glb".into(),
+                        size: 1,
+                        mtime: 1,
+                    };
+                    let (asked, paused, stopped) = (asked.clone(), &paused, &stopped);
+                    s.spawn(move || {
+                        draw_in_window(
+                            &t,
+                            |w| asked.send(w.id).is_ok(),
+                            || paused.load(SeqCst),
+                            || stopped.load(SeqCst),
+                        )
+                    })
+                })
+                .into();
+            // One is asked; the other waits until the window answers.
+            let first = asks.recv().unwrap();
+            assert!(asks.recv_timeout(quiet).is_err());
+            // Paused meanwhile: the next isn't asked until Resume.
+            paused.store(true, SeqCst);
+            meaning_drawn(first);
+            assert!(asks.recv_timeout(quiet).is_err());
+            paused.store(false, SeqCst);
+            assert_ne!(asks.recv_timeout(Duration::from_secs(5)).unwrap(), first);
+            // Cancelled: no waiting out the window's time.
+            let at = Instant::now();
+            stopped.store(true, SeqCst);
+            let answered: Vec<bool> = draws.into_iter().map(|h| h.join().unwrap()).collect();
+            assert!(at.elapsed() < Duration::from_secs(5));
+            assert_eq!(answered, [first == 9001, first == 9002]);
+        });
+    }
+
+    #[test]
+    fn models_videos_and_fonts_are_indexed_from_the_previews_the_window_draws() {
+        let (dir, mut conn, thumbs_dir) = scanned(1);
+        let lib = dir.path().join("lib");
+        for f in ["ship.glb", "clip.mp4", "sans.ttf", "notes.txt", "hit.wav"] {
+            std::fs::write(lib.join(f), f).unwrap();
+        }
+        scan::tests::scan(&mut conn, 1, &lib);
+        // Text and audio have no picture; the rest do.
+        assert_eq!(counts(&conn).unwrap(), (0, 4));
+        let todo = stale(&conn).unwrap();
+        let named = |n: &str| todo.iter().find(|t| t.path.ends_with(n)).unwrap();
+        let (ship, clip, sans) = (named("ship.glb"), named("clip.mp4"), named("sans.ttf"));
+        let picture = |t: &Todo, red: u8| {
+            RgbaImage::from_pixel(256, 96, Rgba([red, 0, 0, 255]))
+                .save(preview(&thumbs_dir, t).unwrap())
+                .unwrap()
+        };
+        let (ship_id, clip_id, sans_id) = (ship.id, clip.id, sans.id);
+        let db = Mutex::new(conn);
+
+        // The window doesn't answer: the image is indexed and the rest wait, not stored as unreadable.
+        assert_eq!(index_all(&db, &thumbs_dir), 1);
+        assert_eq!(counts(&db.lock().unwrap()).unwrap(), (1, 4));
+        // A preview the window already drew is used without asking; it draws the font's; it can't draw the video.
+        picture(ship, 200);
+        let asked = Mutex::new(vec![]);
+        let draw = |t: &Todo| {
+            asked.lock().unwrap().push(t.id);
+            if t.id == sans_id {
+                picture(t, 100);
+            }
+            true
+        };
+        assert_eq!(index_drawn(&db, &thumbs_dir, draw), 3);
+        let mut asked = asked.into_inner().unwrap();
+        asked.sort();
+        assert_eq!(asked, [clip_id.min(sans_id), clip_id.max(sans_id)]);
+        let conn = db.into_inner().unwrap();
+        assert_eq!(counts(&conn).unwrap(), (4, 4));
+        assert!(stale(&conn).unwrap().is_empty());
+        let mut indexed = Index::load(&conn).unwrap().ids;
+        indexed.sort();
+        assert_eq!(indexed.len(), 3);
+        assert!(indexed.contains(&ship_id) && indexed.contains(&sans_id) && !indexed.contains(&clip_id));
+        assert_eq!(related_query(&conn, clip_id), Err(UNDRAWN.into()));
+
+        // A changed model needs a new preview, whose vector replaces the old one.
+        let before = related_query(&conn, ship_id).unwrap();
+        conn.execute("UPDATE assets SET mtime = mtime + 1 WHERE id = ?1", [ship_id])
+            .unwrap();
+        assert_eq!(related_query(&conn, ship_id), Err(NOT_INDEXED.into()));
+        let db = Mutex::new(conn);
+        let redraw = |t: &Todo| {
+            picture(t, 0);
+            true
+        };
+        assert_eq!(index_drawn(&db, &thumbs_dir, redraw), 1);
+        let conn = db.into_inner().unwrap();
+        assert_ne!(related_query(&conn, ship_id).unwrap(), before);
+        assert_eq!(counts(&conn).unwrap(), (4, 4));
+    }
+
+    #[test]
     fn a_reused_asset_id_starts_without_a_vector() {
         let (_dir, conn, thumbs_dir) = scanned(2);
         let db = Mutex::new(conn);
@@ -1472,7 +1720,7 @@ mod tests {
         let allowed = AtomicUsize::new(2);
         let gate = || allowed.fetch_update(SeqCst, SeqCst, |n| n.checked_sub(1)).ok();
         let mut stored = 0;
-        index_and_store(&db, &here, &thumbs_dir, gate, &mut fake, |_, n| stored += n).unwrap();
+        index_and_store(&db, &here, &thumbs_dir, gate, |_| false, &mut fake, |_, n| stored += n).unwrap();
         assert_eq!(stored, 2);
         assert_eq!(counts(&db.lock().unwrap()).unwrap(), (2, 6));
         // The unplugged drive's image can't be read and isn't stored as unreadable: it waits until the drive is back.

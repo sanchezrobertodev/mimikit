@@ -44,5 +44,6 @@
   "meaningDamaged": "Un archivo descargado para la búsqueda por significado estaba dañado, así que se eliminó. Vuelve a intentarlo.",
   "meaningStart": "No se pudo iniciar la búsqueda por significado: {{error}}",
   "meaningVcRuntime": "La búsqueda por significado necesita el entorno de ejecución de Visual C++ de Microsoft. Instálalo y vuelve a intentarlo.",
-  "meaningNotIndexed": "Esta imagen aún no está indexada para la búsqueda por significado."
+  "meaningNotIndexed": "Este recurso aún no está indexado para la búsqueda por significado.",
+  "meaningUndrawn": "Mimikit no pudo dibujar una vista previa de este recurso."
 }

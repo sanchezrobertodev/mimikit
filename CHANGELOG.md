@@ -7,13 +7,19 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ### Added
 
+- **Search by meaning covers 3D models, videos and fonts** as well as images. Describe one (**Shift+Enter**,
+  `looks:`, Ask or an AI agent's `search`) and it's found by its preview: a model's thumbnail, a video's frame about a
+  tenth of the way in, a line of sample text in the font. **Find related** works on them too, and across kinds (a
+  goblin model finds goblin pictures). While it indexes, Mimikit draws the previews it hasn't drawn yet, one at a
+  time, as it does for what's on screen; one it can't draw (a video in a codec the system can't play) counts as done
+  and isn't found. The search box's row is now **Assets that show “…”**, and the counts say assets.
 - **Find related** in the side panel, next to **Find similar**: the images closest in meaning to the open one (other
   dragons for a dragon, ropes and chains for a rope), from search by meaning's index. They come closest first, at most
   200, narrowed by the open folder, type chips and **More filters**; the chip's × or **Esc** ends it. Find similar
   still finds copies. It needs search by meaning on and the image indexed, and says so otherwise; it downloads
   nothing and loads no model.
-- AI agents get Find related too, as the tool `related`: the images closest in meaning to one image, closest first.
-  Like `looks:`, it needs search by meaning on, and the error `not_indexed` says when it isn't.
+- AI agents get Find related too, as the tool `related`: the assets closest in meaning to one image, model, video or
+  font, closest first. Like `looks:`, it needs search by meaning on, and the error `not_indexed` says when it isn't.
 
 ### Fixed
 

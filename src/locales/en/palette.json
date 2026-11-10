@@ -47,8 +47,8 @@
   },
   "meaning": {
     "title": "Search by meaning",
-    "label": "Images that show “{{text}}”",
-    "seeking": "Searching images by meaning…"
+    "label": "Assets that show “{{text}}”",
+    "seeking": "Searching by meaning…"
   },
   "dialog": "Search",
   "input": "Search assets, folders and actions",
