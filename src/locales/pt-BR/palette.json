@@ -49,8 +49,8 @@
   },
   "meaning": {
     "title": "Busca por significado",
-    "label": "Imagens que mostram “{{text}}”",
-    "seeking": "Buscando imagens por significado…"
+    "label": "Recursos que mostram “{{text}}”",
+    "seeking": "Buscando por significado…"
   },
   "dialog": "Busca",
   "input": "Buscar recursos, pastas e ações",

@@ -12,7 +12,7 @@ import type { TaggingStatus } from "./lib/tagging";
 import { markSeen, seenVersion } from "./lib/news";
 import { applyTheme, loadPrefs, savePrefs, type AiPrefs, type KindLabels, type Layout, type Prefs, type SortKey, type StartView, type Theme } from "./lib/prefs";
 import type { AccentId } from "./lib/themes";
-import { forgetThumbnails } from "./lib/thumbs";
+import { forgetThumbnails, saveFontSample, thumbnailFor } from "./lib/thumbs";
 import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, FolderFilter, Kind, MeaningStatus, Notes, Root, SpriteSheet, ViewName } from "./types";
 
 export interface Toast {
@@ -450,6 +450,12 @@ export const useStore = create<State>((set, get, store) => {
         set({ meaning });
       });
       api.meaningStatus().then((meaning) => set({ meaning }), get().setError);
+      await api.onMeaningPreview((p) => {
+        // The backend's version of the file wins, in case the list here hasn't caught up; the drawing only reads these fields.
+        const a = { ...get().assets.find((x) => x.id === p.id), ...p } as Asset;
+        void (a.kind === "font" ? saveFontSample(a) : thumbnailFor(a)).finally(() => api.meaningDrawn(a.id).catch(() => {}));
+      });
+      api.meaningWindow().catch(get().setError);
       await api.onTaggingStatus((tagging) => set({ tagging }));
       api.taggingStatus().then((tagging) => set({ tagging }), get().setError);
       api

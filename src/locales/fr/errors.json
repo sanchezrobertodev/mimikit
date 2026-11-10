@@ -44,5 +44,6 @@
   "meaningDamaged": "Un fichier téléchargé pour la recherche par le sens était endommagé et a été supprimé. Réessayez.",
   "meaningStart": "Impossible de démarrer la recherche par le sens : {{error}}",
   "meaningVcRuntime": "La recherche par le sens nécessite le runtime Visual C++ de Microsoft. Installez-le, puis réessayez.",
-  "meaningNotIndexed": "Cette image n'est pas encore indexée pour la recherche par le sens."
+  "meaningNotIndexed": "Cette ressource n'est pas encore indexée pour la recherche par le sens.",
+  "meaningUndrawn": "Mimikit n'a pas pu dessiner d'aperçu de cette ressource."
 }

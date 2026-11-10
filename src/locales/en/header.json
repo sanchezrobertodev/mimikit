@@ -24,12 +24,12 @@
     "sliderValue_other": "Up to {{max}} of 64 bits differ, {{count}} images"
   },
   "meaning": {
-    "label": "Images that show “{{text}}”",
-    "stop": "Clear the search for images that show “{{text}}”"
+    "label": "Assets that show “{{text}}”",
+    "stop": "Clear the search for assets that show “{{text}}”"
   },
   "related": {
     "label": "Related to {{name}}",
-    "stop": "Stop showing images related to {{name}}"
+    "stop": "Stop showing assets related to {{name}}"
   },
   "sort": {
     "label": "Sort",

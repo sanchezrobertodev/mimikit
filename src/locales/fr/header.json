@@ -24,12 +24,12 @@
     "sliderValue_other": "Jusqu'à {{max}} bits sur 64 d'écart, {{count}} images"
   },
   "meaning": {
-    "label": "Images qui montrent « {{text}} »",
-    "stop": "Effacer la recherche d'images qui montrent « {{text}} »"
+    "label": "Ressources qui montrent « {{text}} »",
+    "stop": "Effacer la recherche de ressources qui montrent « {{text}} »"
   },
   "related": {
     "label": "Liées à {{name}}",
-    "stop": "Ne plus afficher les images liées à {{name}}"
+    "stop": "Ne plus afficher les ressources liées à {{name}}"
   },
   "sort": {
     "label": "Trier",

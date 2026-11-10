@@ -44,5 +44,6 @@
   "meaningDamaged": "意味で検索用にダウンロードしたファイルが壊れていたため、削除しました。もう一度お試しください。",
   "meaningStart": "意味で検索を開始できませんでした：{{error}}",
   "meaningVcRuntime": "意味で検索には Microsoft の Visual C++ ランタイムが必要です。インストールしてから、もう一度お試しください。",
-  "meaningNotIndexed": "この画像はまだ意味で検索に登録されていません。"
+  "meaningNotIndexed": "このアセットはまだ意味で検索に登録されていません。",
+  "meaningUndrawn": "Mimikitはこのアセットのプレビューを描画できませんでした。"
 }

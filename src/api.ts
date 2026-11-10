@@ -75,17 +75,21 @@ export const api = {
   cancelAnalysis: () => invoke<void>("cancel_analysis"),
   setKeepAnalysed: (on: boolean) => invoke<void>("set_keep_analysed", { on }),
   meaningStatus: () => invoke<MeaningStatus>("meaning_status"),
-  /** Turns search by meaning on: downloads what's missing, then indexes every image; progress comes with onMeaningStatus. */
+  /** Turns search by meaning on: downloads what's missing, then indexes every asset it can; progress comes with onMeaningStatus. */
   meaningEnable: () => invoke<void>("meaning_enable"),
   pauseMeaning: (paused: boolean) => invoke<void>("meaning_pause", { paused }),
   /** Stops the download or the pass; what's downloaded and indexed so far is kept. */
   cancelMeaning: () => invoke<void>("meaning_cancel"),
   /** Turns it off; `deleteFiles` also deletes the model and the index. */
   meaningDisable: (deleteFiles: boolean) => invoke<void>("meaning_disable", { delete: deleteFiles }),
-  /** Every indexed image's score for `text`: little-endian pairs of an i32 id and an f32 score. */
+  /** Every indexed asset's score for `text`: little-endian pairs of an i32 id and an f32 score. */
   meaningScores: (text: string) => invoke<ArrayBuffer>("meaning_scores", { text }),
-  /** Find related: every other indexed image's score for image `id`, as in meaningScores. */
+  /** Find related: every other indexed asset's score for asset `id`, as in meaningScores. */
   meaningRelated: (id: number) => invoke<ArrayBuffer>("meaning_related", { id }),
+  /** The window draws the previews search by meaning asks for (onMeaningPreview) from now on. */
+  meaningWindow: () => invoke<void>("meaning_window"),
+  /** Answers onMeaningPreview: asset `id`'s preview is drawn, or couldn't be. */
+  meaningDrawn: (id: number) => invoke<void>("meaning_drawn", { id }),
   setDuplicateIgnored: (hash: string, ignored: boolean) => invoke<void>("set_duplicate_ignored", { hash, ignored }),
   trashDuplicates: (keep: number, remove: number[]) => invoke<number>("trash_duplicates", { keep, remove }),
   reveal: (id: number) => invoke<void>("reveal", { id }),
@@ -153,6 +157,9 @@ export const api = {
     listen<[number, Swatch[]][]>("image-features", (e) => cb(e.payload)),
   onAnalysisStatus: (cb: (s: AnalysisStatus) => void): Promise<UnlistenFn> => listen<AnalysisStatus>("analysis-status", (e) => cb(e.payload)),
   onMeaningStatus: (cb: (s: MeaningStatus) => void): Promise<UnlistenFn> => listen<MeaningStatus>("meaning-status", (e) => cb(e.payload)),
+  /** Search by meaning wants the preview of a model, video or font it's indexing: draw it, then meaningDrawn. */
+  onMeaningPreview: (cb: (a: Pick<Asset, "id" | "path" | "ext" | "kind" | "size" | "mtime">) => void): Promise<UnlistenFn> =>
+    listen<Pick<Asset, "id" | "path" | "ext" | "kind" | "size" | "mtime">>("meaning-preview", (e) => cb(e.payload)),
   onTaggingStatus: (cb: (s: TaggingStatus) => void): Promise<UnlistenFn> => listen<TaggingStatus>("tagging-status", (e) => cb(e.payload)),
   /** Requests finished so far in a Suggest tags run sent right away. */
   onTaggingDirect: (cb: (done: number) => void): Promise<UnlistenFn> => listen<number>("tagging-direct", (e) => cb(e.payload)),

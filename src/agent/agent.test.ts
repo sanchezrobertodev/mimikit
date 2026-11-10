@@ -147,7 +147,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     { id: 2, name: "Coins", smart: true, assets: 2 }, // coin.png and coin_pickup.wav match "coin" now
   ]);
   assert.deepEqual(o.imageAnalysis, { analysed: 3, images: 4 });
-  assert.deepEqual(o.meaningSearch, { on: true, indexed: 3, images: 4, model: "siglip2-b32-256" });
+  assert.deepEqual(o.meaningSearch, { on: true, indexed: 3, assets: 4, model: "siglip2-b32-256" });
   assert.deepEqual(payload(await call("overview", {})), o, "an empty object is the same as no arguments");
 }
 
@@ -230,7 +230,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
   const ids = (r: ToolResult) => payload(r).assets.map((a: { id: number }) => a.id);
   const gold = payload(await call("search", { query: "looks:gold-coin" }));
   assert.deepEqual(gold.assets.map((a: { id: number }) => a.id), [1, 4], "the close matches, best first");
-  assert.match(gold.note, /3 of 4 images/);
+  assert.match(gold.note, /3 of 4 assets/);
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", sort: "name", desc: true })), [1, 4], "whatever the sort");
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin in:tiles" })), [7], "a folder gets its own best match");
   assert.deepEqual(ids(await call("search", { query: "looks:gold-coin", filters: { minW: 32 } })), [7]);
