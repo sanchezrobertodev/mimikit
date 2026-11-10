@@ -213,6 +213,12 @@ export interface Scope {
   similar?: number[] | null;
   /** Search by meaning: each indexed image's score. Only these are shown, best first, cut to the close matches. */
   meaning?: ReadonlyMap<number, number> | null;
+  /**
+   * `meaning` is Find related's: cut to the closest MEANING_TOP whatever their scores. Between pictures a near-copy
+   * scores 0.95 or more and the rest of the closest 200 about 0.70 to 0.85, so MEANING_SPREAD would keep little but
+   * copies (measured on a 3,428-image library).
+   */
+  related?: boolean;
   palettes?: Palettes | null;
   looks?: Looks | null;
   /** More narrowing (an agent's folder, or favorites inside a collection), before `looks:` takes its closest matches. */
@@ -223,10 +229,10 @@ export interface Scope {
 export const MEANING_TOP = 200;
 export const MEANING_SPREAD = 0.05;
 
-/** The close matches of a search by meaning: best first, at most MEANING_TOP, within MEANING_SPREAD of the best. Sorts `list`. */
-function closest(list: Asset[], score: (a: Asset) => number): Asset[] {
+/** The close matches of a search by meaning: best first, at most MEANING_TOP, within `spread` of the best. Sorts `list`. */
+function closest(list: Asset[], score: (a: Asset) => number, spread = MEANING_SPREAD): Asset[] {
   list.sort((a, b) => score(b) - score(a));
-  const floor = list.length ? score(list[0]) - MEANING_SPREAD : 0;
+  const floor = list.length ? score(list[0]) - spread : 0;
   const end = list.findIndex((a, i) => i >= MEANING_TOP || score(a) < floor);
   return end < 0 ? list : list.slice(0, end);
 }
@@ -294,7 +300,7 @@ export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; d
   // (the type chips' counts), since they decide what's in.
   const looked = closeLooks(out, q.looks, s.looks);
   const meaning = s.meaning;
-  if (meaning) return closest(looked, (a) => meaning.get(a.id)!);
+  if (meaning) return closest(looked, (a) => meaning.get(a.id)!, s.related ? Infinity : MEANING_SPREAD);
   // `looks:` words show the best matches first, whatever the sort.
   if (!sort || q.looks.length) return looked;
   if (rank) return out.sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);

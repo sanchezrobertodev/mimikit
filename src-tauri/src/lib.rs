@@ -1100,7 +1100,8 @@ pub fn run() {
             meaning::meaning_pause,
             meaning::meaning_cancel,
             meaning::meaning_disable,
-            meaning::meaning_scores
+            meaning::meaning_scores,
+            meaning::meaning_related
         ])
         .run(context())
         .expect("error while running tauri application");

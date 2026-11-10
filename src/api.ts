@@ -84,6 +84,8 @@ export const api = {
   meaningDisable: (deleteFiles: boolean) => invoke<void>("meaning_disable", { delete: deleteFiles }),
   /** Every indexed image's score for `text`: little-endian pairs of an i32 id and an f32 score. */
   meaningScores: (text: string) => invoke<ArrayBuffer>("meaning_scores", { text }),
+  /** Find related: every other indexed image's score for image `id`, as in meaningScores. */
+  meaningRelated: (id: number) => invoke<ArrayBuffer>("meaning_related", { id }),
   setDuplicateIgnored: (hash: string, ignored: boolean) => invoke<void>("set_duplicate_ignored", { hash, ignored }),
   trashDuplicates: (keep: number, remove: number[]) => invoke<number>("trash_duplicates", { keep, remove }),
   reveal: (id: number) => invoke<void>("reveal", { id }),

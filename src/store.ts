@@ -78,8 +78,11 @@ interface State extends Prefs {
   suggestFor: number[] | null;
   /** "Find similar" scope of the library: images like `id` within `max` bits, closest first. */
   similar: { id: number; name: string; max: number; ids: number[] } | null;
-  /** Search by meaning: images that show `text`, with every indexed image's score (cosine) by id. */
-  meaningQuery: { text: string; scores: ReadonlyMap<number, number> } | null;
+  /**
+   * Search by meaning: images that show `text`, with every indexed image's score (cosine) by id. With `id`, Find
+   * related: the images closest to that image (named `text`) by meaning.
+   */
+  meaningQuery: { text: string; id?: number; scores: ReadonlyMap<number, number> } | null;
   /** Search by meaning's scores for the `looks:` phrases being searched for, by phrase (see resolveLooks). */
   looks: Looks;
   /** Assets an AI agent showed the user (its `show` tool), in its order, and the agent app's name. */
@@ -165,6 +168,8 @@ interface State extends Prefs {
    * folder, type chips and filters; without, refreshes the open results.
    */
   findByMeaning: (text: string, query?: string) => Promise<void>;
+  /** Find related: images close to image `id` by meaning, in the open folder, type chips and filters like findByMeaning. */
+  findRelated: (id: number) => Promise<void>;
   /** Drops a search by meaning started from search that hasn't opened yet, when search closes first; true if one was. */
   dropMeaningOpening: () => boolean;
   clearMeaning: () => void;
@@ -201,8 +206,8 @@ let noteSaves: Promise<unknown> = Promise.resolve();
 let paletteBacklog: [number, Swatch[]][] | null = null;
 /** "Find similar": answers to superseded (slider drags) or cancelled requests are dropped; re-asked as analysis goes on. */
 const similarAsk = latestRequest<{ id: number; max: number }>(2000);
-/** Search by meaning, the same way: re-asked as the index grows. */
-const meaningAsk = latestRequest<string>(2000);
+/** Search by meaning (its text, or Find related's image id), the same way: re-asked as the index grows. */
+const meaningAsk = latestRequest<string | number>(2000);
 /**
  * The other search words of a search by meaning the user just started, until its results open. Whichever answer
  * lands first opens them: a re-ask as the index grows can supersede the user's request while the model loads.
@@ -429,8 +434,8 @@ export const useStore = create<State>((set, get, store) => {
         // Turned off: its results would go stale and every re-ask fail. Images indexed since can match the open search.
         if (!meaning.on && get().meaningQuery) set(noMeaning());
         else if (meaning.on && meaning.done !== get().meaning.done)
-          meaningAsk.again((text) => {
-            if (meaningOpening === null) void get().findByMeaning(text);
+          meaningAsk.again((q) => {
+            if (meaningOpening === null) void (typeof q === "number" ? get().findRelated(q) : get().findByMeaning(q));
           });
         // `looks:` scores too: dropped when it's turned off, asked again as the index grows (keeping the old ones meanwhile).
         if (!meaning.on) {
@@ -725,12 +730,33 @@ export const useStore = create<State>((set, get, store) => {
         get().setError(e);
       }
     },
+    findRelated: async (id) => {
+      meaningOpening = null;
+      const current = meaningAsk.start(id);
+      try {
+        const scores = scoresOf(await api.meaningRelated(id));
+        if (!current()) return;
+        // A new image opens its results, keeping the open folder, type chips and filters in the library or favorites; a
+        // refresh as the index grows keeps the view as it is.
+        const s = get();
+        const nav =
+          s.meaningQuery?.id === id
+            ? {}
+            : { ...(s.view === "library" || s.view === "favorites" ? {} : { view: "library" as const, folder: null, kinds: [] }), full: false, palette: false, query: "" };
+        similarAsk.cancel();
+        set({ ...nav, meaningQuery: { text: nameOf(id), id, scores }, similar: null, shown: null });
+      } catch (e) {
+        if (!current()) return;
+        meaningAsk.cancel(); // or every indexed batch would ask again and show the same error
+        get().setError(e);
+      }
+    },
     dropMeaningOpening: () => {
       if (meaningOpening === null) return false;
       meaningOpening = null;
       // The answer on its way is dropped; results already on screen keep growing with the index.
       const open = get().meaningQuery;
-      if (open) meaningAsk.start(open.text);
+      if (open) meaningAsk.start(open.id ?? open.text);
       else meaningAsk.cancel();
       return true;
     },

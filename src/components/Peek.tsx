@@ -477,6 +477,9 @@ function PeekBody({ a }: { a: Asset }) {
   const setFavorite = useStore((s) => s.setFavorite);
   const setRating = useStore((s) => s.setRating);
   const findSimilar = useStore((s) => s.findSimilar);
+  const findRelated = useStore((s) => s.findRelated);
+  // Where search by meaning can run; while it's off, Find related says so.
+  const meaningHere = useStore((s) => s.meaning.files.length > 0);
   const where = useLocation(a);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto px-[18px] pt-[18px] pb-5">
@@ -506,9 +509,16 @@ function PeekBody({ a }: { a: Asset }) {
       </div>
       <DuplicateBanner a={a} />
       {a.kind === "image" && ANALYSABLE.includes(a.ext) && (
-        <Button size="sm" className="self-start" onClick={() => void findSimilar(a.id)}>
-          {t("peek.findSimilar")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={() => void findSimilar(a.id)}>
+            {t("peek.findSimilar")}
+          </Button>
+          {meaningHere && (
+            <Button size="sm" onClick={() => void findRelated(a.id)}>
+              {t("peek.findRelated")}
+            </Button>
+          )}
+        </div>
       )}
       <MetaRows a={a} />
       <TagEditor items={[a]} />

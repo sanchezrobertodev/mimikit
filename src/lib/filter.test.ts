@@ -170,6 +170,12 @@ const close = new Map(many.map((a, i) => [a.id, 0.1 + i * 1e-5]));
 const top = visibleAssets(many, scope({ meaning: close }), byName);
 assert.equal(top.length, MEANING_TOP);
 assert.equal(top[0].id, 100 + MEANING_TOP + 49);
+// Find related keeps the closest MEANING_TOP however far below a near-copy they score, narrowed the same way.
+const copy = new Map([[1, 0.97], [2, 0.75]]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: copy, related: true }), byName)), [1, 2]);
+assert.deepEqual(seen(visibleAssets(all, scope({ meaning: copy, related: true, folder: { rootId: 1, path: "pack" } }), byName)), [1]);
+const loose = new Map(many.map((a, i) => [a.id, i / many.length]));
+assert.equal(visibleAssets(many, scope({ meaning: loose, related: true }), byName).length, MEANING_TOP);
 
 // `looks:` words: the same cut, from the scores the store has for each phrase (hyphens are spaces).
 assert.deepEqual(parseQuery("looks:Red-Potion--icon looks: looks:- type:image").looks, ["red potion icon"]);

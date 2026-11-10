@@ -27,6 +27,10 @@
     "label": "Imágenes que muestran “{{text}}”",
     "stop": "Quitar la búsqueda de imágenes que muestran “{{text}}”"
   },
+  "related": {
+    "label": "Relacionadas con {{name}}",
+    "stop": "Dejar de mostrar imágenes relacionadas con {{name}}"
+  },
   "sort": {
     "label": "Ordenar",
     "name": "Nombre",

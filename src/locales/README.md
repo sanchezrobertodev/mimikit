@@ -48,6 +48,7 @@ glTF, FBX, OBJ, PSD. Product names stay as they are: Mimikit, Ko-fi, GitHub.
 | import, scan | importar, escanear | importar, escanear | importer, scanner | importieren, scannen | インポート、スキャン | 导入、扫描 |
 | image analysis, analyse | análisis de imágenes, analizar | análise de imagens, analisar | analyse d'images, analyser | Bildanalyse, analysieren | 画像解析、解析 | 图像分析、分析 |
 | Find similar | Buscar similares | Encontrar semelhantes | Trouver des similaires | Ähnliche finden | 類似を検索 | 查找相似 |
+| Find related | Buscar relacionadas | Encontrar relacionadas | Trouver des images liées | Verwandte finden | 関連を検索 | 查找相关 |
 | backup, restore | copia de seguridad, restaurar | backup, restaurar | sauvegarde, restaurer | Sicherung, wiederherstellen | バックアップ、復元 | 备份、恢复 |
 | Trash | Papelera | Lixeira | Corbeille | Papierkorb | ごみ箱 | 回收站 |
 | Settings | Configuración | Configurações | Paramètres | Einstellungen | 設定 | 设置 |
