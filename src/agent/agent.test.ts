@@ -60,7 +60,7 @@ const library: Library = {
   collections,
   notes: { 1: "Used in level 1", 4: ESCAPE },
   analysis: { done: 3, total: 4, running: false, paused: false, keep: false },
-  meaning: { on: true, installed: true, done: 3, total: 4, model: "siglip2-b32-256" },
+  meaning: { on: true, installed: true, done: 3, total: 4, model: "siglip2-b32-256", files: [{ name: "vision_model_fp16.onnx", size: 189374263, source: "huggingface" }] },
 };
 // Search by meaning's scores for the indexed images: the coin looks most like a gold coin, the tileset like a stone wall.
 const scores: Record<string, Map<number, number>> = {
@@ -256,6 +256,10 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
   assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false }))), /Settings › AI features\)\. Meanwhile/);
   // Only a model that isn't there yet needs the user to start a download.
   assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false, installed: false }))), /downloads a model first/);
+  // Where it isn't available (Intel Macs), the user can't turn it on, so the agent isn't told to ask.
+  const none = text(await call("search", { query: "looks:gold-coin" }, off({ on: false, installed: false, files: [] })));
+  assert.match(none, /isn't available on this computer/);
+  assert.doesNotMatch(none, /Settings/);
   assert.equal(payload(await call("overview", {}, off({ on: false }))).collections[2].assets, 0);
   assert.equal(payload(await call("overview", {}, off({ on: false }))).meaningSearch.on, false);
   assert.equal(payload(await call("search", { query: "coin" }, off({ on: false }))).total, 2, "other searches still work");

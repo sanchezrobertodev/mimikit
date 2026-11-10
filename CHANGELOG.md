@@ -13,6 +13,11 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   still finds copies. It needs search by meaning on and the image indexed, and says so otherwise; it downloads
   nothing and loads no model.
 
+### Fixed
+
+- On Intel Macs, where search by meaning isn't available, AI agents no longer ask you to turn it on when they
+  try a `looks:` search: they hear it isn't available there.
+
 ## [0.12.0] - 2026-11-09
 
 ### Added
