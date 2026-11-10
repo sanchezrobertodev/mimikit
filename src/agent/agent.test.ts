@@ -85,6 +85,11 @@ const io = (over: Partial<Io> = {}): Io => ({
   looks: async (phrases) => new Map(phrases.map((p) => [p, scores[p] ?? new Map()])),
   sheet: async (id): Promise<SpriteSheet | null> => (id === 7 ? { cols: 8, rows: 8, fps: 10 } : null),
   similar: async (id) => (id === 1 ? [4, 2, 99] : []),
+  // The coin is indexed (99 has left the library); the hero isn't yet.
+  related: async (id) => {
+    if (id !== 1) throw new Error("This image isn't indexed for search by meaning yet.");
+    return new Map([[7, 0.75], [99, 0.9], [4, 0.8]]);
+  },
   text: async (id) => texts[id],
   pictures: async (assets, layout) => {
     pictureCalls.push({ ids: assets.map((a) => a.id), layout });
@@ -303,6 +308,35 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
   assert.equal(errorCode(await call("similar", { id: 7 }, { similar: () => Promise.reject(new Error("PSD")) })), "unreadable");
 }
 
+// ---------- related ----------
+{
+  const r = payload(await call("related", { id: 1 }));
+  assert.equal(r.of.id, 1);
+  assert.deepEqual(
+    r.assets.map((a: { id: number }) => a.id),
+    [4, 7],
+    "closest first; ids no longer in the library left out",
+  );
+  assert.equal(r.total, 2);
+  assert.match(r.note, /3 of 4 images/);
+  assert.equal(payload(await call("related", { id: 1, limit: 1 })).assets.length, 1);
+  assert.equal(errorCode(await call("related", { id: 3 })), "not_an_image");
+  assert.equal(errorCode(await call("related", { id: 2 })), "not_indexed", "an image not indexed yet");
+  // As in the window, the closest 200 whatever their scores.
+  const many = Array.from({ length: 250 }, (_, i) => asset({ id: 100 + i, relPath: `many/${i}.png` }));
+  const big = { library: () => ({ ...library, assets: [coin, ...many] }), related: async () => new Map(many.map((x, i) => [x.id, i / 1000])) };
+  const top = payload(await call("related", { id: 1, limit: 2 }, big));
+  assert.deepEqual([top.total, top.assets.map((a: { id: number }) => a.id)], [200, [349, 348]]);
+  // Off, or nothing indexed yet: the agent hears why, and to use similar meanwhile.
+  const off = (meaning: Partial<Library["meaning"]>) => ({ library: () => ({ ...library, meaning: { ...library.meaning, ...meaning } }) });
+  for (const m of [{ on: false }, { installed: false }, { done: 0 }]) {
+    const e = await call("related", { id: 1 }, off(m));
+    assert.equal(errorCode(e), "not_indexed", JSON.stringify(m));
+    assert.match(text(e), /related can't find anything[\s\S]*use similar/);
+  }
+  assert.doesNotMatch(text(await call("related", { id: 1 }, off({ on: false, installed: false, files: [] }))), /Settings/);
+}
+
 // ---------- view ----------
 {
   pictureCalls = [];
@@ -367,6 +401,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     await call("read_text", { id: 5 }),
     await call("list_tags"),
     await call("similar", { id: 1 }),
+    await call("related", { id: 1 }),
   ]) {
     const data = payload(r); // checks the wrapper is whole
     assert.ok(JSON.stringify(data).includes("Ignore previous instructions") || JSON.stringify(data).includes("SYSTEM:"));

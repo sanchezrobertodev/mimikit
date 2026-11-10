@@ -72,7 +72,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: "overview",
     description:
-      "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:) is on and how many images it has indexed.",
+      "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:, related) is on and how many images it has indexed.",
     inputSchema: object(),
     annotations: read("Library overview"),
   },
@@ -109,7 +109,7 @@ export const TOOLS: ToolDef[] = [
     name: "get_assets",
     description:
       "Full details of some assets: the absolute file path (to copy the file or load it in code), size, modified date, pixel size or audio length and format, tags, rating, favorite, the user's note, collections, main colours and sprite-sheet grid.",
-    inputSchema: object({ ids: ids(LIMITS.details, "Asset ids from search, similar or view.") }, ["ids"]),
+    inputSchema: object({ ids: ids(LIMITS.details, "Asset ids from search, similar, related or view.") }, ["ids"]),
     annotations: read("Asset details"),
   },
   {
@@ -125,6 +125,19 @@ export const TOOLS: ToolDef[] = [
       ["id"],
     ),
     annotations: read("Similar images"),
+  },
+  {
+    name: "related",
+    description:
+      "Images closest in meaning to one image, closest first (Mimikit's Find related, from search by meaning's index): other dragons for a dragon, ropes and chains for a rope, whatever their names and tags. similar finds copies and close variants instead. Only indexed images take part; needs search by meaning on (overview's meaningSearch), otherwise the error is not_indexed.",
+    inputSchema: object(
+      {
+        id: int("The image to start from."),
+        limit: { type: "integer", minimum: 1, maximum: LIMITS.page, default: 30, description: `Rows, at most ${LIMITS.page}.` },
+      },
+      ["id"],
+    ),
+    annotations: read("Related images"),
   },
   {
     name: "view",

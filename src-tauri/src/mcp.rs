@@ -177,6 +177,7 @@ mod tests {
                 "search",
                 "get_assets",
                 "similar",
+                "related",
                 "view",
                 "list_tags",
                 "list_collections",
@@ -191,10 +192,10 @@ mod tests {
                 "batch",
             ];
             assert_eq!(names, all);
-            // The agent app hears which tools only read (the first nine) and which change the library.
+            // The agent app hears which tools only read (the first ten) and which change the library.
             for (i, t) in tools.iter().enumerate() {
                 let read_only = t.annotations.as_ref().and_then(|a| a.read_only_hint);
-                assert_eq!(read_only, Some(i < 9), "{}", t.name);
+                assert_eq!(read_only, Some(i < 10), "{}", t.name);
             }
 
             let r = agent

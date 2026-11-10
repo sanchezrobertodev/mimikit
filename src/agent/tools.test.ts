@@ -14,7 +14,7 @@ assert.equal(
   "src-tauri/agent-tools.json is out of date: run UPDATE_TOOLS=1 node --experimental-strip-types src/agent/tools.test.ts",
 );
 
-const READS = ["overview", "search", "get_assets", "similar", "view", "list_tags", "list_collections", "read_text", "show"];
+const READS = ["overview", "search", "get_assets", "similar", "related", "view", "list_tags", "list_collections", "read_text", "show"];
 const CHANGES = ["tag", "rate", "favorite", "note", "collect", "copy_to_folder", "batch"];
 assert.deepEqual(
   TOOLS.map((t) => t.name),

@@ -8,7 +8,7 @@
 // library. Each call is checked against its schema and limited in ids, pictures and size.
 import { NAMED_COLORS } from "../lib/colors.ts";
 import { folderOf } from "../lib/format.ts";
-import { noFilters, parseQuery, ruleLooks, rulesWantColors, smartMembers, visibleAssets, type Filters, type Looks, type Palettes } from "../lib/filter.ts";
+import { MEANING_TOP, noFilters, parseQuery, ruleLooks, rulesWantColors, smartMembers, visibleAssets, type Filters, type Looks, type Palettes } from "../lib/filter.ts";
 import type { AnalysisStatus, Asset, Collection, CollectionRule, MeaningStatus, Notes, Root, SpriteSheet, TextPreview } from "../types";
 import { isChange, LIMITS, TOOLS, type Schema } from "./tools.ts";
 
@@ -37,6 +37,8 @@ export interface Io {
   looks: (phrases: string[]) => Promise<Looks>;
   sheet: (id: number) => Promise<SpriteSheet | null>;
   similar: (id: number, maxDistance: number) => Promise<number[]>;
+  /** Find related: every other indexed image's score for image `id`; throws if that image isn't indexed. */
+  related: (id: number) => Promise<Map<number, number>>;
   text: (id: number) => Promise<TextPreview>;
   /** Base64 PNGs: one numbered contact sheet, or one picture per asset. */
   pictures: (assets: Asset[], layout: "sheet" | "thumbnails") => Promise<string[]>;
@@ -169,12 +171,13 @@ const noted = (...notes: string[]) => {
 
 /** Search by meaning can score `looks:` phrases: it's on, downloaded and has indexed something. */
 const canLook = (lib: Library) => lib.meaning.on && lib.meaning.installed && lib.meaning.done > 0;
-const notIndexed = (lib: Library) =>
+/** Why search by meaning can't answer yet, so `what` can't, and what to do `instead`. */
+const notIndexed = (lib: Library, what = "looks: can't match anything", instead = "search without looks:") =>
   !lib.meaning.files.length
-    ? errorResult("not_indexed", "Search by meaning isn't available on this computer (Mimikit has no ONNX Runtime for it, as on Intel Macs), so looks: can't match anything.", "Search without looks:. Don't ask the user to turn it on: they can't here.")
+    ? errorResult("not_indexed", `Search by meaning isn't available on this computer (Mimikit has no ONNX Runtime for it, as on Intel Macs), so ${what}.`, `Instead, ${instead}. Don't ask the user to turn it on: they can't here.`)
     : lib.meaning.on
-    ? errorResult("not_indexed", "Search by meaning is still being set up in Mimikit: its model is downloading or no images are indexed yet, so looks: can't match anything.", "Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, search without looks:.")
-    : errorResult("not_indexed", "Search by meaning isn't on in Mimikit, so looks: can't match anything.", `Ask the user to turn on Search by meaning in Mimikit (Settings › AI features)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, search without looks:.`);
+    ? errorResult("not_indexed", `Search by meaning is still being set up in Mimikit: its model is downloading or no images are indexed yet, so ${what}.`, `Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, ${instead}.`)
+    : errorResult("not_indexed", `Search by meaning isn't on in Mimikit, so ${what}.`, `Ask the user to turn on Search by meaning in Mimikit (Settings › AI features)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, ${instead}.`);
 /** Scores for the smart collections' `looks:` phrases; without search by meaning those collections have no members. */
 const ruleScores = (lib: Library, io: Io) => {
   const phrases = ruleLooks(lib.collections);
@@ -567,6 +570,30 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
       total: found.length,
       assets: found.slice(0, (a.limit as number | undefined) ?? 30).map((x) => row(x, names)),
       ...noted(covers(lib.analysis, "similar")),
+    });
+  },
+
+  related: async (a, io) => {
+    const lib = io.library();
+    const target = lib.assets.find((x) => x.id === a.id);
+    if (!target) return noAssets();
+    if (target.kind !== "image") return errorResult("not_an_image", "related compares images only.", "Pass the id of an image.");
+    if (!canLook(lib)) return notIndexed(lib, "related can't find anything", "use similar for copies and close variants");
+    let scores: Map<number, number>;
+    try {
+      scores = await io.related(target.id);
+    } catch {
+      return errorResult("not_indexed", "That image isn't indexed for search by meaning yet, or Mimikit couldn't read it.", "Try again later (overview's meaningSearch shows how far indexing is), or use similar.");
+    }
+    // As Find related in the window: the closest MEANING_TOP whatever their scores, which bunch up between pictures.
+    const { found } = pick(lib, [...scores].sort((x, y) => y[1] - x[1]).map(([id]) => id));
+    const top = found.slice(0, MEANING_TOP);
+    const names = rootNames(lib.roots);
+    return data({
+      of: row(target, names),
+      total: top.length,
+      assets: top.slice(0, (a.limit as number | undefined) ?? 30).map((x) => row(x, names)),
+      ...noted(covers(lib.meaning, "related", "indexed for search by meaning")),
     });
   },
 
