@@ -47,8 +47,8 @@
   },
   "meaning": {
     "title": "Recherche par le sens",
-    "label": "Images qui montrent « {{text}} »",
-    "seeking": "Recherche d'images par le sens…"
+    "label": "Ressources qui montrent « {{text}} »",
+    "seeking": "Recherche par le sens…"
   },
   "dialog": "Recherche",
   "input": "Rechercher des ressources, dossiers et actions",

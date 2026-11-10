@@ -44,5 +44,6 @@
   "meaningDamaged": "为按含义搜索下载的一个文件已损坏，已将其删除。请重试。",
   "meaningStart": "无法启动按含义搜索：{{error}}",
   "meaningVcRuntime": "按含义搜索需要 Microsoft 的 Visual C++ 运行库。请安装后重试。",
-  "meaningNotIndexed": "此图片尚未为按含义搜索建立索引。"
+  "meaningNotIndexed": "此资源尚未为按含义搜索建立索引。",
+  "meaningUndrawn": "Mimikit 无法绘制此资源的预览。"
 }

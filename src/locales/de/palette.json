@@ -47,8 +47,8 @@
   },
   "meaning": {
     "title": "Suche nach Bedeutung",
-    "label": "Bilder, die „{{text}}“ zeigen",
-    "seeking": "Bilder werden nach Bedeutung gesucht…"
+    "label": "Assets, die „{{text}}“ zeigen",
+    "seeking": "Wird nach Bedeutung gesucht…"
   },
   "dialog": "Suche",
   "input": "Assets, Ordner und Aktionen durchsuchen",

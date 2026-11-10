@@ -81,11 +81,11 @@ export interface AnalysisStatus {
   keep: boolean;
 }
 
-/** Search by meaning: the offline model's download and the index of images it can search. */
+/** Search by meaning: the offline model's download and the index of assets it can search. */
 export interface MeaningStatus {
-  /** Images indexed, including ones that couldn't be read. */
+  /** Assets indexed, including ones that couldn't be read or drawn. */
   done: number;
-  /** Images that can be indexed. */
+  /** Assets that can be indexed: decodable images, models, videos and fonts. */
   total: number;
   /** A pass with a progress line is running (downloading or indexing). */
   running: boolean;

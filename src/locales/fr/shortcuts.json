@@ -46,7 +46,7 @@
     "search-slash": "Rechercher",
     "results": "Parcourir les résultats",
     "run": "Ouvrir le résultat en surbrillance",
-    "meaning": "Trouver les images qui montrent les mots saisis (recherche par le sens)",
+    "meaning": "Trouver les ressources qui montrent les mots saisis (recherche par le sens)",
     "ask": "Demander à Claude de transformer vos mots en recherche",
     "close": "Fermer la recherche"
   },

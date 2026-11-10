@@ -22,12 +22,12 @@
     "sliderValue_other": "64ビット中最大{{max}}ビットの違い、{{count}}枚"
   },
   "meaning": {
-    "label": "「{{text}}」の画像",
-    "stop": "「{{text}}」の画像の検索をやめる"
+    "label": "「{{text}}」のアセット",
+    "stop": "「{{text}}」のアセットの検索をやめる"
   },
   "related": {
     "label": "{{name}}に関連",
-    "stop": "「{{name}}」に関連する画像の表示をやめる"
+    "stop": "「{{name}}」に関連するアセットの表示をやめる"
   },
   "sort": {
     "label": "並べ替え",

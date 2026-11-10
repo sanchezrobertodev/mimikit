@@ -46,7 +46,7 @@
     "search-slash": "Search",
     "results": "Move through the results",
     "run": "Open the highlighted result",
-    "meaning": "Find images that show the typed words (search by meaning)",
+    "meaning": "Find assets that show the typed words (search by meaning)",
     "ask": "Ask Claude to turn your words into a search",
     "close": "Close search"
   },

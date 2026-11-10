@@ -30,15 +30,16 @@ export const EXAMPLES: [words: string, query: string][] = [
   ["musique de boss épique", "type:audio boss"],
 ];
 
-/** With search by meaning on, requests that describe pictures become `looks:` searches: these replace the examples above with the same words. */
+/** With search by meaning on, requests that describe what assets show become `looks:` searches: these replace the examples above with the same words. */
 export const LOOKS_EXAMPLES: [words: string, query: string][] = [
   ["red potion icons I rated highly", "type:image looks:red-potion-icon rating:>=4"],
   ["128px square coin icons from this year", "type:image looks:coin-icon"],
   ["dark forest tileset in my kenney folder", "type:image looks:dark-forest-tileset in:kenney"],
   ["poción roja", "type:image looks:poción-roja"],
+  ["low poly tree models under 1 MB", "type:model looks:low-poly-tree size:<1mb"],
 ];
 
-/** The examples the prompt shows: with search by meaning on, those that describe pictures use `looks:`. */
+/** The examples the prompt shows: with search by meaning on, those that describe what assets show use `looks:`. */
 export const examples = (meaning: boolean) =>
   meaning ? [...EXAMPLES.filter(([w]) => !LOOKS_EXAMPLES.some(([l]) => l === w)), ...LOOKS_EXAMPLES] : EXAMPLES;
 
@@ -58,9 +59,9 @@ const GRAMMAR = [
 ];
 
 /** Only with search by meaning on: the `looks:` word, and when to use it. */
-const LOOKS = "- `looks:red-potion-icon`: an image that shows this, judged from the picture itself, whatever its file name and tags (search by meaning). A description, its words joined by hyphens, in any language. Only the closest matches are kept, best first.";
+const LOOKS = "- `looks:red-potion-icon`: an asset that shows this, judged from its picture (an image itself; a 3D model, video or font by its preview), whatever its file name and tags (search by meaning). A description, its words joined by hyphens, in any language. Only the closest matches are kept, best first.";
 const LOOKS_HOW =
-  "- When the request describes images (what they show, their colours, style or mood), put that description in one looks: word, mood and colour words included, instead of plain words and color:, and add type:image. Plain words are still for a name the request gives, such as a pack or file name.";
+  "- When the request describes what assets show (their subject, colours, style or mood), put that description in one looks: word, mood and colour words included, instead of plain words and color:, and add the type: it asks for (type:image for pictures). Plain words are still for a name the request gives, such as a pack or file name.";
 
 /**
  * The instructions for one Ask: the search language, how to use it, examples, and the user's tag names as data. With
