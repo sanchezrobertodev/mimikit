@@ -216,6 +216,8 @@ model: that part is up to the agent app.
 - "Which sounds would work for a jump? Under a second." `search` with `type:audio dur:<1s`.
 - "What's the license of the Kenney pack?" `read_text` on its LICENSE or readme.
 - "Find more tiles like this one." `similar`, Mimikit's Find similar.
+- "I like this dragon; what else do I have like it?" With [search by meaning](#search-by-meaning) on, `related`,
+  Mimikit's Find related: other dragons and creatures, whatever their names.
 - "Find a red potion icon and give me its path." With [search by meaning](#search-by-meaning) on, `search` with
   `type:image looks:red-potion-icon` finds it even when its name and tags don't say so, then `get_assets`.
 - "Copy the five best explosion sprites into my Godot project." The agent picks them with Mimikit, then copies them with
@@ -237,6 +239,7 @@ With **Allow changes** on:
 | `search` | The search language (`type:`, `in:`, `#tag`, `size:`, `dur:`, `rating:`, `note:`, `color:`, `looks:`), the Filters panel, a collection, a library folder, favorites, a sort and pages. Short rows; with `looks:`, best first. |
 | `get_assets` | Full details of up to 50 assets: file path, size, date, pixel size or audio format, tags, rating, note, collections, main colours, sprite-sheet grid. |
 | `similar` | Images that look like one image, closest first. |
+| `related` | Assets closest in meaning to one image, model, video or font (other dragons for a dragon), closest first, from search by meaning's index. |
 | `view` | Pictures: one numbered contact sheet of up to 16 assets, or up to 4 larger ones. Images, models and videos show their thumbnail, fonts sample letters. |
 | `list_tags` | Every tag and how many assets have it. |
 | `list_collections` | The collections and their sizes; a smart collection's saved search. |
@@ -257,9 +260,9 @@ minute.
 | `batch` | Up to 20 `tag`, `rate`, `favorite`, `note` and `collect` changes as one step, all checked before any is made. |
 
 An error says what happened and what to do, with a code: `not_running`, `not_allowed`, `no_answer`, `paused`,
-`read_only`, `rate_limited`, `not_found`, `not_an_image`, `not_text`, `unreadable`, `not_indexed`, `name_taken`,
-`smart_collection`, `not_copied`, `not_a_folder`, `too_many`, `too_large`, `invalid_input`, `unknown_tool`, `refused`,
-`busy`, `timeout`, `lost`, `internal`.
+`read_only`, `rate_limited`, `not_found`, `not_an_image`, `no_picture`, `not_text`, `unreadable`, `not_indexed`,
+`name_taken`, `smart_collection`, `not_copied`, `not_a_folder`, `too_many`, `too_large`, `invalid_input`,
+`unknown_tool`, `refused`, `busy`, `timeout`, `lost`, `internal`.
 
 ### What you control
 
@@ -331,7 +334,7 @@ runs on your computer and needs no account, key or connection once the model is 
   videos and fonts too, and across kinds: a goblin model finds goblin pictures. Find similar finds
   copies of one picture; Find related finds pictures of the same kind of thing. It shows the closest 200 however they
   score, since near-copies score far above the rest and would leave little else, and it reads only the index, so it
-  loads no model. An asset that isn't indexed yet says so.
+  loads no model. An asset that isn't indexed yet says so. AI agents get it as the tool `related`.
 - **In the search language.** `looks:` followed by the description, with hyphens for spaces, searches by meaning
   among whatever the rest of the search matches: `type:image looks:dark-forest-tileset rating:>=4`. It ranks the same
   way, best first whatever the sort, and works anywhere a search does:
@@ -339,9 +342,9 @@ runs on your computer and needs no account, key or connection once the model is 
     the index as it grows;
   - **[Ask](#ask)**: with search by meaning on, Ask writes `looks:` for requests that describe what assets show, so "dark
     forest tileset I rated highly" becomes `type:image looks:dark-forest-tileset rating:>=4`;
-  - **[AI agents](#ai-agents-mcp)**: `search` takes `looks:` and returns the best matches first, and `overview` says
-    whether search by meaning is on and how much is indexed. Agents get the ranked assets, never the index, and
-    can't turn search by meaning on or start its download.
+  - **[AI agents](#ai-agents-mcp)**: `search` takes `looks:` and returns the best matches first, `related` is Find
+    related, and `overview` says whether search by meaning is on and how much is indexed. Agents get the ranked
+    assets, never the index, and can't turn search by meaning on or start its download.
 
   With search by meaning off, `looks:` matches nothing, and a note says so with a link to Settings; an agent gets the
   error `not_indexed`.

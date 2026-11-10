@@ -10,7 +10,7 @@ import { api, assetUrl, fileUrl } from "../api";
 import { holdFont } from "../lib/fonts";
 import { t } from "../lib/i18n";
 import { thumbnailFor } from "../lib/thumbs";
-import { useStore } from "../store";
+import { scoresOf, useStore } from "../store";
 import type { Asset } from "../types";
 import { agentName, cleanAgent, errorResult, gate, runTool, undoable, undoSteps, type Agent, type Io, type Made, type Session, type Step, type ToolResult } from "./run.ts";
 
@@ -351,6 +351,7 @@ function io(agent: Agent): Io {
     looks: (phrases) => useStore.getState().resolveLooks("agent", phrases),
     sheet: api.getSpriteSheet,
     similar: api.findSimilar,
+    related: (id) => api.meaningRelated(id).then(scoresOf),
     text: api.readText,
     pictures,
     show: (ids) => {

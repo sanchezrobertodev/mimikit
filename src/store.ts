@@ -219,7 +219,7 @@ const noMeaning = () => {
   return { meaningQuery: null };
 };
 /** Scores by image id, from meaning_scores' pairs of id (i32) and score (f32). */
-const scoresOf = (buf: ArrayBuffer) => {
+export const scoresOf = (buf: ArrayBuffer) => {
   const view = new DataView(buf);
   const scores = new Map<number, number>();
   for (let i = 0; i + 8 <= buf.byteLength; i += 8) scores.set(view.getInt32(i, true), view.getFloat32(i + 4, true));

@@ -1,7 +1,7 @@
 [
   {
     "name": "overview",
-    "description": "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:) is on and how many assets it has indexed.",
+    "description": "Start here. A summary of the user's Mimikit library of game assets: how many assets of each type, the library folders, the most used tags, the collections, how much of the image analysis (colour search, similar) is done, and whether search by meaning (search's looks:, related) is on and how many assets it has indexed.",
     "inputSchema": {
       "type": "object",
       "properties": {},
@@ -185,7 +185,7 @@
           },
           "minItems": 1,
           "maxItems": 50,
-          "description": "Asset ids from search, similar or view. At most 50."
+          "description": "Asset ids from search, similar, related or view. At most 50."
         }
       },
       "required": [
@@ -233,6 +233,37 @@
     },
     "annotations": {
       "title": "Similar images",
+      "readOnlyHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "related",
+    "description": "Assets closest in meaning to one asset, closest first (Mimikit's Find related, from search by meaning's index): other dragons for a dragon, ropes and chains for a rope, whatever their names and tags. Works on images, and on 3D models, videos and fonts by their previews, across kinds (a goblin model finds goblin pictures). similar finds copies and close variants of an image instead. Only indexed assets take part; needs search by meaning on (overview's meaningSearch), otherwise the error is not_indexed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The image, model, video or font to start from."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 30,
+          "description": "Rows, at most 100."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Related images",
       "readOnlyHint": true,
       "idempotentHint": true,
       "openWorldHint": false

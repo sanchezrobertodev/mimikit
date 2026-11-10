@@ -18,6 +18,8 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   200, narrowed by the open folder, type chips and **More filters**; the chip's × or **Esc** ends it. Find similar
   still finds copies. It needs search by meaning on and the image indexed, and says so otherwise; it downloads
   nothing and loads no model.
+- AI agents get Find related too, as the tool `related`: the assets closest in meaning to one image, model, video or
+  font, closest first. Like `looks:`, it needs search by meaning on, and the error `not_indexed` says when it isn't.
 
 ### Fixed
 
