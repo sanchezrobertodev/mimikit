@@ -914,6 +914,8 @@ const DRAW_TIMEOUT: Duration = Duration::from_secs(60);
 static WINDOW: AtomicBool = AtomicBool::new(false);
 /// Previews asked of the window, by asset id, with where its answer goes.
 static DRAWING: Mutex<Vec<(i64, std::sync::mpsc::Sender<()>)>> = Mutex::new(Vec::new());
+/// One preview asked at a time, as bulk Suggest tags draws them: asked all at once, big models would time out in its queue.
+static DRAW_ONE: Mutex<()> = Mutex::new(());
 
 /// What the window needs to draw an asset's preview: the fields its thumbnail and font code read.
 #[derive(Serialize, Clone)]
@@ -926,15 +928,27 @@ struct Wanted<'a> {
     mtime: i64,
 }
 
-/// Asks the window to draw `t`'s preview (event `meaning-preview`), as it does for its cards and for Suggest tags, and
-/// waits for its [`meaning_drawn`]. True once it answered, whether or not it could draw one.
-fn draw_in_window(app: &AppHandle, t: &Todo) -> bool {
+/// Asks the window to draw `t`'s preview with `emit` (event `meaning-preview`), as it does for its cards and for
+/// Suggest tags, and waits for its [`meaning_drawn`]. True once it answered, whether or not it could draw one. Waits
+/// while `paused()`, and gives up as soon as `stopped()` (Cancel, or search by meaning turned off).
+fn draw_in_window(
+    t: &Todo,
+    emit: impl FnOnce(&Wanted) -> bool,
+    paused: impl Fn() -> bool,
+    stopped: impl Fn() -> bool,
+) -> bool {
+    let _one = DRAW_ONE.lock().unwrap();
+    let tick = Duration::from_millis(200);
+    // A pause that came while the one before was drawn.
+    while paused() && !stopped() {
+        std::thread::sleep(tick);
+    }
     let since = Instant::now();
-    while !WINDOW.load(SeqCst) {
-        if since.elapsed() > DRAW_TIMEOUT {
-            return false;
-        }
-        std::thread::sleep(Duration::from_millis(200));
+    while !WINDOW.load(SeqCst) && !stopped() && since.elapsed() < DRAW_TIMEOUT {
+        std::thread::sleep(tick);
+    }
+    if stopped() || !WINDOW.load(SeqCst) {
+        return false;
     }
     let (tx, rx) = std::sync::mpsc::channel();
     DRAWING.lock().unwrap().push((t.id, tx));
@@ -946,7 +960,15 @@ fn draw_in_window(app: &AppHandle, t: &Todo) -> bool {
         size: t.size,
         mtime: t.mtime,
     };
-    let answered = app.emit("meaning-preview", wanted).is_ok() && rx.recv_timeout(DRAW_TIMEOUT).is_ok();
+    let asked = Instant::now();
+    let answered = emit(&wanted)
+        && loop {
+            match rx.recv_timeout(tick) {
+                Ok(()) => break true,
+                Err(_) if stopped() || asked.elapsed() > DRAW_TIMEOUT => break false,
+                Err(_) => {}
+            }
+        };
     DRAWING.lock().unwrap().retain(|(id, _)| *id != t.id);
     answered
 }
@@ -1000,7 +1022,12 @@ fn pass(app: &AppHandle, all: bool, ids: &[i64], cancels: usize) -> Result<(), S
     // Previews the window didn't answer for wait for the next pass, or this one would ask again forever.
     let missed = Mutex::new(HashSet::new());
     let draw = |t: &Todo| {
-        let answered = draw_in_window(app, t);
+        let answered = draw_in_window(
+            t,
+            |w| app.emit("meaning-preview", w).is_ok(),
+            || PASS.paused.load(SeqCst),
+            || PASS.cancelled(cancels),
+        );
         if !answered {
             missed.lock().unwrap().insert(t.id);
         }
@@ -1533,6 +1560,52 @@ mod tests {
         assert_eq!(related_query(&conn, img0), Err(NOT_INDEXED.into()));
         conn.execute("DELETE FROM settings WHERE key = ?1", [SETTING]).unwrap();
         assert_eq!(related_query(&conn, id(&conn, "img1.png")), Err(NOT_ON.into()));
+    }
+
+    #[test]
+    fn the_window_is_asked_one_preview_at_a_time_and_pause_and_cancel_stop_it() {
+        meaning_window();
+        let (paused, stopped) = (AtomicBool::new(false), AtomicBool::new(false));
+        let (asked, asks) = std::sync::mpsc::channel();
+        let quiet = Duration::from_millis(500);
+        std::thread::scope(|s| {
+            let draws: Vec<_> = [9001, 9002]
+                .map(|id| {
+                    let t = Todo {
+                        id,
+                        path: "m.glb".into(),
+                        root: ".".into(),
+                        ext: "glb".into(),
+                        size: 1,
+                        mtime: 1,
+                    };
+                    let (asked, paused, stopped) = (asked.clone(), &paused, &stopped);
+                    s.spawn(move || {
+                        draw_in_window(
+                            &t,
+                            |w| asked.send(w.id).is_ok(),
+                            || paused.load(SeqCst),
+                            || stopped.load(SeqCst),
+                        )
+                    })
+                })
+                .into();
+            // One is asked; the other waits until the window answers.
+            let first = asks.recv().unwrap();
+            assert!(asks.recv_timeout(quiet).is_err());
+            // Paused meanwhile: the next isn't asked until Resume.
+            paused.store(true, SeqCst);
+            meaning_drawn(first);
+            assert!(asks.recv_timeout(quiet).is_err());
+            paused.store(false, SeqCst);
+            assert_ne!(asks.recv_timeout(Duration::from_secs(5)).unwrap(), first);
+            // Cancelled: no waiting out the window's time.
+            let at = Instant::now();
+            stopped.store(true, SeqCst);
+            let answered: Vec<bool> = draws.into_iter().map(|h| h.join().unwrap()).collect();
+            assert!(at.elapsed() < Duration::from_secs(5));
+            assert_eq!(answered, [first == 9001, first == 9002]);
+        });
     }
 
     #[test]
