@@ -5,6 +5,11 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Fixed
+
+- On Intel Macs, where search by meaning isn't available, AI agents no longer ask you to turn it on when they
+  try a `looks:` search: they hear it isn't available there.
+
 ## [0.12.0] - 2026-11-09
 
 ### Added

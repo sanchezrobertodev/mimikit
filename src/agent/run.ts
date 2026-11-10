@@ -25,7 +25,7 @@ export interface Library {
   collections: Collection[];
   notes: Notes;
   analysis: AnalysisStatus;
-  meaning: Pick<MeaningStatus, "on" | "installed" | "done" | "total" | "model">;
+  meaning: Pick<MeaningStatus, "on" | "installed" | "done" | "total" | "model" | "files">;
 }
 
 /** What the tools read, from the window's store and the backend. */
@@ -170,7 +170,9 @@ const noted = (...notes: string[]) => {
 /** Search by meaning can score `looks:` phrases: it's on, downloaded and has indexed something. */
 const canLook = (lib: Library) => lib.meaning.on && lib.meaning.installed && lib.meaning.done > 0;
 const notIndexed = (lib: Library) =>
-  lib.meaning.on
+  !lib.meaning.files.length
+    ? errorResult("not_indexed", "Search by meaning isn't available on this computer (Mimikit has no ONNX Runtime for it, as on Intel Macs), so looks: can't match anything.", "Search without looks:. Don't ask the user to turn it on: they can't here.")
+    : lib.meaning.on
     ? errorResult("not_indexed", "Search by meaning is still being set up in Mimikit: its model is downloading or no images are indexed yet, so looks: can't match anything.", "Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, search without looks:.")
     : errorResult("not_indexed", "Search by meaning isn't on in Mimikit, so looks: can't match anything.", `Ask the user to turn on Search by meaning in Mimikit (Settings › AI features)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, search without looks:.`);
 /** Scores for the smart collections' `looks:` phrases; without search by meaning those collections have no members. */
