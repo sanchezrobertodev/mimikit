@@ -5,6 +5,11 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Fixed
+
+- After you remove a library folder, the image analysis and search by meaning counts (**Settings › AI features**,
+  Home, search notes) drop right away. They kept the old numbers until something else changed them.
+
 ## [0.13.0] - 2026-11-10
 
 ### Added

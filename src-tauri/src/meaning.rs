@@ -888,7 +888,7 @@ fn status(conn: &Connection, data_dir: &Path) -> rusqlite::Result<Status> {
     })
 }
 
-fn emit_status(app: &AppHandle, conn: &Connection) {
+pub fn emit_status(app: &AppHandle, conn: &Connection) {
     match status(conn, &app.state::<AppState>().data_dir) {
         Ok(s) => {
             let _ = app.emit("meaning-status", s);
