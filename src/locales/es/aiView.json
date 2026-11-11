@@ -18,7 +18,7 @@
     "button": "Buscar…"
   },
   "agents": {
-    "hint": "Claude Code, Claude Desktop y otras apps MCP",
+    "hint": "Cualquier app compatible con MCP, como Claude Code, Claude Desktop o Cursor",
     "connected": "Conectados: {{names}}",
     "manage": "Gestionar",
     "moved": "Ahora en la vista IA, con Deshacer.",

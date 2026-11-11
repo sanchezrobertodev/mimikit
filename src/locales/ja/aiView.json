@@ -16,7 +16,7 @@
     "button": "検索…"
   },
   "agents": {
-    "hint": "Claude Code、Claude Desktop などの MCP アプリ",
+    "hint": "Claude Code、Claude Desktop、Cursor など MCP に対応したアプリ",
     "connected": "接続中: {{names}}",
     "manage": "管理",
     "moved": "AI ビューに移動しました。元に戻すもあります。",

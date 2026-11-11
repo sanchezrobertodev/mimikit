@@ -58,9 +58,9 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **AI**: every AI feature in one list, with how it stands and the next thing to do: [Ask](#ask),
   [Suggest tags](#suggest-tags) for the assets with no tags, [search by meaning](#search-by-meaning), and the
   [AI agents](#ai-agents-mcp) connected now, with what they did.
-- **AI agents**: let Claude Code, Claude Desktop or another MCP app search your library and look at your assets
-  ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app asks first. See
-  [AI agents](#ai-agents-mcp).
+- **AI agents**: let any app that speaks MCP, such as Claude Code, Claude Desktop or Cursor, search your library and
+  look at your assets ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app
+  asks first. See [AI agents](#ai-agents-mcp).
 - **Turn AI off**: **Settings → General → AI features** hides the AI view, Ask, Suggest tags and AI agents
   everywhere and turns agents off. Your key, your tags and unreviewed suggestions stay for when you turn it back on. Search by meaning,
   which runs on your computer, keeps its own switch.
@@ -167,11 +167,12 @@ The workflow needs two repository secrets (Settings → Secrets and variables �
 
 ## AI agents (MCP)
 
-Mimikit can let an AI agent app on your computer search your library and look at your assets: Claude Code, Claude
-Desktop, or any app that runs [MCP](https://modelcontextprotocol.io) servers. Ask it things like "find a coin sprite
-and tell me its path" or "which of my packs has a pixel font?". Agents only read until you turn on **Allow changes**
-for an app. Then it can also tag and rate assets, mark favorites, write notes, make collections and copy files into a
-folder, and each change can be undone. Agents can never move, rename or delete your files.
+Mimikit can let an AI agent app on your computer search your library and look at your assets: any app that runs
+[MCP](https://modelcontextprotocol.io) servers, such as Claude Code, Claude Desktop, Cursor or VS Code. Ask it things
+like "find a coin sprite and tell me its path" or "which of my packs has a pixel font?". Agents only read until you
+turn on **Allow changes** for an app. Then it can also tag and rate assets, mark favorites, write notes, make
+collections and copy files into a folder, and each change can be undone. Agents can never move, rename or delete your
+files.
 
 Nothing goes online through Mimikit. The agent app starts `mimikit mcp`, the same program with no window, which talks
 to the Mimikit you have open on the same computer. What the tools return goes to your agent app and from there to its
@@ -193,13 +194,29 @@ model: that part is up to the agent app.
    macOS the program is `/Applications/Mimikit.app/Contents/MacOS/mimikit`; on Linux, the AppImage or
    `/usr/bin/mimikit`.
 
-   **Claude Desktop**: add this to `claude_desktop_config.json` (Settings › Developer › Edit Config), then restart
-   Claude Desktop:
+   **Claude Desktop, Cursor and other apps with an `mcpServers` file**: add this to it, then restart the app. Claude
+   Desktop's is `claude_desktop_config.json` (Settings › Developer › Edit Config); Cursor's is `~/.cursor/mcp.json`
+   for every project, or `.cursor/mcp.json` for one:
 
    ```json
    {
      "mcpServers": {
        "mimikit": {
+         "command": "C:\\Users\\<you>\\AppData\\Local\\Mimikit\\mimikit.exe",
+         "args": ["mcp"]
+       }
+     }
+   }
+   ```
+
+   **VS Code**: its `mcp.json` (in your user profile, or `.vscode/mcp.json` for one workspace) has `servers` instead,
+   and each one says its type:
+
+   ```json
+   {
+     "servers": {
+       "mimikit": {
+         "type": "stdio",
          "command": "C:\\Users\\<you>\\AppData\\Local\\Mimikit\\mimikit.exe",
          "args": ["mcp"]
        }

@@ -21,6 +21,9 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ### Changed
 
+- **AI agents are any MCP app, not just Claude's.** **Settings › AI agents** and the AI view name Cursor next to
+  Claude Code and Claude Desktop, and say the setup JSON works for any app with an `mcpServers` file. The README adds
+  VS Code's setup, which uses `servers`.
 - **Settings has pages.** A list on the left picks one at a time: General, Appearance, Library, Claude, AI agents,
   Backups and storage, and About. Each fits on one screen instead of one long page, and Settings opens on the page
   you last used. Search by meaning moved to **Library**, next to image analysis; Ask's and Suggest tags' models and

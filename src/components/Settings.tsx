@@ -1167,7 +1167,7 @@ function Agents() {
       {a.on && (
         <>
           <Setup label={t("agents.claudeCode")} text={`claude mcp add --scope user mimikit -- "${exe}" mcp`} />
-          <Setup label={t("agents.claudeDesktop")} text={JSON.stringify({ mcpServers: { mimikit: { command: exe, args: ["mcp"] } } }, null, 2)} />
+          <Setup label={t("agents.mcpJson")} text={JSON.stringify({ mcpServers: { mimikit: { command: exe, args: ["mcp"] } } }, null, 2)} />
           <p className="pb-2 text-xs text-muted">{t("agents.other")}</p>
           <span className="pt-2 text-fg">{t("agents.connected")}</span>
           {a.sessions.length ? (

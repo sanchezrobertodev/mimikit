@@ -16,7 +16,7 @@
     "button": "搜索…"
   },
   "agents": {
-    "hint": "Claude Code、Claude Desktop 和其他 MCP 应用",
+    "hint": "Claude Code、Claude Desktop、Cursor 等支持 MCP 的应用",
     "connected": "已连接：{{names}}",
     "manage": "管理",
     "moved": "已移到 AI 视图，可撤销。",
