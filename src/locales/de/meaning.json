@@ -20,7 +20,7 @@
   "indexingNow": "Wird indexiert…",
   "resumeIndexing": "Indexierung fortsetzen",
   "indexNow": "Rest indexieren",
-  "looksOff": "Die Suche nach Bedeutung ist nicht eingeschaltet, deshalb findet {{word}} nichts. Schalte sie unter Einstellungen › KI-Funktionen ein.",
+  "looksOff": "Die Suche nach Bedeutung ist nicht eingeschaltet, deshalb findet {{word}} nichts. Schalte sie unter Einstellungen › Bibliothek ein.",
   "settings": {
     "title": "Suche nach Bedeutung (offline)",
     "hint": "Finde Bilder, 3D-Modelle, Videos und Schriften, indem du sie beschreibst, in jeder Sprache. Läuft nach einem einmaligen Download auf diesem Computer.",

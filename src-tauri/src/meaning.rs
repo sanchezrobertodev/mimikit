@@ -47,7 +47,7 @@ const IDLE: Duration = Duration::from_secs(10 * 60);
 const MAX_WORDS: usize = 500;
 
 // The window translates these by their English text (src/locales/en/errors.json), so keep the two the same.
-pub const NOT_ON: &str = "Search by meaning isn't on. Turn it on in Settings › AI features.";
+pub const NOT_ON: &str = "Search by meaning isn't on. Turn it on in Settings › Library.";
 const UNSUPPORTED: &str = "Search by meaning isn't available on this computer yet.";
 const OFFLINE: &str =
     "Couldn't download the files for search by meaning. Check your internet connection and try again.";

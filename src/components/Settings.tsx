@@ -1,6 +1,18 @@
 import clsx from "clsx";
 import { getVersion } from "@tauri-apps/api/app";
-import { Check, ExternalLink, X } from "lucide-react";
+import {
+  Bot,
+  Check,
+  ExternalLink,
+  HardDrive,
+  Info,
+  LibraryBig,
+  Palette as PaletteIcon,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { useAgents } from "../agent/bridge";
 import { agentName } from "../agent/run";
@@ -20,10 +32,11 @@ import { Button, Label, Modal, Segmented, T } from "./ui";
 
 const close = () => useStore.getState().setModal(null);
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** A group within a page, under a rule; the title is optional. */
+function Section({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="flex flex-col border-t border-line-soft pt-3 pb-2 first:border-t-0 first:pt-0">
-      <Label className="pb-1">{title}</Label>
+      {title && <Label className="pb-1">{title}</Label>}
       {children}
     </section>
   );
@@ -95,15 +108,16 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: (on: boolean) 
   );
 }
 
-/** Arrow keys move the choice in a radio group, as native radios do; only the chosen item is in the Tab order. */
-function radioKeys<T>(items: T[], value: T, onChange: (v: T) => void) {
+/** Arrow keys move the choice in a radio group (or a tab list), as native radios do; only the chosen item is in the
+ * Tab order. */
+function radioKeys<T>(items: T[], value: T, onChange: (v: T) => void, chosen = "aria-checked") {
   return (e: KeyboardEvent<HTMLElement>) => {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
     if (!step) return;
     e.preventDefault();
     onChange(items[(items.indexOf(value) + step + items.length) % items.length]);
     const group = e.currentTarget;
-    requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+    requestAnimationFrame(() => group.querySelector<HTMLElement>(`[${chosen}="true"]`)?.focus());
   };
 }
 
@@ -202,106 +216,187 @@ function AccentPicker() {
   );
 }
 
-/** App settings: appearance, ignored folders, the thumbnail cache, updates and version info. */
+export type SettingsPage = "general" | "appearance" | "library" | "claude" | "agents" | "data" | "about";
+const PAGES: [SettingsPage, LucideIcon][] = [
+  ["general", SlidersHorizontal],
+  ["appearance", PaletteIcon],
+  ["library", LibraryBig],
+  ["claude", Sparkles],
+  ["agents", Bot],
+  ["data", HardDrive],
+  ["about", Info],
+];
+const PAGE_IDS = PAGES.map(([id]) => id);
+
+/** The page Settings opens on: the last one shown, or the one a link into Settings asked for. */
+let lastPage: SettingsPage = "general";
+export function openSettings(page?: SettingsPage) {
+  if (page) lastPage = page;
+  useStore.getState().setModal("settings");
+}
+
+/** App settings, one page at a time, picked from the list on the left. */
 export function SettingsDialog() {
+  const [page, setPage] = useState(lastPage);
+  const go = (p: SettingsPage) => {
+    lastPage = p;
+    setPage(p);
+  };
+  return (
+    <Modal title={t("settings.title")} onClose={close} pages>
+      <div
+        role="tablist"
+        aria-orientation="vertical"
+        aria-label={t("settings.title")}
+        onKeyDown={radioKeys(PAGE_IDS, page, go, "aria-selected")}
+        className="flex w-[200px] flex-none flex-col gap-0.5 overflow-y-auto border-r border-line-soft px-2.5 pb-3"
+      >
+        {PAGES.map(([id, Icon]) => {
+          const on = id === page;
+          return (
+            <button
+              key={id}
+              id={`settings-tab-${id}`}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              aria-controls="settings-page"
+              tabIndex={on ? 0 : -1}
+              onClick={() => go(id)}
+              className={clsx(
+                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-colors duration-150",
+                on ? "bg-active font-medium text-fg" : "text-fg-2 hover:bg-hover hover:text-fg",
+              )}
+            >
+              <Icon aria-hidden className={clsx("size-4 flex-none", on ? "text-accent" : "text-muted")} />
+              {/* Wraps rather than cuts off: some languages' names are long. */}
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t(`settings.pages.${id}`)}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Keyed by page, so a new page starts scrolled to the top. */}
+      <div key={page} id="settings-page" role="tabpanel" aria-labelledby={`settings-tab-${page}`} className="min-w-0 flex-1 overflow-y-auto px-6 pb-4 text-fg-2">
+        <h3 className="pb-2 text-[15px] font-semibold text-fg">{t(`settings.pages.${page}`)}</h3>
+        {page === "general" && <General />}
+        {page === "appearance" && <Appearance />}
+        {page === "library" && (
+          <>
+            <IgnoredFolders />
+            <Section>
+              <ImageAnalysis />
+            </Section>
+            <Section>
+              <MeaningSearch />
+            </Section>
+          </>
+        )}
+        {page === "claude" && <Claude />}
+        {page === "agents" && <Agents />}
+        {page === "data" && (
+          <>
+            <Backups />
+            <Section>
+              <ThumbnailCache />
+            </Section>
+          </>
+        )}
+        {page === "about" && <About />}
+      </div>
+    </Modal>
+  );
+}
+
+function General() {
   const s = useStore();
   const updatesSupported = useAppUpdate((u) => u.supported);
+  return (
+    <>
+      <Row label={t("settings.appearance.language")} hint={t("settings.appearance.languageHint")}>
+        <LanguagePicker />
+      </Row>
+      <Row label={t("settings.appearance.startView")} hint={t("settings.appearance.startViewHint")}>
+        <Segmented
+          label={t("settings.appearance.startView")}
+          value={s.startView}
+          onChange={s.setStartView}
+          options={[
+            { value: "home", label: t("settings.appearance.startViewHome") },
+            { value: "library", label: t("settings.appearance.startViewLibrary") },
+          ]}
+        />
+      </Row>
+      {updatesSupported && (
+        <Row label={t("settings.updates.checkOnLaunch")} hint={t("settings.updates.checkOnLaunchHint")}>
+          <Switch label={t("settings.updates.checkOnLaunch")} on={s.checkUpdates} onChange={s.setCheckUpdates} />
+        </Row>
+      )}
+    </>
+  );
+}
+
+function About() {
   const [version, setVersion] = useState<string | null>(null);
   useEffect(() => {
     getVersion().then(setVersion, () => {});
   }, []);
-
   return (
-    <Modal title={t("settings.title")} onClose={close} wide>
-      <Section title={t("settings.sections.appearance")}>
-        <Row label={t("settings.appearance.language")} hint={t("settings.appearance.languageHint")}>
-          <LanguagePicker />
-        </Row>
-        <div className="flex flex-col gap-2.5 py-2">
-          <span className="text-fg">{t("settings.appearance.theme")}</span>
-          <ThemePicker />
+    <>
+      <Row label={version ? t("settings.about.version", { version }) : "Mimikit"} hint={t("settings.about.license")}>
+        <div className="flex gap-2">
+          <Link to="releases">{t("settings.about.releases")}</Link>
+          <Link to="source">{t("settings.about.source")}</Link>
         </div>
-        <Row label={t("settings.appearance.accent")} hint={t("settings.appearance.accentHint")}>
-          <AccentPicker />
-        </Row>
-        <Row label={t("settings.appearance.kindLabels")} hint={t("settings.appearance.kindLabelsHint")}>
-          <Segmented
-            label={t("settings.appearance.kindLabels")}
-            value={s.kindLabels}
-            onChange={s.setKindLabels}
-            options={[
-              { value: "both", label: t("settings.appearance.kindLabelsBoth") },
-              { value: "icon", label: t("settings.appearance.kindLabelsIcon") },
-              { value: "name", label: t("settings.appearance.kindLabelsName") },
-            ]}
+      </Row>
+      <Row label={t("settings.about.support")} hint={t("settings.about.supportHint")}>
+        <Link to="ko-fi">Ko-fi</Link>
+      </Row>
+    </>
+  );
+}
+
+function Appearance() {
+  const s = useStore();
+  return (
+    <>
+      <div className="flex flex-col gap-2.5 py-2">
+        <span className="text-fg">{t("settings.appearance.theme")}</span>
+        <ThemePicker />
+      </div>
+      <Row label={t("settings.appearance.accent")} hint={t("settings.appearance.accentHint")}>
+        <AccentPicker />
+      </Row>
+      <Row label={t("settings.appearance.kindLabels")} hint={t("settings.appearance.kindLabelsHint")}>
+        <Segmented
+          label={t("settings.appearance.kindLabels")}
+          value={s.kindLabels}
+          onChange={s.setKindLabels}
+          options={[
+            { value: "both", label: t("settings.appearance.kindLabelsBoth") },
+            { value: "icon", label: t("settings.appearance.kindLabelsIcon") },
+            { value: "name", label: t("settings.appearance.kindLabelsName") },
+          ]}
+        />
+      </Row>
+      <Row label={t("settings.appearance.thumbSize")} hint={t("settings.appearance.thumbSizeHint")}>
+        <div className="flex flex-none items-center gap-2.5">
+          <input
+            type="range"
+            aria-label={t("settings.appearance.thumbSize")}
+            min={110}
+            max={320}
+            step={10}
+            value={s.thumbSize}
+            onChange={(e) => s.setThumbSize(Number(e.target.value))}
+            className="w-32 accent-[var(--accent)]"
           />
-        </Row>
-        <Row label={t("settings.appearance.startView")} hint={t("settings.appearance.startViewHint")}>
-          <Segmented
-            label={t("settings.appearance.startView")}
-            value={s.startView}
-            onChange={s.setStartView}
-            options={[
-              { value: "home", label: t("settings.appearance.startViewHome") },
-              { value: "library", label: t("settings.appearance.startViewLibrary") },
-            ]}
-          />
-        </Row>
-        <Row label={t("settings.appearance.thumbSize")} hint={t("settings.appearance.thumbSizeHint")}>
-          <div className="flex flex-none items-center gap-2.5">
-            <input
-              type="range"
-              aria-label={t("settings.appearance.thumbSize")}
-              min={110}
-              max={320}
-              step={10}
-              value={s.thumbSize}
-              onChange={(e) => s.setThumbSize(Number(e.target.value))}
-              className="w-32 accent-[var(--accent)]"
-            />
-            <span className="w-11 text-right font-mono text-xs text-muted">{t("settings.appearance.thumbSizeValue", { size: s.thumbSize })}</span>
-          </div>
-        </Row>
-        <Row label={t("settings.appearance.pixelated")} hint={t("settings.appearance.pixelatedHint")}>
-          <Switch label={t("settings.appearance.pixelated")} on={s.pixelated} onChange={s.setPixelated} />
-        </Row>
-      </Section>
-      <Section title={t("settings.sections.library")}>
-        <IgnoredFolders />
-        <ImageAnalysis />
-      </Section>
-      <Section title={t("agents.title")}>
-        <Agents />
-      </Section>
-      <Section title={t("settings.sections.ai")}>
-        <ApiKey />
-        <MeaningSearch />
-      </Section>
-      <Section title={t("settings.sections.backups")}>
-        <Backups />
-      </Section>
-      <Section title={t("settings.sections.storage")}>
-        <ThumbnailCache />
-      </Section>
-      {updatesSupported && (
-        <Section title={t("settings.sections.updates")}>
-          <Row label={t("settings.updates.checkOnLaunch")} hint={t("settings.updates.checkOnLaunchHint")}>
-            <Switch label={t("settings.updates.checkOnLaunch")} on={s.checkUpdates} onChange={s.setCheckUpdates} />
-          </Row>
-        </Section>
-      )}
-      <Section title={t("settings.sections.about")}>
-        <Row label={version ? t("settings.about.version", { version }) : "Mimikit"} hint={t("settings.about.license")}>
-          <div className="flex gap-2">
-            <Link to="releases">{t("settings.about.releases")}</Link>
-            <Link to="source">{t("settings.about.source")}</Link>
-          </div>
-        </Row>
-        <Row label={t("settings.about.support")} hint={t("settings.about.supportHint")}>
-          <Link to="ko-fi">Ko-fi</Link>
-        </Row>
-      </Section>
-    </Modal>
+          <span className="w-11 text-right font-mono text-xs text-muted">{t("settings.appearance.thumbSizeValue", { size: s.thumbSize })}</span>
+        </div>
+      </Row>
+      <Row label={t("settings.appearance.pixelated")} hint={t("settings.appearance.pixelatedHint")}>
+        <Switch label={t("settings.appearance.pixelated")} on={s.pixelated} onChange={s.setPixelated} />
+      </Row>
+    </>
   );
 }
 
@@ -560,10 +655,9 @@ function ThumbnailCache() {
 let wantKey = false;
 export function openKeySetup() {
   wantKey = true;
-  useStore.getState().setModal("settings");
+  openSettings("claude");
 }
 
-/** Settings › AI features: the user's own Anthropic API key, which the backend keeps in the OS credential store (ai.rs). */
 /** Product names, the same in every language. */
 export const MODEL_NAMES: Record<AiPrefs["model"], string> = {
   "claude-haiku-5-5": "Haiku 5.5",
@@ -571,8 +665,55 @@ export const MODEL_NAMES: Record<AiPrefs["model"], string> = {
   "claude-opus-5-5": "Opus 5.5",
 };
 
+/** Settings › Claude: Ask's and Suggest tags' models, the API key, and Remove all AI tags at the bottom. */
+function Claude() {
+  const { ai, setAi } = useStore();
+  return (
+    <>
+      <p className="pb-1 text-xs text-muted">{t("settings.ai.intro")}</p>
+      <ApiKey />
+      <Section title={t("palette.ask.title")}>
+        <Row label={t("settings.ai.model")} hint={t("settings.ai.modelHint")}>
+          <Segmented
+            label={t("settings.ai.model")}
+            value={ai.model}
+            onChange={(model) => setAi({ model })}
+            options={AI_MODELS.map((m) => ({ value: m, label: MODEL_NAMES[m] }))}
+          />
+        </Row>
+        <Row label={t("settings.ai.effort")} hint={t("settings.ai.effortHint")}>
+          <Segmented
+            label={t("settings.ai.effort")}
+            value={ai.effort}
+            onChange={(effort) => setAi({ effort })}
+            options={AI_EFFORTS.map((e) => ({ value: e, label: t(`settings.ai.effortLevel.${e}`) }))}
+          />
+        </Row>
+      </Section>
+      <Section title={t("tagging.title")}>
+        <Row label={t("settings.ai.model")} hint={t("tagging.settings.tagModelHint")}>
+          <Segmented
+            label={t("tagging.settings.tagModel")}
+            value={ai.tagModel}
+            onChange={(tagModel) => setAi({ tagModel })}
+            options={AI_MODELS.map((m) => ({ value: m, label: MODEL_NAMES[m] }))}
+          />
+        </Row>
+      </Section>
+      <Section>
+        <RemoveAiTags />
+      </Section>
+      <p id="api-key-sent" className="flex gap-1.5 border-t border-line-soft pt-3 text-xs text-muted">
+        <Info aria-hidden className="mt-px size-3.5 flex-none" />
+        {t("settings.ai.sent")}
+      </p>
+    </>
+  );
+}
+
+/** The user's own Anthropic API key, which the backend keeps in the OS credential store (ai.rs). */
 function ApiKey() {
-  const { setError, showToast, ai, setAi } = useStore();
+  const { setError, showToast } = useStore();
   const [stored, setStored] = useState<boolean | null>(null);
   // The key being typed, or null when not editing. The stored key never comes back to the window.
   const [draft, setDraft] = useState<string | null>(() => (wantKey ? "" : null));
@@ -693,34 +834,6 @@ function ApiKey() {
           </div>
         </Row>
       )}
-      <p id="api-key-sent" className="pb-2 text-xs text-muted">
-        {t("settings.ai.sent")}
-      </p>
-      <Row label={t("settings.ai.model")} hint={t("settings.ai.modelHint")}>
-        <Segmented
-          label={t("settings.ai.model")}
-          value={ai.model}
-          onChange={(model) => setAi({ model })}
-          options={AI_MODELS.map((m) => ({ value: m, label: MODEL_NAMES[m] }))}
-        />
-      </Row>
-      <Row label={t("settings.ai.effort")} hint={t("settings.ai.effortHint")}>
-        <Segmented
-          label={t("settings.ai.effort")}
-          value={ai.effort}
-          onChange={(effort) => setAi({ effort })}
-          options={AI_EFFORTS.map((e) => ({ value: e, label: t(`settings.ai.effortLevel.${e}`) }))}
-        />
-      </Row>
-      <Row label={t("tagging.settings.tagModel")} hint={t("tagging.settings.tagModelHint")}>
-        <Segmented
-          label={t("tagging.settings.tagModel")}
-          value={ai.tagModel}
-          onChange={(tagModel) => setAi({ tagModel })}
-          options={AI_MODELS.map((m) => ({ value: m, label: MODEL_NAMES[m] }))}
-        />
-      </Row>
-      <RemoveAiTags />
     </>
   );
 }
@@ -752,7 +865,7 @@ function RemoveAiTags() {
   if (count === null)
     return (
       <Row label={t("tagging.settings.removeAll")} hint={t("tagging.settings.removeAllHint")}>
-        <Button size="sm" ref={button} onClick={() => void ask()}>
+        <Button size="sm" variant="danger" ref={button} onClick={() => void ask()}>
           {t("tagging.settings.remove")}
         </Button>
       </Row>
@@ -779,7 +892,7 @@ const MEANING_PER_SECOND = 20;
 // Index bytes per image: 768 int8 values, a scale and the row.
 const INDEX_BYTES = 800;
 
-/** Settings › AI features › Search by meaning: the switch, the download's consent panel, progress, and Delete. */
+/** Settings › Library › Search by meaning: the switch, the download's consent panel, progress, and Delete. */
 function MeaningSearch() {
   const m = useStore((s) => s.meaning);
   const [ask, setAsk] = useState(false);
@@ -936,7 +1049,7 @@ function MeaningSearch() {
               </Button>
             </div>
           ) : (
-            <Button size="sm" ref={deleteButton} onClick={() => setConfirmDelete(true)}>
+            <Button size="sm" variant="danger" ref={deleteButton} onClick={() => setConfirmDelete(true)}>
               {t("meaning.settings.deleteButton")}
             </Button>
           )}

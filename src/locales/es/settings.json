@@ -1,12 +1,12 @@
 {
   "title": "Configuración",
-  "sections": {
+  "pages": {
+    "general": "General",
     "appearance": "Apariencia",
     "library": "Biblioteca",
-    "backups": "Copias de seguridad",
-    "storage": "Almacenamiento",
-    "updates": "Actualizaciones",
-    "ai": "Funciones de IA",
+    "claude": "Claude",
+    "agents": "Agentes de IA",
+    "data": "Copias y almacenamiento",
     "about": "Acerca de"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "Busca sin molestar unos segundos después de abrir. No se instala nada sin preguntarte."
   },
   "ai": {
+    "intro": "Preguntar y Sugerir etiquetas usan Claude con tu propia clave de API de Anthropic, que se cobra a tu cuenta de la API.",
     "key": "Clave de API de Anthropic",
     "keySet": "Configurada. Se guarda en el almacén de credenciales del sistema, nunca en la biblioteca.",
-    "keyNotSet": "Sin configurar. Para preguntar a Claude desde la búsqueda, usa tu propia clave de Anthropic, que se cobra a tu cuenta de la API.",
+    "keyNotSet": "Sin configurar.",
     "add": "Agregar clave",
     "change": "Cambiar",
     "remove": "Quitar",
@@ -50,9 +51,9 @@
     "sent": "Lo que se envía a Anthropic al preguntar: las palabras que escribes, la sintaxis de búsqueda de Mimikit y los nombres de tus etiquetas. Nunca nombres de archivo, rutas de carpetas, contenido de archivos ni miniaturas.",
     "getKey": "Obtener una clave",
     "model": "Modelo",
-    "modelHint": "Haiku responde en un segundo, por una pequeñísima fracción de centavo. Sonnet y Opus cuestan unas 20 y 40 veces más, y son más lentos.",
+    "modelHint": "Haiku es el más rápido y barato. Sonnet y Opus cuestan unas 20 y 40 veces más.",
     "effort": "Esfuerzo",
-    "effortHint": "Cuánto piensa Claude antes de responder. Más alto es más lento y cuesta más; Bajo basta para buscar.",
+    "effortHint": "Más alto es más lento y cuesta más. Bajo basta para buscar.",
     "effortLevel": {
       "low": "Bajo",
       "medium": "Medio",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "Carpetas ignoradas",
-    "hint": "Las carpetas con estos nombres se omiten en todas las carpetas de la biblioteca, como ya pasa con las carpetas ocultas, node_modules y los archivos .meta.",
+    "hint": "Se omiten en todas las carpetas de la biblioteca, como las carpetas ocultas y node_modules.",
     "remove": "Dejar de ignorar {{name}}",
     "addAnother": "Agrega otra y presiona Enter",
     "placeholder": "Nombre de carpeta, como Backup o _old, y luego Enter",
@@ -95,7 +96,7 @@
     "pause": "Pausar",
     "analyse": "Analizar imágenes",
     "keep": "Analizar las imágenes nuevas y modificadas",
-    "keepHint": "Analiza las imágenes a medida que se agregan o cambian mientras Mimikit está abierto. Se activa automáticamente tras el primer análisis completo."
+    "keepHint": "Mientras Mimikit está abierto. Se activa solo tras el primer análisis completo."
   },
   "cancel": "Cancelar",
   "backups": {

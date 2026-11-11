@@ -5,6 +5,7 @@ import { api } from "../api";
 import { bytes } from "../lib/fmt";
 import { t } from "../lib/i18n";
 import { useStore } from "../store";
+import { openSettings } from "./Settings";
 import { focusAssets, IconButton } from "./ui";
 
 const run = (p: Promise<unknown>) => void p.catch(useStore.getState().setError);
@@ -120,7 +121,7 @@ export function LooksNote({ className }: { className?: string }) {
   return (
     <div className={clsx("flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-muted", className)}>
       <span>{t("meaning.looksOff", { word: "looks:" })}</span>
-      <button type="button" onClick={() => useStore.getState().setModal("settings")} className="font-semibold text-accent hover:underline">
+      <button type="button" onClick={() => openSettings("library")} className="font-semibold text-accent hover:underline">
         {t("palette.ask.openSettings")}
       </button>
     </div>

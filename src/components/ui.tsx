@@ -213,12 +213,15 @@ export function Modal({
   children,
   footer,
   wide,
+  pages,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;
+  /** A fixed-size body that lays out and scrolls its own parts, like Settings' page list and page. */
+  pages?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -255,7 +258,7 @@ export function Modal({
         onMouseDown={(e) => e.stopPropagation()}
         className={clsx(
           "flex max-h-[calc(86vh-2rem)] w-full flex-col overflow-hidden rounded-2xl border border-line-x bg-field shadow-[0_40px_100px_-20px_rgba(0,0,0,.7)]",
-          wide ? "max-w-[640px]" : "max-w-md",
+          pages ? "h-[min(720px,calc(86vh-2rem))] max-w-[880px]" : wide ? "max-w-[640px]" : "max-w-md",
         )}
       >
         <div className="flex flex-none items-center justify-between gap-3 px-5 pt-4">
@@ -266,7 +269,7 @@ export function Modal({
             <X className="size-4" />
           </IconButton>
         </div>
-        <div className="min-h-0 overflow-y-auto px-5 py-3 text-fg-2">{children}</div>
+        <div className={pages ? "flex min-h-0 flex-1 pt-3" : "min-h-0 overflow-y-auto px-5 py-3 text-fg-2"}>{children}</div>
         {footer && <div className="flex justify-end gap-2 px-5 pt-1 pb-4">{footer}</div>}
       </div>
     </div>

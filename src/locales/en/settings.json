@@ -1,12 +1,12 @@
 {
   "title": "Settings",
-  "sections": {
+  "pages": {
+    "general": "General",
     "appearance": "Appearance",
     "library": "Library",
-    "backups": "Backups",
-    "storage": "Storage",
-    "updates": "Updates",
-    "ai": "AI features",
+    "claude": "Claude",
+    "agents": "AI agents",
+    "data": "Backups and storage",
     "about": "About"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "Looks quietly a few seconds after start. Nothing installs without asking."
   },
   "ai": {
+    "intro": "Ask and Suggest tags run on Claude with your own Anthropic API key, billed to your API account.",
     "key": "Anthropic API key",
     "keySet": "Set. Kept in your system's credential store, never in the library.",
-    "keyNotSet": "Not set. Ask in the search box uses your own Anthropic key, billed to your API account.",
+    "keyNotSet": "Not set.",
     "add": "Add key",
     "change": "Change",
     "remove": "Remove",
@@ -50,9 +51,9 @@
     "sent": "What Ask sends to Anthropic: the words you type, Mimikit's search syntax and your tag names. Never file names, folder paths, file contents or thumbnails.",
     "getKey": "Get a key",
     "model": "Model",
-    "modelHint": "Haiku answers in about a second, for a tiny fraction of a cent. Sonnet and Opus cost about 20 and 40 times as much, and are slower.",
+    "modelHint": "Haiku is fastest and cheapest. Sonnet and Opus cost about 20 and 40 times as much.",
     "effort": "Effort",
-    "effortHint": "How much Claude thinks before it answers. Higher is slower and costs more; Low is enough for searches.",
+    "effortHint": "Higher is slower and costs more. Low is enough for searches.",
     "effortLevel": {
       "low": "Low",
       "medium": "Medium",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "Ignored folders",
-    "hint": "Folders with these names are skipped in every library folder, like hidden folders, node_modules and .meta files already are.",
+    "hint": "Skipped in every library folder, like hidden folders and node_modules.",
     "remove": "Stop ignoring {{name}}",
     "addAnother": "Add another, press Enter",
     "placeholder": "Folder name, like Backup or _old, then Enter",
@@ -95,7 +96,7 @@
     "pause": "Pause",
     "analyse": "Analyse images",
     "keep": "Keep new and changed images analysed",
-    "keepHint": "Analyses images as they're added or changed while Mimikit is open. Turns on by itself after the first full analysis."
+    "keepHint": "While Mimikit is open. Turns on by itself after the first full analysis."
   },
   "cancel": "Cancel",
   "backups": {

@@ -38,7 +38,7 @@
   "aiError": "Anthropic hat einen Fehler gemeldet: {{error}}",
   "tagNothing": "Es gibt nichts zu taggen.",
   "tagPromptTooLong": "Die Anweisungen zum Taggen sind zu lang.",
-  "meaningOff": "Die Suche nach Bedeutung ist nicht eingeschaltet. Schalte sie unter Einstellungen › KI-Funktionen ein.",
+  "meaningOff": "Die Suche nach Bedeutung ist nicht eingeschaltet. Schalte sie unter Einstellungen › Bibliothek ein.",
   "meaningUnsupported": "Die Suche nach Bedeutung ist auf diesem Computer noch nicht verfügbar.",
   "meaningOffline": "Die Dateien für die Suche nach Bedeutung ließen sich nicht herunterladen. Prüfe deine Internetverbindung und versuche es erneut.",
   "meaningDamaged": "Eine für die Suche nach Bedeutung heruntergeladene Datei war beschädigt und wurde gelöscht. Versuche es erneut.",

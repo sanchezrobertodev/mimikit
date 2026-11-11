@@ -8,7 +8,7 @@
   "sentTitle": "What goes to Anthropic",
   "sent": "A small preview of each image, model, video and font, each file's name and the name of its folder, and the first 2 KB of text files. Never whole files or full paths. Audio is tagged from its name.",
   "model": "Model",
-  "modelHint": "Change it in Settings › AI features.",
+  "modelHint": "Change it in Settings › Claude.",
   "mode": "Send",
   "modeNow": "Right away",
   "modeBatch": "As a batch, half price",
@@ -59,7 +59,7 @@
   "filterChip": "Has suggested tags",
   "settings": {
     "tagModel": "Tagging model",
-    "tagModelHint": "For Suggest tags, which always runs at low effort.",
+    "tagModelHint": "Always runs at low effort.",
     "removeAll": "Remove all AI tags",
     "removeAllHint": "Takes off every tag you accepted from Claude's suggestions. Tags you added yourself stay.",
     "removeConfirm_one": "Remove {{count}} tag that came from Claude's suggestions?",

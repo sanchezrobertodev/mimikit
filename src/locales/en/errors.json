@@ -38,7 +38,7 @@
   "aiError": "Anthropic returned an error: {{error}}",
   "tagNothing": "There's nothing to tag.",
   "tagPromptTooLong": "The tagging instructions are too long.",
-  "meaningOff": "Search by meaning isn't on. Turn it on in Settings › AI features.",
+  "meaningOff": "Search by meaning isn't on. Turn it on in Settings › Library.",
   "meaningUnsupported": "Search by meaning isn't available on this computer yet.",
   "meaningOffline": "Couldn't download the files for search by meaning. Check your internet connection and try again.",
   "meaningDamaged": "A file downloaded for search by meaning was damaged, so it was deleted. Try again.",

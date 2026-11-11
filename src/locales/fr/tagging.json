@@ -8,7 +8,7 @@
   "sentTitle": "Ce qui part chez Anthropic",
   "sent": "Un petit aperçu de chaque image, modèle, vidéo et police, le nom de chaque fichier et celui de son dossier, et les 2 premiers Ko des fichiers texte. Jamais de fichiers entiers ni de chemins complets. L'audio est tagué d'après son nom.",
   "model": "Modèle",
-  "modelHint": "À changer dans Paramètres › Fonctions d'IA.",
+  "modelHint": "À changer dans Paramètres › Claude.",
   "mode": "Envoi",
   "modeNow": "Tout de suite",
   "modeBatch": "Par lot, moitié prix",
@@ -59,7 +59,7 @@
   "filterChip": "Avec tags suggérés",
   "settings": {
     "tagModel": "Modèle de tagage",
-    "tagModelHint": "Pour Suggérer des tags, qui tourne toujours avec un effort faible.",
+    "tagModelHint": "Tourne toujours avec un effort faible.",
     "removeAll": "Retirer tous les tags d'IA",
     "removeAllHint": "Retire tous les tags que vous avez acceptés parmi les suggestions de Claude. Ceux que vous avez ajoutés vous-même restent.",
     "removeConfirm_one": "Retirer {{count}} tag venu des suggestions de Claude ?",

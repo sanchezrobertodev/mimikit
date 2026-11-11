@@ -22,7 +22,7 @@
   "indexingNow": "Indexando agora…",
   "resumeIndexing": "Retomar a indexação",
   "indexNow": "Indexar o resto",
-  "looksOff": "A busca por significado não está ativada, então as palavras {{word}} não encontram nada. Ative-a em Configurações › Funções de IA.",
+  "looksOff": "A busca por significado não está ativada, então as palavras {{word}} não encontram nada. Ative-a em Configurações › Biblioteca.",
   "settings": {
     "title": "Busca por significado (offline)",
     "hint": "Encontre imagens, modelos 3D, vídeos e fontes descrevendo-os, em qualquer idioma. Funciona neste computador depois de um único download.",

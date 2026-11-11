@@ -1,12 +1,12 @@
 {
   "title": "Einstellungen",
-  "sections": {
+  "pages": {
+    "general": "Allgemein",
     "appearance": "Darstellung",
     "library": "Bibliothek",
-    "backups": "Sicherungen",
-    "storage": "Speicher",
-    "updates": "Updates",
-    "ai": "KI-Funktionen",
+    "claude": "Claude",
+    "agents": "KI-Agenten",
+    "data": "Sicherungen und Speicher",
     "about": "Info"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "Sucht unauffällig ein paar Sekunden nach dem Start. Nichts wird ohne Rückfrage installiert."
   },
   "ai": {
+    "intro": "Fragen und Tags vorschlagen laufen über Claude mit deinem eigenen Anthropic-API-Schlüssel, abgerechnet über dein API-Konto.",
     "key": "Anthropic-API-Schlüssel",
     "keySet": "Gespeichert. Liegt im Anmeldedatenspeicher des Systems, nie in der Bibliothek.",
-    "keyNotSet": "Nicht festgelegt. Claude fragen in der Suche nutzt deinen eigenen Anthropic-Schlüssel, abgerechnet über dein API-Konto.",
+    "keyNotSet": "Nicht festgelegt.",
     "add": "Schlüssel hinzufügen",
     "change": "Ändern",
     "remove": "Entfernen",
@@ -50,9 +51,9 @@
     "sent": "Was beim Fragen an Anthropic geht: die Wörter, die du eingibst, Mimikits Suchsyntax und die Namen deiner Tags. Nie Dateinamen, Ordnerpfade, Dateiinhalte oder Vorschaubilder.",
     "getKey": "Schlüssel holen",
     "model": "Modell",
-    "modelHint": "Haiku antwortet in etwa einer Sekunde, für einen winzigen Bruchteil eines Cents. Sonnet und Opus kosten etwa 20- und 40-mal so viel und sind langsamer.",
+    "modelHint": "Haiku ist am schnellsten und günstigsten. Sonnet und Opus kosten etwa 20- und 40-mal so viel.",
     "effort": "Aufwand",
-    "effortHint": "Wie viel Claude vor der Antwort nachdenkt. Höher ist langsamer und teurer; Niedrig reicht für Suchen.",
+    "effortHint": "Höher ist langsamer und teurer. Niedrig reicht für Suchen.",
     "effortLevel": {
       "low": "Niedrig",
       "medium": "Mittel",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "Ignorierte Ordner",
-    "hint": "Ordner mit diesen Namen werden in jedem Bibliotheksordner übersprungen – so wie schon versteckte Ordner, node_modules und .meta-Dateien.",
+    "hint": "Werden in jedem Bibliotheksordner übersprungen, wie versteckte Ordner und node_modules.",
     "remove": "{{name}} nicht mehr ignorieren",
     "addAnother": "Weiteren hinzufügen, Enter drücken",
     "placeholder": "Ordnername, z. B. Backup oder _old, dann Enter",
@@ -95,7 +96,7 @@
     "pause": "Pausieren",
     "analyse": "Bilder analysieren",
     "keep": "Neue und geänderte Bilder automatisch analysieren",
-    "keepHint": "Analysiert Bilder, sobald sie hinzugefügt oder geändert werden, solange Mimikit offen ist. Schaltet sich nach der ersten vollständigen Analyse von selbst ein."
+    "keepHint": "Solange Mimikit offen ist. Schaltet sich nach der ersten vollständigen Analyse von selbst ein."
   },
   "cancel": "Abbrechen",
   "backups": {
