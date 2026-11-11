@@ -37,6 +37,12 @@
   },
   "ai": {
     "intro": "Preguntar y Sugerir etiquetas usan Claude con tu propia clave de API de Anthropic, que se cobra a tu cuenta de la API.",
+    "switch": "Funciones de IA",
+    "switchHint": "Preguntar, Sugerir etiquetas y los agentes de IA. Desactivadas, se ocultan en todas partes; tu clave y tus etiquetas se quedan.",
+    "switchRunning_one": "Claude está etiquetando {{count}} recurso. Desactivar las funciones de IA lo cancela.",
+    "switchRunning_other": "Claude está etiquetando {{count}} recursos. Desactivar las funciones de IA lo cancela.",
+    "switchKeep": "Dejar activadas",
+    "switchOff": "Desactivar",
     "key": "Clave de API de Anthropic",
     "keySet": "Configurada. Se guarda en el almacén de credenciales del sistema, nunca en la biblioteca.",
     "keyNotSet": "Sin configurar.",

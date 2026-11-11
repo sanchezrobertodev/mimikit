@@ -37,6 +37,11 @@
   },
   "ai": {
     "intro": "“询问 Claude”和“建议标签”使用你自己的 Anthropic API 密钥调用 Claude，费用计入你的 API 账户。",
+    "switch": "AI 功能",
+    "switchHint": "询问 Claude、建议标签和 AI 智能体。关闭后会在各处隐藏；你的密钥和标签会保留。",
+    "switchRunning_other": "Claude 正在为 {{count}} 个资源添加标签。关闭 AI 功能会取消此操作。",
+    "switchKeep": "保持开启",
+    "switchOff": "关闭",
     "key": "Anthropic API 密钥",
     "keySet": "已设置。保存在系统的凭据存储中，从不存入资源库。",
     "keyNotSet": "未设置。",

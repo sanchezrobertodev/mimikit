@@ -192,6 +192,7 @@ export function TaggingProgress({ compact }: { compact?: boolean }) {
   }, [st]);
   const running = st.assets > 0;
   const noKey = st.error === NO_KEY;
+  if (!s.ai.on) return null;
   const review = () => {
     s.clearFilters();
     s.go("library");

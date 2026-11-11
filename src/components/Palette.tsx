@@ -77,7 +77,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
   const ask = useRef(async () => {});
   ask.current = async () => {
     const words = q.trim();
-    if (!words || asking) return;
+    if (!words || asking || !s.ai.on) return;
     if (hasKey === false) return openSetup();
     setAsking(true);
     setAskError(null);
@@ -211,7 +211,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
           ],
         });
       }
-      if (parsed.text.length && q.trim() !== asked?.query) {
+      if (s.ai.on && parsed.text.length && q.trim() !== asked?.query) {
         const askItem: Item = {
           key: "ask",
           label: hasKey === false ? t("palette.ask.setup") : asking ? t("palette.ask.asking") : t("palette.ask.label"),
@@ -274,7 +274,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       [t("palette.actions.settings"), () => s.setModal("settings")],
       [t("palette.actions.shortcuts"), () => s.setModal("shortcuts")],
     ];
-    if (shown?.length) actions.splice(4, 0, [t("tagging.paletteAction", { count: shown.length }), () => s.setSuggestFor(shown.map((a) => a.id))]);
+    if (s.ai.on && shown?.length) actions.splice(4, 0, [t("tagging.paletteAction", { count: shown.length }), () => s.setSuggestFor(shown.map((a) => a.id))]);
     if (useAppUpdate.getState().supported) actions.splice(actions.length - 1, 0, [t("palette.actions.updates"), openUpdates]);
     const words = parsed.text;
     const onlyText =
@@ -294,7 +294,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     return out;
     // Only what it reads: the whole store changes on every scan tick, and this searches every asset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.kinds, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking]);
+  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.kinds, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking, s.ai.on]);
 
   const flat = sections.flatMap((sec) => sec.items);
   const run = (item?: Item) => {

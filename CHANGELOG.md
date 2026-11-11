@@ -5,6 +5,15 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **AI features can be turned off.** **Settings › General › AI features** hides Ask, Suggest tags and AI agents
+  everywhere: in search, the side panel, the sidebar, More filters, the shortcuts list and Settings, whose Claude and
+  AI agents pages go too. AI agents are turned off with it, and a tagging run still going is canceled after asking.
+  Your API key, your tags and the suggestions you haven't reviewed stay, so turning it back on brings everything back
+  (AI agents stay off until you turn them on). Search by meaning runs on your computer and keeps its own switch in
+  **Settings › Library**.
+
 ### Changed
 
 - **Settings has pages.** A list on the left picks one at a time: General, Appearance, Library, Claude, AI agents,

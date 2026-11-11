@@ -226,7 +226,8 @@ const PAGES: [SettingsPage, LucideIcon][] = [
   ["data", HardDrive],
   ["about", Info],
 ];
-const PAGE_IDS = PAGES.map(([id]) => id);
+/** The pages AI features off hides (Settings › General). */
+const AI_PAGES: SettingsPage[] = ["claude", "agents"];
 
 /** The page Settings opens on: the last one shown, or the one a link into Settings asked for. */
 let lastPage: SettingsPage = "general";
@@ -237,7 +238,11 @@ export function openSettings(page?: SettingsPage) {
 
 /** App settings, one page at a time, picked from the list on the left. */
 export function SettingsDialog() {
-  const [page, setPage] = useState(lastPage);
+  const aiOn = useStore((s) => s.ai.on);
+  const pages = aiOn ? PAGES : PAGES.filter(([id]) => !AI_PAGES.includes(id));
+  const [chosen, setPage] = useState(lastPage);
+  // A page AI features off hides shows General instead.
+  const page = pages.some(([id]) => id === chosen) ? chosen : "general";
   const go = (p: SettingsPage) => {
     lastPage = p;
     setPage(p);
@@ -248,10 +253,10 @@ export function SettingsDialog() {
         role="tablist"
         aria-orientation="vertical"
         aria-label={t("settings.title")}
-        onKeyDown={radioKeys(PAGE_IDS, page, go, "aria-selected")}
+        onKeyDown={radioKeys(pages.map(([id]) => id), page, go, "aria-selected")}
         className="flex w-[200px] flex-none flex-col gap-0.5 overflow-y-auto border-r border-line-soft px-2.5 pb-3"
       >
-        {PAGES.map(([id, Icon]) => {
+        {pages.map(([id, Icon]) => {
           const on = id === page;
           return (
             <button
@@ -332,7 +337,50 @@ function General() {
           <Switch label={t("settings.updates.checkOnLaunch")} on={s.checkUpdates} onChange={s.setCheckUpdates} />
         </Row>
       )}
+      <AiSwitch />
     </>
+  );
+}
+
+/**
+ * Settings › General › AI features. Off hides Ask, Suggest tags and AI agents everywhere and turns agents off; the key,
+ * tags and unreviewed suggestions stay. While Claude is tagging, turning off asks first, since it cancels the run.
+ */
+function AiSwitch() {
+  const { ai, setAi, tagging, cancelTagging } = useStore();
+  const [confirming, setConfirming] = useState(false);
+  const row = useRef<HTMLDivElement>(null);
+  const refocus = () => requestAnimationFrame(() => row.current?.querySelector<HTMLElement>("[role=switch]")?.focus());
+  const off = async () => {
+    if (tagging.assets) await cancelTagging();
+    if (useAgents.getState().on) await useAgents.getState().setOn(false);
+    setAi({ on: false });
+    setConfirming(false);
+    refocus();
+  };
+  return (
+    <div ref={row}>
+      {confirming ? (
+        <Row label={t("settings.ai.switch")} hint={t("settings.ai.switchRunning", { count: tagging.assets })}>
+          <div className="flex flex-none gap-2">
+            <Button size="sm" onClick={() => (setConfirming(false), refocus())}>
+              {t("settings.ai.switchKeep")}
+            </Button>
+            <Button size="sm" variant="danger" autoFocus onClick={() => void off()}>
+              {t("settings.ai.switchOff")}
+            </Button>
+          </div>
+        </Row>
+      ) : (
+        <Row label={t("settings.ai.switch")} hint={t("settings.ai.switchHint")}>
+          <Switch
+            label={t("settings.ai.switch")}
+            on={ai.on}
+            onChange={(on) => (on ? setAi({ on }) : tagging.assets ? setConfirming(true) : void off())}
+          />
+        </Row>
+      )}
+    </div>
   );
 }
 
