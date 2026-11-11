@@ -55,8 +55,8 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **Duplicates**: identical files side by side. Keep the one you want, then mark the rest as not duplicates or move
   them to the Trash, with tags, favorites, ratings, notes and collections merged into the kept file.
 - **Insights**: totals, storage by type, the largest files and folders. Each row jumps to the matching assets.
-- **AI**: every AI feature on one page, each with how it stands and a way to use it: an [Ask](#ask) box,
-  [Suggest tags](#suggest-tags) for the assets with no tags, a [search by meaning](#search-by-meaning) box, and the
+- **AI**: every AI feature in one list, with how it stands and the next thing to do: [Ask](#ask),
+  [Suggest tags](#suggest-tags) for the assets with no tags, [search by meaning](#search-by-meaning), and the
   [AI agents](#ai-agents-mcp) connected now, with what they did.
 - **AI agents**: let Claude Code, Claude Desktop or another MCP app search your library and look at your assets
   ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app asks first. See

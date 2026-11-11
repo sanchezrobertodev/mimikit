@@ -1,29 +1,35 @@
 {
-  "intro": "Preguntar y Sugerir etiquetas usan Claude con tu propia clave de API de Anthropic. La búsqueda por significado se hace en este equipo. Los agentes de IA son apps de tu equipo a las que das acceso.",
   "ask": {
-    "hint": "Describe lo que buscas con tus palabras. Claude escribe la búsqueda y la ves antes de que se ejecute.",
-    "placeholder": "Pociones pixel art que puntué alto",
-    "button": "Preguntar a Claude",
-    "noKey": "Preguntar necesita tu propia clave de API de Anthropic."
+    "hint": "Claude convierte tus palabras en una búsqueda. Escríbelas en la búsqueda y pulsa {{keys}}.",
+    "button": "Preguntar…"
   },
   "tags": {
-    "hint": "Claude sugiere etiquetas para muchos recursos a la vez. Cada una espera a que la aceptes o la rechaces.",
     "untagged_one": "{{count}} recurso no tiene etiquetas",
     "untagged_other": "{{count}} recursos no tienen etiquetas",
-    "allTagged": "Todos los recursos tienen etiquetas.",
-    "suggest": "Sugerir etiquetas…"
+    "allTagged": "Todos los recursos tienen etiquetas",
+    "suggest": "Sugerir etiquetas…",
+    "review_one": "{{count}} por revisar",
+    "review_other": "{{count}} por revisar"
   },
   "meaning": {
     "title": "Búsqueda por significado",
-    "hint": "Encuentra imágenes, modelos 3D, videos y fuentes describiendo lo que muestran, en cualquier idioma. Gratis, y nada sale de este equipo.",
-    "placeholder": "Icono de poción roja",
-    "button": "Buscar"
+    "hint": "Encuentra recursos por lo que muestran. Gratis, y nada sale de este equipo.",
+    "indexed": "{{done}} de {{total}} recursos indexados, en este equipo. En la búsqueda, pulsa {{keys}}.",
+    "button": "Buscar…"
   },
   "agents": {
-    "hint": "Deja que Claude Code, Claude Desktop u otra app MCP busque en tu biblioteca y, si lo permites, la organice.",
-    "manage": "Gestionar en Configuración",
+    "hint": "Claude Code, Claude Desktop y otras apps MCP",
+    "connected": "Conectados: {{names}}",
+    "manage": "Gestionar",
     "moved": "Ahora en la vista IA, con Deshacer.",
     "open": "Abrir"
+  },
+  "status": {
+    "ready": "Listo",
+    "needsKey": "Falta la clave",
+    "on": "Activado",
+    "off": "Desactivado",
+    "running": "En curso"
   },
   "setUp": "Configurar"
 }

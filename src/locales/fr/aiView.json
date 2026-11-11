@@ -1,29 +1,35 @@
 {
-  "intro": "Demander et Suggérer des tags utilisent Claude avec votre propre clé API Anthropic. La recherche par le sens tourne sur cet ordinateur. Les agents IA sont des applications de votre ordinateur que vous laissez entrer.",
   "ask": {
-    "hint": "Décrivez ce que vous cherchez avec vos mots. Claude écrit la recherche, et vous la voyez avant qu'elle ne s'exécute.",
-    "placeholder": "Potions pixel art que j'ai bien notées",
-    "button": "Demander à Claude",
-    "noKey": "Demander nécessite votre propre clé API Anthropic."
+    "hint": "Claude transforme vos mots en recherche. Tapez-les dans la recherche, puis appuyez sur {{keys}}.",
+    "button": "Demander…"
   },
   "tags": {
-    "hint": "Claude suggère des tags pour de nombreuses ressources à la fois. Chacun attend que vous l'acceptiez ou le refusiez.",
     "untagged_one": "{{count}} ressource n'a pas de tags",
     "untagged_other": "{{count}} ressources n'ont pas de tags",
-    "allTagged": "Toutes les ressources ont des tags.",
-    "suggest": "Suggérer des tags…"
+    "allTagged": "Toutes les ressources ont des tags",
+    "suggest": "Suggérer des tags…",
+    "review_one": "{{count}} à vérifier",
+    "review_other": "{{count}} à vérifier"
   },
   "meaning": {
     "title": "Recherche par le sens",
-    "hint": "Trouvez images, modèles 3D, vidéos et polices en décrivant ce qu'ils montrent, dans n'importe quelle langue. Gratuit, et rien ne quitte cet ordinateur.",
-    "placeholder": "Icône de potion rouge",
-    "button": "Rechercher"
+    "hint": "Trouve les ressources d'après ce qu'elles montrent. Gratuit, et rien ne quitte cet ordinateur.",
+    "indexed": "{{done}} ressources sur {{total}} indexées, sur cet ordinateur. Dans la recherche, appuyez sur {{keys}}.",
+    "button": "Rechercher…"
   },
   "agents": {
-    "hint": "Laissez Claude Code, Claude Desktop ou une autre application MCP chercher dans votre bibliothèque et, si vous l'autorisez, l'organiser.",
-    "manage": "Gérer dans les Paramètres",
+    "hint": "Claude Code, Claude Desktop et d'autres applications MCP",
+    "connected": "Connectés : {{names}}",
+    "manage": "Gérer",
     "moved": "Désormais dans la vue IA, avec Annuler.",
     "open": "Ouvrir"
+  },
+  "status": {
+    "ready": "Prêt",
+    "needsKey": "Clé manquante",
+    "on": "Activé",
+    "off": "Désactivé",
+    "running": "En cours"
   },
   "setUp": "Configurer"
 }

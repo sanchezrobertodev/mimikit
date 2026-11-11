@@ -1,28 +1,33 @@
 {
-  "intro": "「Claude に尋ねる」と「タグを提案」は、ご自身の Anthropic API キーで Claude を使います。「意味で検索」はこのコンピューター上で動きます。AI エージェントは、許可したこのコンピューター上のアプリです。",
   "ask": {
-    "hint": "探しているものを普段の言葉で説明してください。Claude が検索を書き、実行する前に確認できます。",
-    "placeholder": "高く評価したピクセルアートのポーション",
-    "button": "Claude に尋ねる",
-    "noKey": "Claude に尋ねるには、ご自身の Anthropic API キーが必要です。"
+    "hint": "Claude があなたの言葉を検索に変えます。検索に入力して {{keys}} を押してください。",
+    "button": "尋ねる…"
   },
   "tags": {
-    "hint": "Claude が多くのアセットにまとめてタグを提案します。それぞれ、承認か却下を待ちます。",
     "untagged_other": "{{count}}個のアセットにタグがありません",
-    "allTagged": "すべてのアセットにタグがあります。",
-    "suggest": "タグを提案…"
+    "allTagged": "すべてのアセットにタグがあります",
+    "suggest": "タグを提案…",
+    "review_other": "{{count}}個が確認待ち"
   },
   "meaning": {
     "title": "意味で検索",
-    "hint": "画像、3D モデル、動画、フォントを、写っているものを説明して見つけます。どの言語でも使えます。無料で、何もこのコンピューターの外に出ません。",
-    "placeholder": "赤いポーションのアイコン",
-    "button": "検索"
+    "hint": "写っているものからアセットを見つけます。無料で、何もこのコンピューターの外に出ません。",
+    "indexed": "{{total}}個中{{done}}個のアセットをこのコンピューター上でインデックス済み。検索で {{keys}} を押してください。",
+    "button": "検索…"
   },
   "agents": {
-    "hint": "Claude Code、Claude Desktop などの MCP アプリにライブラリを検索させ、許可すれば整理もさせます。",
-    "manage": "設定で管理",
+    "hint": "Claude Code、Claude Desktop などの MCP アプリ",
+    "connected": "接続中: {{names}}",
+    "manage": "管理",
     "moved": "AI ビューに移動しました。元に戻すもあります。",
     "open": "開く"
+  },
+  "status": {
+    "ready": "準備完了",
+    "needsKey": "キーが必要",
+    "on": "オン",
+    "off": "オフ",
+    "running": "実行中"
   },
   "setUp": "設定する"
 }

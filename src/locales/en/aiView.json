@@ -1,29 +1,35 @@
 {
-  "intro": "Ask and Suggest tags use Claude with your own Anthropic API key. Search by meaning runs on this computer. AI agents are apps on your computer that you let in.",
   "ask": {
-    "hint": "Describe what you're after in plain words. Claude writes the search, and you see it before it runs.",
-    "placeholder": "Pixel-art potions I rated highly",
-    "button": "Ask Claude",
-    "noKey": "Ask needs your own Anthropic API key."
+    "hint": "Claude turns your words into a search. Type them in search, then press {{keys}}.",
+    "button": "Ask…"
   },
   "tags": {
-    "hint": "Claude suggests tags for many assets at once. Each one waits for you to accept or reject it.",
     "untagged_one": "{{count}} asset has no tags",
     "untagged_other": "{{count}} assets have no tags",
-    "allTagged": "Every asset has tags.",
-    "suggest": "Suggest tags…"
+    "allTagged": "Every asset has tags",
+    "suggest": "Suggest tags…",
+    "review_one": "{{count}} to review",
+    "review_other": "{{count}} to review"
   },
   "meaning": {
     "title": "Search by meaning",
-    "hint": "Find images, 3D models, videos and fonts by describing what they show, in any language. Free, and nothing leaves this computer.",
-    "placeholder": "Red potion icon",
-    "button": "Search"
+    "hint": "Finds assets by what they show. Free, and nothing leaves this computer.",
+    "indexed": "{{done}} of {{total}} assets indexed, on this computer. In search, press {{keys}}.",
+    "button": "Search…"
   },
   "agents": {
-    "hint": "Let Claude Code, Claude Desktop or another MCP app search your library and, if you allow it, organize it.",
-    "manage": "Manage in Settings",
+    "hint": "Claude Code, Claude Desktop and other MCP apps",
+    "connected": "Connected: {{names}}",
+    "manage": "Manage",
     "moved": "Now in the AI view, with Undo.",
     "open": "Open"
+  },
+  "status": {
+    "ready": "Ready",
+    "needsKey": "Needs key",
+    "on": "On",
+    "off": "Off",
+    "running": "Running"
   },
   "setUp": "Set up"
 }
