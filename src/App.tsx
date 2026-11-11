@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { startAgents } from "./agent/bridge";
 import { useAppUpdate } from "./appUpdate";
 import { AgentAsk } from "./components/Agents";
+import { AiView } from "./components/AiView";
 import { UpdateDialog } from "./components/AppUpdate";
 import { AssetBrowser } from "./components/AssetBrowser";
 import { CollectionsView } from "./components/CollectionsView";
@@ -354,7 +355,7 @@ export default function App() {
       <div className="grid min-h-0 min-w-0" style={{ gridTemplateColumns: `minmax(0,1fr) ${peekOn ? "clamp(300px,30vw,400px)" : "0px"}` }}>
         <main tabIndex={-1} className="flex min-h-0 min-w-0 flex-col focus-visible:outline-none">
           <Header />
-          {(browse || s.view === "home" || s.view === "insights" || s.view === "duplicates") && !s.roots.length && (
+          {(browse || s.view === "home" || s.view === "insights" || s.view === "ai" || s.view === "duplicates") && !s.roots.length && (
             <div className="min-h-0 flex-1">
               <Welcome />
             </div>
@@ -395,6 +396,7 @@ export default function App() {
           {s.view === "duplicates" && s.roots.length > 0 && <DuplicatesView visible={visible} scopeAssets={scopeAssets} />}
           {s.view === "home" && s.roots.length > 0 && <HomeView />}
           {s.view === "insights" && s.roots.length > 0 && <InsightsView />}
+          {s.view === "ai" && s.ai.on && s.roots.length > 0 && <AiView />}
           {navigable && !peekOn && !s.palette && !s.full && order.length > 0 && (
             // One line: hints that don't fit drop out whole, and the way to the full list comes first so it never does.
             <div className="pointer-events-none absolute bottom-3.5 left-[calc(var(--sidebar-w)+16px)] z-[5] flex h-[30px] max-w-[calc(100%-var(--sidebar-w)-32px)] flex-wrap content-start items-center gap-x-3.5 gap-y-4 overflow-hidden rounded-[9px] border border-line-soft bg-bg/90 px-3 py-1.5 text-xs whitespace-nowrap text-faint">

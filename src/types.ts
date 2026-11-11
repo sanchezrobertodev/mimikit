@@ -120,7 +120,7 @@ export interface TextPreview {
   truncated: boolean;
 }
 
-export type ViewName = "home" | "library" | "favorites" | "collections" | "duplicates" | "insights";
+export type ViewName = "home" | "library" | "favorites" | "collections" | "duplicates" | "insights" | "ai";
 
 /** Limits the library to one folder: a whole root (path "") or a folder inside it. */
 export interface FolderFilter {

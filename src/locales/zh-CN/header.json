@@ -5,7 +5,8 @@
     "favorites": "收藏",
     "collections": "合集",
     "duplicates": "重复项",
-    "insights": "统计"
+    "insights": "统计",
+    "ai": "AI"
   },
   "favoritesIn": "<2/> <1>中的</1> <0>收藏</0>",
   "searchPlaceholder": "搜索资源、{{hash}}标签、{{type}}",

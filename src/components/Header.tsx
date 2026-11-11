@@ -21,6 +21,7 @@ const titles = {
   collections: t("header.titles.collections"),
   duplicates: t("header.titles.duplicates"),
   insights: t("header.titles.insights"),
+  ai: t("header.titles.ai"),
 };
 
 export function Header() {

@@ -155,6 +155,8 @@ export function Sidebar() {
     // The same icon as Home's "sets of duplicates" row.
     { view: "duplicates", label: t("sidebar.duplicates"), icon: Copy, badge: s.dups?.length || undefined },
     { view: "insights", label: t("sidebar.insights"), icon: ChartNoAxesColumn },
+    // Gone with AI features off (Settings › General).
+    ...(s.ai.on ? [{ view: "ai" as const, label: t("sidebar.ai"), icon: Sparkles }] : []),
   ];
   const ThemeIcon = s.theme === "dark" ? Moon : s.theme === "light" ? Sun : s.theme === "system" ? Monitor : Palette;
   const updatesSupported = useAppUpdate((u) => u.supported);

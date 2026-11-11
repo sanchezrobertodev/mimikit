@@ -1,0 +1,29 @@
+{
+  "intro": "Fragen und Tags vorschlagen nutzen Claude mit deinem eigenen Anthropic-API-Schlüssel. Die Suche nach Bedeutung läuft auf diesem Computer. KI-Agenten sind Apps auf deinem Computer, die du hereinlässt.",
+  "ask": {
+    "hint": "Beschreib in eigenen Worten, was du suchst. Claude schreibt die Suche, und du siehst sie, bevor sie läuft.",
+    "placeholder": "Pixel-Art-Tränke, die ich hoch bewertet habe",
+    "button": "Claude fragen",
+    "noKey": "Fragen braucht deinen eigenen Anthropic-API-Schlüssel."
+  },
+  "tags": {
+    "hint": "Claude schlägt Tags für viele Assets auf einmal vor. Jeder wartet darauf, dass du ihn annimmst oder ablehnst.",
+    "untagged_one": "{{count}} Asset hat keine Tags",
+    "untagged_other": "{{count}} Assets haben keine Tags",
+    "allTagged": "Jedes Asset hat Tags.",
+    "suggest": "Tags vorschlagen…"
+  },
+  "meaning": {
+    "title": "Suche nach Bedeutung",
+    "hint": "Finde Bilder, 3D-Modelle, Videos und Schriften, indem du beschreibst, was sie zeigen, in jeder Sprache. Kostenlos, und nichts verlässt diesen Computer.",
+    "placeholder": "Rotes Trank-Icon",
+    "button": "Suchen"
+  },
+  "agents": {
+    "hint": "Lass Claude Code, Claude Desktop oder eine andere MCP-App deine Bibliothek durchsuchen und, wenn du es erlaubst, ordnen.",
+    "manage": "In den Einstellungen verwalten",
+    "moved": "Jetzt in der KI-Ansicht, mit Rückgängig.",
+    "open": "Öffnen"
+  },
+  "setUp": "Einrichten"
+}

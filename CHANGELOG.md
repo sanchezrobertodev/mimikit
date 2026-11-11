@@ -7,6 +7,11 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ### Added
 
+- **The AI view** (**AI** in the sidebar, or **Go to AI** in <kbd>Ctrl+K</kbd>) puts every AI feature in one place,
+  each with how it stands and a way to use it: a box for **Ask**, **Suggest tags** for the assets that have no tags
+  (with **Review** when suggestions are waiting, and the last run's cost), a box for **Search by meaning**, and the AI
+  agents connected now, with **Pause**. **What agents did**, with its Undo, moved here from **Settings › AI agents**.
+  Each feature still works where it did before. The view goes away with AI features off.
 - **AI features can be turned off.** **Settings › General › AI features** hides Ask, Suggest tags and AI agents
   everywhere: in search, the side panel, the sidebar, More filters, the shortcuts list and Settings, whose Claude and
   AI agents pages go too. AI agents are turned off with it, and a tagging run still going is canceled after asking.

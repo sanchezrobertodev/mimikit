@@ -36,6 +36,13 @@ const tokenLabel: Record<string, string> = {
 
 /** Words typed before Ask sent the user to Settings for a key: search opens with them again, so they can ask once it's set. */
 let setupWords: string | null = null;
+/** Set by the AI view's Ask box: search opens with its words and asks right away, as Ctrl+Enter would. */
+let askOnOpen = false;
+export function askInSearch(words: string) {
+  setupWords = words;
+  askOnOpen = true;
+  useStore.getState().setPalette(true);
+}
 
 /** `shown`: the assets on screen, which Suggest tags can take. */
 export function Palette({ shown }: { shown?: Asset[] }) {
@@ -43,6 +50,10 @@ export function Palette({ shown }: { shown?: Asset[] }) {
   const [q, setQ] = useState(() => setupWords ?? s.query);
   useEffect(() => {
     setupWords = null;
+    if (askOnOpen) {
+      askOnOpen = false;
+      void ask.current();
+    }
   }, []);
   const [pi, setPi] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -253,6 +264,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       [t("palette.actions.home"), () => s.go("home")],
       [t("palette.actions.duplicates"), () => s.go("duplicates")],
       [t("palette.actions.insights"), () => s.go("insights")],
+      ...(s.ai.on ? [[t("palette.actions.ai"), () => s.go("ai")] as [string, () => void]] : []),
       [t("palette.actions.newCollection"), () => void s.newCollection()],
       [t("palette.actions.favorites"), () => s.go("favorites", { kinds: [] })],
       [t("palette.actions.import"), () => {

@@ -1,0 +1,29 @@
+{
+  "intro": "Perguntar e Sugerir tags usam o Claude com a sua própria chave de API da Anthropic. A busca por significado roda neste computador. Agentes de IA são apps do seu computador que você deixa entrar.",
+  "ask": {
+    "hint": "Descreva o que procura com suas palavras. O Claude escreve a busca, e você a vê antes de ela rodar.",
+    "placeholder": "Poções em pixel art que avaliei bem",
+    "button": "Perguntar ao Claude",
+    "noKey": "Perguntar precisa da sua própria chave de API da Anthropic."
+  },
+  "tags": {
+    "hint": "O Claude sugere tags para muitos recursos de uma vez. Cada uma espera você aceitar ou recusar.",
+    "untagged_one": "{{count}} recurso não tem tags",
+    "untagged_other": "{{count}} recursos não têm tags",
+    "allTagged": "Todos os recursos têm tags.",
+    "suggest": "Sugerir tags…"
+  },
+  "meaning": {
+    "title": "Busca por significado",
+    "hint": "Encontre imagens, modelos 3D, vídeos e fontes descrevendo o que mostram, em qualquer idioma. Grátis, e nada sai deste computador.",
+    "placeholder": "Ícone de poção vermelha",
+    "button": "Buscar"
+  },
+  "agents": {
+    "hint": "Deixe o Claude Code, o Claude Desktop ou outro app MCP buscar na sua biblioteca e, se você permitir, organizá-la.",
+    "manage": "Gerenciar nas Configurações",
+    "moved": "Agora na visão IA, com Desfazer.",
+    "open": "Abrir"
+  },
+  "setUp": "Configurar"
+}

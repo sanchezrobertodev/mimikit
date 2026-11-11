@@ -55,11 +55,14 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **Duplicates**: identical files side by side. Keep the one you want, then mark the rest as not duplicates or move
   them to the Trash, with tags, favorites, ratings, notes and collections merged into the kept file.
 - **Insights**: totals, storage by type, the largest files and folders. Each row jumps to the matching assets.
+- **AI**: every AI feature on one page, each with how it stands and a way to use it: an [Ask](#ask) box,
+  [Suggest tags](#suggest-tags) for the assets with no tags, a [search by meaning](#search-by-meaning) box, and the
+  [AI agents](#ai-agents-mcp) connected now, with what they did.
 - **AI agents**: let Claude Code, Claude Desktop or another MCP app search your library and look at your assets
   ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app asks first. See
   [AI agents](#ai-agents-mcp).
-- **Turn AI off**: **Settings → General → AI features** hides Ask, Suggest tags and AI agents everywhere and turns
-  agents off. Your key, your tags and unreviewed suggestions stay for when you turn it back on. Search by meaning,
+- **Turn AI off**: **Settings → General → AI features** hides the AI view, Ask, Suggest tags and AI agents
+  everywhere and turns agents off. Your key, your tags and unreviewed suggestions stay for when you turn it back on. Search by meaning,
   which runs on your computer, keeps its own switch.
 - **Updates** (Windows): the app checks for a new version on launch and installs it in place. See [Updates](#updates).
 - **Themes**: light, dark, black, midnight, sepia and two high-contrast themes, plus eight accent colours, in
@@ -275,7 +278,7 @@ An error says what happened and what to do, with a code: `not_running`, `not_all
 - **Connected agents** in Settings → AI agents lists each agent session with its calls. **Pause** refuses its changes
   until you press **Resume**, while it can still search and look; **Disconnect** refuses that session from then on.
   **Allowed apps** has **Forget**.
-- **What agents did** lists the last 50 changes since Mimikit started, newest first, with the values they replaced.
+- **What agents did**, in the AI view, lists the last 50 changes since Mimikit started, newest first, with the values they replaced.
   **Undo last agent change** takes back the newest one still standing, all of a `batch` at once. Each change also shows
   a message with **Undo**, and **Ctrl+Z** (⌘Z) undoes it like your own changes. Undo leaves a value you changed
   yourself since as you left it, and removes a collection the agent made. Copied files stay: Mimikit never deletes

@@ -1,0 +1,28 @@
+{
+  "intro": "“询问 Claude”和“建议标签”使用你自己的 Anthropic API 密钥调用 Claude。“按含义搜索”在这台电脑上运行。AI 智能体是你允许接入的、这台电脑上的应用。",
+  "ask": {
+    "hint": "用平常的话描述你要找的东西。Claude 会写出搜索，运行前你可以先看到。",
+    "placeholder": "我评分高的像素风药水",
+    "button": "询问 Claude",
+    "noKey": "询问 Claude 需要你自己的 Anthropic API 密钥。"
+  },
+  "tags": {
+    "hint": "Claude 一次为许多资源建议标签。每个标签都要等你接受或拒绝。",
+    "untagged_other": "{{count}} 个资源没有标签",
+    "allTagged": "所有资源都有标签。",
+    "suggest": "建议标签…"
+  },
+  "meaning": {
+    "title": "按含义搜索",
+    "hint": "描述图片、3D 模型、视频和字体所展示的内容来找到它们，任何语言都可以。免费，且任何内容都不会离开这台电脑。",
+    "placeholder": "红色药水图标",
+    "button": "搜索"
+  },
+  "agents": {
+    "hint": "让 Claude Code、Claude Desktop 或其他 MCP 应用搜索你的资源库，并在你允许时整理它。",
+    "manage": "在设置中管理",
+    "moved": "已移到 AI 视图，可撤销。",
+    "open": "打开"
+  },
+  "setUp": "设置"
+}

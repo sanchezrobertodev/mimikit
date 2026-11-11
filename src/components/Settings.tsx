@@ -26,7 +26,6 @@ import { ACCENTS, THEMES, accentName, themeById, themeName, type ThemeId } from 
 import { forgetThumbnails } from "../lib/thumbs";
 import { languageName, systemLanguage } from "../locales";
 import { useStore } from "../store";
-import { AgentActivity } from "./Agents";
 import { analyse, cancelAnalysis, pauseAnalysis } from "./Analysis";
 import { Button, Label, Modal, Segmented, T } from "./ui";
 
@@ -360,6 +359,8 @@ function AiSwitch() {
     if (useAgents.getState().on) await useAgents.getState().setOn(false);
     // The Suggested filter's chip goes, so the filter goes too rather than narrowing the library out of sight.
     if (filters.suggested) setFilters({ suggested: false });
+    // The AI view goes too: whoever was on it lands on Home.
+    if (useStore.getState().view === "ai") useStore.getState().go("home");
     setAi({ on: false });
     setConfirming(false);
     refocus();
@@ -1203,7 +1204,12 @@ function Agents() {
           ))}
         </>
       )}
-      <AgentActivity />
+      {/* What agents did moved to the AI view, next to the other AI features. */}
+      <Row label={t("agents.activity")} hint={t("aiView.agents.moved")}>
+        <Button size="sm" onClick={() => (close(), useStore.getState().go("ai"))}>
+          {t("aiView.agents.open")}
+        </Button>
+      </Row>
     </>
   );
 }

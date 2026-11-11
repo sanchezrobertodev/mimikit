@@ -1,0 +1,29 @@
+{
+  "intro": "Ask and Suggest tags use Claude with your own Anthropic API key. Search by meaning runs on this computer. AI agents are apps on your computer that you let in.",
+  "ask": {
+    "hint": "Describe what you're after in plain words. Claude writes the search, and you see it before it runs.",
+    "placeholder": "Pixel-art potions I rated highly",
+    "button": "Ask Claude",
+    "noKey": "Ask needs your own Anthropic API key."
+  },
+  "tags": {
+    "hint": "Claude suggests tags for many assets at once. Each one waits for you to accept or reject it.",
+    "untagged_one": "{{count}} asset has no tags",
+    "untagged_other": "{{count}} assets have no tags",
+    "allTagged": "Every asset has tags.",
+    "suggest": "Suggest tags…"
+  },
+  "meaning": {
+    "title": "Search by meaning",
+    "hint": "Find images, 3D models, videos and fonts by describing what they show, in any language. Free, and nothing leaves this computer.",
+    "placeholder": "Red potion icon",
+    "button": "Search"
+  },
+  "agents": {
+    "hint": "Let Claude Code, Claude Desktop or another MCP app search your library and, if you allow it, organize it.",
+    "manage": "Manage in Settings",
+    "moved": "Now in the AI view, with Undo.",
+    "open": "Open"
+  },
+  "setUp": "Set up"
+}
