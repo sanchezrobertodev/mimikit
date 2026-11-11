@@ -278,6 +278,7 @@ export function SettingsDialog() {
       {/* Keyed by page, so a new page starts scrolled to the top. */}
       <div key={page} id="settings-page" role="tabpanel" aria-labelledby={`settings-tab-${page}`} className="min-w-0 flex-1 overflow-y-auto px-6 pb-4 text-fg-2">
         <h3 className="pb-2 text-[15px] font-semibold text-fg">{t(`settings.pages.${page}`)}</h3>
+        <AgentQuestions />
         {page === "general" && <General />}
         {page === "appearance" && <Appearance />}
         {page === "library" && (
@@ -1078,6 +1079,26 @@ function Setup({ label, text }: { label: string; text: string }) {
   );
 }
 
+/** Apps waiting to be let in, at the top of every Settings page: the corner prompt (AgentAsk) hides while Settings is open. */
+function AgentQuestions() {
+  const questions = useAgents((s) => s.questions);
+  const answer = useAgents((s) => s.answer);
+  return questions.map((q) => (
+    <div key={q.name} className="mb-2 rounded-lg border border-line-x bg-field px-3">
+      <Row label={t("agents.askTitle", { name: agentName(q.name) })} hint={t("agents.askBody")}>
+        <div className="flex flex-none gap-2">
+          <Button size="sm" onClick={() => answer(q.name, false)}>
+            {t("agents.deny")}
+          </Button>
+          <Button size="sm" variant="accent" onClick={() => answer(q.name, true)}>
+            {t("agents.allow")}
+          </Button>
+        </div>
+      </Row>
+    </div>
+  ));
+}
+
 /** Settings › AI agents: the switch, how to connect an agent app, and who's connected (src/agent/bridge.ts). */
 function Agents() {
   const a = useAgents();
@@ -1090,18 +1111,6 @@ function Agents() {
       </Row>
       {a.on && (
         <>
-          {a.questions.map((q) => (
-            <Row key={q.name} label={t("agents.askTitle", { name: agentName(q.name) })} hint={t("agents.askBody")}>
-              <div className="flex flex-none gap-2">
-                <Button size="sm" onClick={() => a.answer(q.name, false)}>
-                  {t("agents.deny")}
-                </Button>
-                <Button size="sm" variant="accent" onClick={() => a.answer(q.name, true)}>
-                  {t("agents.allow")}
-                </Button>
-              </div>
-            </Row>
-          ))}
           <Setup label={t("agents.claudeCode")} text={`claude mcp add --scope user mimikit -- "${exe}" mcp`} />
           <Setup label={t("agents.claudeDesktop")} text={JSON.stringify({ mcpServers: { mimikit: { command: exe, args: ["mcp"] } } }, null, 2)} />
           <p className="pb-2 text-xs text-muted">{t("agents.other")}</p>
