@@ -85,9 +85,11 @@ export function AiView() {
   const m = s.meaning;
   const agents = useAgents();
   const [hasKey, setHasKey] = useState<boolean | null>(null);
+  // Settings opens over this view, so read the key again when it closes: Add key leads there.
+  const inSettings = s.modal === "settings";
   useEffect(() => {
-    api.apiKeyStatus().then(setHasKey, () => setHasKey(null));
-  }, []);
+    if (!inSettings) api.apiKeyStatus().then(setHasKey, () => setHasKey(null));
+  }, [inSettings]);
   const untagged = useMemo(() => s.assets.filter((a) => !a.tags.length).map((a) => a.id), [s.assets]);
   const waiting = useMemo(() => s.assets.filter((a) => a.suggested.length).length, [s.assets]);
   const meaningReady = m.on && m.installed && m.done > 0;
