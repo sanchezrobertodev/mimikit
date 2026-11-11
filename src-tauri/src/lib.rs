@@ -260,10 +260,14 @@ fn add_root(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<
 
 /// Forgets a folder. Only the library entry goes; the files are never touched.
 #[tauri::command]
-fn remove_root(state: State<'_, AppState>, id: i64) -> Result<(), String> {
+fn remove_root(app: AppHandle, state: State<'_, AppState>, id: i64) -> Result<(), String> {
     state.watchers.lock().unwrap().remove(&id);
     with_db(&state, |c| {
-        c.execute("DELETE FROM roots WHERE id = ?1", [id]).map(|_| ())
+        c.execute("DELETE FROM roots WHERE id = ?1", [id])?;
+        // Its assets leave the counts Settings shows, as a scan's would.
+        analysis::emit_status(&app, c);
+        meaning::emit_status(&app, c);
+        Ok(())
     })
 }
 
