@@ -347,13 +347,19 @@ function General() {
  * tags and unreviewed suggestions stay. While Claude is tagging, turning off asks first, since it cancels the run.
  */
 function AiSwitch() {
-  const { ai, setAi, tagging, cancelTagging } = useStore();
+  const { ai, setAi, tagging, cancelTagging, filters, setFilters } = useStore();
   const [confirming, setConfirming] = useState(false);
   const row = useRef<HTMLDivElement>(null);
   const refocus = () => requestAnimationFrame(() => row.current?.querySelector<HTMLElement>("[role=switch]")?.focus());
   const off = async () => {
-    if (tagging.assets) await cancelTagging();
+    // A run that couldn't be canceled stays in sight: AI features stay on, and the error says why.
+    if (tagging.assets && !(await cancelTagging())) {
+      setConfirming(false);
+      return refocus();
+    }
     if (useAgents.getState().on) await useAgents.getState().setOn(false);
+    // The Suggested filter's chip goes, so the filter goes too rather than narrowing the library out of sight.
+    if (filters.suggested) setFilters({ suggested: false });
     setAi({ on: false });
     setConfirming(false);
     refocus();

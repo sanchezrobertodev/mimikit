@@ -142,7 +142,8 @@ interface State extends Prefs {
   /** Makes Claude's suggestions of `ids` real tags: those in `tags`, or all of them. */
   acceptSuggestions: (ids: number[], tags?: string[]) => Promise<void>;
   rejectSuggestions: (ids: number[], tags?: string[]) => Promise<void>;
-  cancelTagging: () => Promise<void>;
+  /** Cancels the batches out with Claude; false when that failed (the error is shown). */
+  cancelTagging: () => Promise<boolean>;
   /** 1 to 5 stars, or 0 to clear. */
   setRating: (ids: number[], rating: number) => Promise<void>;
   setNote: (id: number, note: string) => Promise<void>;
@@ -837,8 +838,10 @@ export const useStore = create<State>((set, get, store) => {
     cancelTagging: async () => {
       try {
         await api.cancelTagging();
+        return true;
       } catch (e) {
         get().setError(e);
+        return false;
       }
     },
     setRating: async (ids, rating) => {
