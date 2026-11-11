@@ -38,7 +38,7 @@
   "aiError": "Anthropic 返回了错误：{{error}}",
   "tagNothing": "没有要添加标签的内容。",
   "tagPromptTooLong": "标签指示过长。",
-  "meaningOff": "按含义搜索未开启。请在设置 › AI 功能中开启。",
+  "meaningOff": "按含义搜索未开启。请在设置 › 资源库中开启。",
   "meaningUnsupported": "这台电脑上暂不支持按含义搜索。",
   "meaningOffline": "无法下载按含义搜索所需的文件。请检查网络连接后重试。",
   "meaningDamaged": "为按含义搜索下载的一个文件已损坏，已将其删除。请重试。",

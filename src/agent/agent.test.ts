@@ -259,7 +259,7 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     assert.equal(errorCode(await call("search", { query: "looks:gold-coin" }, off(m))), "not_indexed", JSON.stringify(m));
     assert.equal(errorCode(await call("search", { collection: 4 }, off(m))), "not_indexed");
   }
-  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false }))), /Settings › AI features\)\. Meanwhile/);
+  assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false }))), /Settings › Library\)\. Meanwhile/);
   // Only a model that isn't there yet needs the user to start a download.
   assert.match(text(await call("search", { query: "looks:gold-coin" }, off({ on: false, installed: false }))), /downloads a model first/);
   // Where it isn't available (Intel Macs), the user can't turn it on, so the agent isn't told to ask.

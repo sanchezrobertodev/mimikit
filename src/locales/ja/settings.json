@@ -1,12 +1,12 @@
 {
   "title": "設定",
-  "sections": {
+  "pages": {
+    "general": "一般",
     "appearance": "外観",
     "library": "ライブラリ",
-    "backups": "バックアップ",
-    "storage": "ストレージ",
-    "updates": "アップデート",
-    "ai": "AI 機能",
+    "claude": "Claude",
+    "agents": "AI エージェント",
+    "data": "バックアップとストレージ",
     "about": "情報"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "起動の数秒後にバックグラウンドで確認します。確認なしにインストールされることはありません。"
   },
   "ai": {
+    "intro": "「Claude に尋ねる」と「タグを提案」は、あなた自身の Anthropic API キーで Claude を使い、API アカウントに課金されます。",
     "key": "Anthropic API キー",
     "keySet": "設定済み。ライブラリではなく、システムの資格情報ストアに保存されています。",
-    "keyNotSet": "未設定。検索ボックスから Claude に尋ねる機能は、あなた自身の Anthropic キーを使い、API アカウントに課金されます。",
+    "keyNotSet": "未設定。",
     "add": "キーを追加",
     "change": "変更",
     "remove": "削除",
@@ -50,9 +51,9 @@
     "sent": "Claude に尋ねるときに Anthropic へ送るもの：入力した言葉、Mimikit の検索構文、タグ名。ファイル名、フォルダーのパス、ファイルの内容、サムネイルは送りません。",
     "getKey": "キーを取得",
     "model": "モデル",
-    "modelHint": "Haiku は約 1 秒で答え、費用は 1 セントのごく一部です。Sonnet と Opus は約 20 倍と 40 倍の費用がかかり、応答も遅くなります。",
+    "modelHint": "Haiku が最も速く安価です。Sonnet と Opus は約 20 倍と 40 倍の費用がかかります。",
     "effort": "思考量",
-    "effortHint": "Claude が答える前にどれだけ考えるか。高いほど遅く、費用も増えます。検索には「低」で十分です。",
+    "effortHint": "高いほど遅く、費用も増えます。検索には「低」で十分です。",
     "effortLevel": {
       "low": "低",
       "medium": "中",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "無視するフォルダー",
-    "hint": "これらの名前のフォルダーは、隠しフォルダー、node_modules、.metaファイルと同じように、すべてのライブラリフォルダーでスキップされます。",
+    "hint": "隠しフォルダーや node_modules と同じく、すべてのライブラリフォルダーでスキップされます。",
     "remove": "「{{name}}」の無視をやめる",
     "addAnother": "別の名前を入力してEnter",
     "placeholder": "フォルダー名（Backup、_oldなど）を入力してEnter",
@@ -91,7 +92,7 @@
     "pause": "一時停止",
     "analyse": "画像を解析",
     "keep": "新しい画像や変更された画像を自動で解析",
-    "keepHint": "Mimikitを開いている間、追加・変更された画像を解析します。最初の完全な解析が終わると自動でオンになります。"
+    "keepHint": "Mimikit を開いている間に行います。最初の完全な解析が終わると自動でオンになります。"
   },
   "cancel": "キャンセル",
   "backups": {

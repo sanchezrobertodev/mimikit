@@ -5,9 +5,17 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Changed
+
+- **Settings has pages.** A list on the left picks one at a time: General, Appearance, Library, Claude, AI agents,
+  Backups and storage, and About. Each fits on one screen instead of one long page, and Settings opens on the page
+  you last used. Search by meaning moved to **Library**, next to image analysis; Ask's and Suggest tags' models and
+  your API key are under **Claude**. Hints are shorter, and Remove all AI tags and Delete model and index sit at the
+  bottom of their page in red. Links into Settings, such as Ask's "add a key", open the right page.
+
 ### Fixed
 
-- After you remove a library folder, the image analysis and search by meaning counts (**Settings › AI features**,
+- After you remove a library folder, the image analysis and search by meaning counts (**Settings › Library**,
   Home, search notes) drop right away. They kept the old numbers until something else changed them.
 
 ## [0.13.0] - 2026-11-10

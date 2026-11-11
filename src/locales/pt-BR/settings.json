@@ -1,12 +1,12 @@
 {
   "title": "Configurações",
-  "sections": {
+  "pages": {
+    "general": "Geral",
     "appearance": "Aparência",
     "library": "Biblioteca",
-    "backups": "Backups",
-    "storage": "Armazenamento",
-    "updates": "Atualizações",
-    "ai": "Funções de IA",
+    "claude": "Claude",
+    "agents": "Agentes de IA",
+    "data": "Backups e armazenamento",
     "about": "Sobre"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "Verifica discretamente alguns segundos após a abertura. Nada é instalado sem perguntar."
   },
   "ai": {
+    "intro": "Perguntar e Sugerir tags usam o Claude com sua própria chave de API da Anthropic, cobrada na sua conta da API.",
     "key": "Chave de API da Anthropic",
     "keySet": "Definida. Guardada no armazenamento de credenciais do sistema, nunca na biblioteca.",
-    "keyNotSet": "Não definida. Para perguntar ao Claude pela busca, use sua própria chave da Anthropic, cobrada na sua conta da API.",
+    "keyNotSet": "Não definida.",
     "add": "Adicionar chave",
     "change": "Alterar",
     "remove": "Remover",
@@ -50,9 +51,9 @@
     "sent": "O que vai para a Anthropic ao perguntar: as palavras que você digita, a sintaxe de busca do Mimikit e os nomes das suas tags. Nunca nomes de arquivos, caminhos de pastas, conteúdo de arquivos ou miniaturas.",
     "getKey": "Obter uma chave",
     "model": "Modelo",
-    "modelHint": "O Haiku responde em cerca de um segundo, por uma fração mínima de centavo. O Sonnet e o Opus custam cerca de 20 e 40 vezes mais, e são mais lentos.",
+    "modelHint": "O Haiku é o mais rápido e barato. O Sonnet e o Opus custam cerca de 20 e 40 vezes mais.",
     "effort": "Esforço",
-    "effortHint": "Quanto o Claude pensa antes de responder. Mais alto é mais lento e custa mais; Baixo basta para buscas.",
+    "effortHint": "Mais alto é mais lento e custa mais. Baixo basta para buscas.",
     "effortLevel": {
       "low": "Baixo",
       "medium": "Médio",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "Pastas ignoradas",
-    "hint": "Pastas com esses nomes são ignoradas em todas as pastas da biblioteca, como já acontece com pastas ocultas, node_modules e arquivos .meta.",
+    "hint": "Ignoradas em todas as pastas da biblioteca, como pastas ocultas e node_modules.",
     "remove": "Parar de ignorar {{name}}",
     "addAnother": "Adicione outra e pressione Enter",
     "placeholder": "Nome da pasta, como Backup ou _old, e depois Enter",
@@ -99,7 +100,7 @@
     "pause": "Pausar",
     "analyse": "Analisar imagens",
     "keep": "Manter imagens novas e alteradas analisadas",
-    "keepHint": "Analisa as imagens quando são adicionadas ou alteradas enquanto o Mimikit está aberto. Liga sozinho após a primeira análise completa."
+    "keepHint": "Enquanto o Mimikit está aberto. Liga sozinho após a primeira análise completa."
   },
   "cancel": "Cancelar",
   "backups": {

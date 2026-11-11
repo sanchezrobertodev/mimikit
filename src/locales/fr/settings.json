@@ -1,12 +1,12 @@
 {
   "title": "Paramètres",
-  "sections": {
+  "pages": {
+    "general": "Général",
     "appearance": "Apparence",
     "library": "Bibliothèque",
-    "backups": "Sauvegardes",
-    "storage": "Stockage",
-    "updates": "Mises à jour",
-    "ai": "Fonctions d'IA",
+    "claude": "Claude",
+    "agents": "Agents IA",
+    "data": "Sauvegardes et stockage",
     "about": "À propos"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "Vérifie discrètement quelques secondes après le lancement. Rien ne s'installe sans votre accord."
   },
   "ai": {
+    "intro": "Demander et Suggérer des tags utilisent Claude avec votre propre clé API Anthropic, facturée sur votre compte API.",
     "key": "Clé d'API Anthropic",
     "keySet": "Définie. Conservée dans le gestionnaire d'identifiants du système, jamais dans la bibliothèque.",
-    "keyNotSet": "Non définie. Pour demander à Claude depuis la recherche, utilisez votre propre clé Anthropic, facturée sur votre compte API.",
+    "keyNotSet": "Non définie.",
     "add": "Ajouter une clé",
     "change": "Modifier",
     "remove": "Supprimer",
@@ -50,9 +51,9 @@
     "sent": "Ce que la demande envoie à Anthropic : les mots que vous tapez, la syntaxe de recherche de Mimikit et les noms de vos tags. Jamais de noms de fichiers, de chemins de dossiers, de contenu de fichiers ni de miniatures.",
     "getKey": "Obtenir une clé",
     "model": "Modèle",
-    "modelHint": "Haiku répond en une seconde environ, pour une infime fraction de cent. Sonnet et Opus coûtent environ 20 et 40 fois plus, et sont plus lents.",
+    "modelHint": "Haiku est le plus rapide et le moins cher. Sonnet et Opus coûtent environ 20 et 40 fois plus.",
     "effort": "Effort",
-    "effortHint": "Combien Claude réfléchit avant de répondre. Plus élevé, c'est plus lent et plus cher ; Faible suffit pour les recherches.",
+    "effortHint": "Plus élevé, c'est plus lent et plus cher. Faible suffit pour les recherches.",
     "effortLevel": {
       "low": "Faible",
       "medium": "Moyen",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "Dossiers ignorés",
-    "hint": "Les dossiers portant ces noms sont ignorés dans chaque dossier de la bibliothèque, comme le sont déjà les dossiers cachés, node_modules et les fichiers .meta.",
+    "hint": "Ignorés dans chaque dossier de la bibliothèque, comme les dossiers cachés et node_modules.",
     "remove": "Ne plus ignorer {{name}}",
     "addAnother": "Ajouter un autre, puis Entrée",
     "placeholder": "Nom de dossier, comme Archives ou _old, puis Entrée",
@@ -95,7 +96,7 @@
     "pause": "Pause",
     "analyse": "Analyser les images",
     "keep": "Analyser les images nouvelles et modifiées",
-    "keepHint": "Analyse les images dès qu'elles sont ajoutées ou modifiées tant que Mimikit est ouvert. S'active tout seul après la première analyse complète."
+    "keepHint": "Tant que Mimikit est ouvert. S'active tout seul après la première analyse complète."
   },
   "cancel": "Annuler",
   "backups": {

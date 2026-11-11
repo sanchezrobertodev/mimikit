@@ -38,7 +38,7 @@
   "aiError": "Anthropic a renvoyé une erreur : {{error}}",
   "tagNothing": "Il n'y a rien à étiqueter.",
   "tagPromptTooLong": "Les instructions d'étiquetage sont trop longues.",
-  "meaningOff": "La recherche par le sens n'est pas activée. Activez-la dans Paramètres › Fonctions d'IA.",
+  "meaningOff": "La recherche par le sens n'est pas activée. Activez-la dans Paramètres › Bibliothèque.",
   "meaningUnsupported": "La recherche par le sens n'est pas encore disponible sur cet ordinateur.",
   "meaningOffline": "Impossible de télécharger les fichiers de la recherche par le sens. Vérifiez votre connexion Internet et réessayez.",
   "meaningDamaged": "Un fichier téléchargé pour la recherche par le sens était endommagé et a été supprimé. Réessayez.",

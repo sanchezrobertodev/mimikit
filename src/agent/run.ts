@@ -177,7 +177,7 @@ const notIndexed = (lib: Library, what = "looks: can't match anything", instead 
     ? errorResult("not_indexed", `Search by meaning isn't available on this computer (Mimikit has no ONNX Runtime for it, as on Intel Macs), so ${what}.`, `Instead, ${instead}. Don't ask the user to turn it on: they can't here.`)
     : lib.meaning.on
     ? errorResult("not_indexed", `Search by meaning is still being set up in Mimikit: its model is downloading or nothing is indexed yet, so ${what}.`, `Try again in a few minutes (overview's meaningSearch shows how far it is). Meanwhile, ${instead}.`)
-    : errorResult("not_indexed", `Search by meaning isn't on in Mimikit, so ${what}.`, `Ask the user to turn on Search by meaning in Mimikit (Settings › AI features)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, ${instead}.`);
+    : errorResult("not_indexed", `Search by meaning isn't on in Mimikit, so ${what}.`, `Ask the user to turn on Search by meaning in Mimikit (Settings › Library)${lib.meaning.installed ? "" : "; it downloads a model first, which only the user can start"}. Meanwhile, ${instead}.`);
 /** Scores for the smart collections' `looks:` phrases; without search by meaning those collections have no members. */
 const ruleScores = (lib: Library, io: Io) => {
   const phrases = ruleLooks(lib.collections);

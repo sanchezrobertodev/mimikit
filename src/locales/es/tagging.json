@@ -8,7 +8,7 @@
   "sentTitle": "Qué se envía a Anthropic",
   "sent": "Una vista previa pequeña de cada imagen, modelo, video y fuente, el nombre de cada archivo y el de su carpeta, y los primeros 2 KB de los archivos de texto. Nunca archivos completos ni rutas completas. El audio se etiqueta por su nombre.",
   "model": "Modelo",
-  "modelHint": "Cámbialo en Configuración › Funciones de IA.",
+  "modelHint": "Cámbialo en Configuración › Claude.",
   "mode": "Enviar",
   "modeNow": "Ahora",
   "modeBatch": "En lote, a mitad de precio",
@@ -59,7 +59,7 @@
   "filterChip": "Con etiquetas sugeridas",
   "settings": {
     "tagModel": "Modelo para etiquetar",
-    "tagModelHint": "Para Sugerir etiquetas, que siempre usa esfuerzo bajo.",
+    "tagModelHint": "Siempre usa esfuerzo bajo.",
     "removeAll": "Quitar todas las etiquetas de IA",
     "removeAllHint": "Quita todas las etiquetas que aceptaste de las sugerencias de Claude. Las que agregaste tú se quedan.",
     "removeConfirm_one": "¿Quitar {{count}} etiqueta que vino de las sugerencias de Claude?",

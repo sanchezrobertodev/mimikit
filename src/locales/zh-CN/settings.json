@@ -1,12 +1,12 @@
 {
   "title": "设置",
-  "sections": {
+  "pages": {
+    "general": "通用",
     "appearance": "外观",
     "library": "资源库",
-    "backups": "备份",
-    "storage": "存储",
-    "updates": "更新",
-    "ai": "AI 功能",
+    "claude": "Claude",
+    "agents": "AI 智能体",
+    "data": "备份与存储",
     "about": "关于"
   },
   "appearance": {
@@ -36,9 +36,10 @@
     "checkOnLaunchHint": "启动几秒后在后台静默检查。未经确认不会安装任何内容。"
   },
   "ai": {
+    "intro": "“询问 Claude”和“建议标签”使用你自己的 Anthropic API 密钥调用 Claude，费用计入你的 API 账户。",
     "key": "Anthropic API 密钥",
     "keySet": "已设置。保存在系统的凭据存储中，从不存入资源库。",
-    "keyNotSet": "未设置。在搜索框中询问 Claude 会使用你自己的 Anthropic 密钥，费用计入你的 API 账户。",
+    "keyNotSet": "未设置。",
     "add": "添加密钥",
     "change": "更改",
     "remove": "移除",
@@ -50,9 +51,9 @@
     "sent": "询问 Claude 时发送给 Anthropic 的内容：你输入的文字、Mimikit 的搜索语法和你的标签名称。绝不发送文件名、文件夹路径、文件内容或缩略图。",
     "getKey": "获取密钥",
     "model": "模型",
-    "modelHint": "Haiku 约一秒即可回答，费用只是一美分的极小部分。Sonnet 和 Opus 的费用约为其 20 倍和 40 倍，速度也更慢。",
+    "modelHint": "Haiku 最快也最便宜。Sonnet 和 Opus 的费用约为其 20 倍和 40 倍。",
     "effort": "思考程度",
-    "effortHint": "Claude 回答前思考多少。越高越慢，费用也越高；搜索用“低”就够了。",
+    "effortHint": "越高越慢，费用也越高。搜索用“低”就够了。",
     "effortLevel": {
       "low": "低",
       "medium": "中",
@@ -69,7 +70,7 @@
   },
   "ignored": {
     "title": "忽略的文件夹",
-    "hint": "在每个资源库文件夹中，都会跳过使用这些名称的文件夹，就像隐藏文件夹、node_modules 和 .meta 文件一样。",
+    "hint": "在每个资源库文件夹中都会跳过，就像隐藏文件夹和 node_modules 一样。",
     "remove": "不再忽略 {{name}}",
     "addAnother": "再添加一个，按 Enter",
     "placeholder": "文件夹名称，如 Backup 或 _old，然后按 Enter",
@@ -91,7 +92,7 @@
     "pause": "暂停",
     "analyse": "分析图片",
     "keep": "自动分析新增和更改的图片",
-    "keepHint": "Mimikit 打开期间，图片一经添加或更改就会进行分析。首次完整分析后会自动开启。"
+    "keepHint": "在 Mimikit 打开期间进行。首次完整分析后会自动开启。"
   },
   "cancel": "取消",
   "backups": {

@@ -6,7 +6,7 @@
   "sentTitle": "Anthropic に送られるもの",
   "sent": "画像・モデル・動画・フォントそれぞれの小さなプレビュー、各ファイルの名前とそのフォルダーの名前、テキストファイルの先頭 2 KB。ファイル全体やフルパスは送りません。オーディオは名前からタグを付けます。",
   "model": "モデル",
-  "modelHint": "設定 › AI 機能で変更できます。",
+  "modelHint": "設定 › Claudeで変更できます。",
   "mode": "送信方法",
   "modeNow": "すぐに",
   "modeBatch": "バッチ(半額)",
@@ -49,7 +49,7 @@
   "filterChip": "提案されたタグあり",
   "settings": {
     "tagModel": "タグ付けのモデル",
-    "tagModelHint": "タグの提案用です。常に低い労力で実行されます。",
+    "tagModelHint": "常に低い労力で実行されます。",
     "removeAll": "AI のタグをすべて削除",
     "removeAllHint": "Claude の提案から承認したタグをすべて外します。ご自身で追加したタグは残ります。",
     "removeConfirm_other": "Claude の提案から付いた{{count}}個のタグを削除しますか?",

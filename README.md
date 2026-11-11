@@ -43,8 +43,8 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   files into a folder for a build or a handoff. **Save as smart collection** turns the current search and filters into
   a collection that keeps itself up to date. An open collection has the same type chips, search, filters, sort and
   layouts as the library. Most changes show a toast with **Undo**.
-- **Backups**: **Settings → Backups** saves a copy of the library (folders, tags, ratings, notes, collections, sprite
-  grids) wherever you like, and restores one. Mimikit also keeps a backup a day, the last 5. Restoring saves the
+- **Backups**: **Settings → Backups and storage** saves a copy of the library (folders, tags, ratings, notes,
+  collections, sprite grids) wherever you like, and restores one. Mimikit also keeps a backup a day, the last 5. Restoring saves the
   current library first, so you can switch back.
 - **Drag out**: drag one card or a selection into Unity, Godot, Unreal, Blender or a folder. It always copies.
 - **Find similar** and **search by colour**: the side panel finds images that look like the open one (resized,
@@ -62,7 +62,7 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **Themes**: light, dark, black, midnight, sepia and two high-contrast themes, plus eight accent colours, in
   **Settings → Appearance**. The sidebar footer switches between System, Dark and Light.
 - **Languages**: English, Spanish, Brazilian Portuguese, French, German, Japanese and Simplified Chinese. Mimikit
-  follows the system language, or pick one in **Settings → Appearance**. See [Translations](#translations).
+  follows the system language, or pick one in **Settings → General**. See [Translations](#translations).
 - **Accessibility**: works from the keyboard alone (focus rings everywhere, dialogs that keep and return focus, a skip
   link to the assets, arrow keys for stars) and with screen readers (named controls, announced toasts and scans). Text
   meets WCAG AA contrast in every theme (AAA in the high-contrast ones), and the system's "reduce motion" setting stops anything from playing by itself.
@@ -312,7 +312,7 @@ themselves, so it finds images with no tags and unhelpful file names. 3D models,
 previews: a model's thumbnail, a video's frame about a tenth of the way in, and a line of sample text in the font. It
 runs on your computer and needs no account, key or connection once the model is downloaded.
 
-- **Turn it on** in **Settings → AI features → Search by meaning (offline)**. Before anything downloads, it lists each
+- **Turn it on** in **Settings → Library → Search by meaning (offline)**. Before anything downloads, it lists each
   file, its size and where it comes from: Google's SigLIP 2 model (Apache-2.0) from Hugging Face, and Microsoft's ONNX
   Runtime (MIT) from Mimikit's GitHub releases, about 810 MB in all. Then Mimikit indexes every image in the
   background on spare CPU, with **Pause** and **Cancel** in the sidebar (about 2 minutes for 3,400 images on a recent
@@ -363,14 +363,14 @@ this into a search** (the first result when your words match nothing). Claude Ha
 syntax, here `type:audio forest dur:>1m`. The search goes into the box, where you can see and change it, and Mimikit
 runs it on your computer like one you typed. **Back to my words** puts your words back.
 
-- **Your own key.** Add an Anthropic API key in **Settings → AI features**
+- **Your own key.** Add an Anthropic API key in **Settings → Claude**
   ([get one](https://platform.claude.com/settings/keys)). Mimikit keeps it in the system's credential store (Windows
   Credential Manager, macOS Keychain, Secret Service on Linux), never in the library, its settings or its logs. The
   window never sees it: Mimikit's backend calls `api.anthropic.com` itself. **Remove** deletes it.
 - **What's sent.** The words you typed, a description of the search syntax with examples, and the names of your 300
   most used tags, so `#tag` searches only use tags you have. Never file names, folder paths, file contents or
   thumbnails.
-- **Model and effort.** **Settings → AI features** picks the model, Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus
+- **Model and effort.** **Settings → Claude** picks the model, Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus
   5.5, and the effort: how much it thinks before answering, Low (the default), Medium or High. A bigger model or more
   effort is slower and costs more, and Low on Haiku is enough for most searches.
 - **Cost.** Billed to your API account: about $0.00015 a search with Haiku 5.5 at Low (measured: about 1,500 tokens in
@@ -402,13 +402,13 @@ anything leaves your computer.
   instructions and the names of your 300 most used tags, so suggestions reuse them. Never whole files or full paths.
   Assets Claude was already asked about are left out unless you tick **Also ask again**; a file that changed since
   counts as new.
-- **Model.** **Settings → AI features → Tagging model** picks Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus 5.5,
+- **Model.** **Settings → Claude → Suggest tags → Model** picks Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus 5.5,
   always at low effort. See the pull request that added it for how the default was chosen.
 - **Cost.** Billed to your API account. Measured on 100 mixed assets at batch prices: about $0.02 per 1,000 assets with
   Haiku 5.5, $0.40 with Sonnet 5.5 and $0.80 with Opus 5.5. **Right away** costs twice as much per asset, which for
   50 assets is at most a few cents. The dialog estimates each run, and what it would cost if every reply ran as long
   as allowed. Both are estimates, not limits.
-- **Undo.** **Settings → AI features → Remove all AI tags** takes off every tag you accepted from a suggestion, after
+- **Undo.** **Settings → Claude → Remove all AI tags** takes off every tag you accepted from a suggestion, after
   showing how many. Tags you added yourself stay, even ones Claude also suggested. Mimikit never changes your files.
 
 ## Develop
@@ -434,11 +434,11 @@ src/agent/tools.test.ts` rewrites it.
 | What | Where |
 |---|---|
 | Index, tags, favorites, ratings, notes, collections, ignored folder names, image analysis, suggested tags and the batches out with Claude | `asset-den.db` (SQLite) in the app data folder |
-| Automatic backups, and the library saved before each restore | `backups/` in the app data folder (**Settings → Backups → Show folder**) |
+| Automatic backups, and the library saved before each restore | `backups/` in the app data folder (**Settings → Backups and storage → Show folder**) |
 | Thumbnails, decoded previews and the font samples Suggest tags sends | `thumbs/` and `previews/` in the app cache folder (safe to delete, or **Settings → Clear thumbnail cache**) |
 | UI preferences, and the AI agents switch and allowed apps | browser storage in the app's webview |
 | Port and token of the AI agents bridge, while it's on | `agent-bridge.json` in the app data folder |
-| Search by meaning: the model and ONNX Runtime, downloaded when you turn it on | `models/` in the app data folder (**Settings → AI features → Delete model and index**) |
+| Search by meaning: the model and ONNX Runtime, downloaded when you turn it on | `models/` in the app data folder (**Settings → Library → Delete model and index**) |
 | Search by meaning's index | `meaning.db` (SQLite) in the app data folder. Not in backups: it's rebuilt when needed |
 
 ## Known limits

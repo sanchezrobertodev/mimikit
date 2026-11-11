@@ -20,7 +20,7 @@
   "indexingNow": "Indexation en cours…",
   "resumeIndexing": "Reprendre l'indexation",
   "indexNow": "Indexer le reste",
-  "looksOff": "La recherche par le sens n'est pas activée, donc les mots {{word}} ne trouvent rien. Activez-la dans Paramètres › Fonctions d'IA.",
+  "looksOff": "La recherche par le sens n'est pas activée, donc les mots {{word}} ne trouvent rien. Activez-la dans Paramètres › Bibliothèque.",
   "settings": {
     "title": "Recherche par le sens (hors ligne)",
     "hint": "Trouvez des images, modèles 3D, vidéos et polices en les décrivant, dans n'importe quelle langue. Fonctionne sur cet ordinateur après un seul téléchargement.",

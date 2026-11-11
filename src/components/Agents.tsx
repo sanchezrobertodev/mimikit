@@ -57,7 +57,7 @@ export function AgentActivity() {
 
 /**
  * "Allow Claude Code to see your library?", for the oldest app waiting, over everything else. It never takes focus,
- * so a key pressed for something else can't answer it; Settings › AI agents asks the same inside its dialog.
+ * so a key pressed for something else can't answer it; Settings asks the same at the top of whichever page it shows.
  */
 export function AgentAsk() {
   const q = useAgents((s) => s.questions[0]);

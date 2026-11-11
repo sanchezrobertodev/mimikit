@@ -20,7 +20,7 @@
   "indexingNow": "Indexing now…",
   "resumeIndexing": "Resume indexing",
   "indexNow": "Index the rest",
-  "looksOff": "Search by meaning isn't on, so {{word}} words match nothing. Turn it on in Settings › AI features.",
+  "looksOff": "Search by meaning isn't on, so {{word}} words match nothing. Turn it on in Settings › Library.",
   "settings": {
     "title": "Search by meaning (offline)",
     "hint": "Find images, 3D models, videos and fonts by describing them, in any language. Runs on this computer after a one-time download.",
