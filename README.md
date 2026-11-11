@@ -58,6 +58,9 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **AI agents**: let Claude Code, Claude Desktop or another MCP app search your library and look at your assets
   ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app asks first. See
   [AI agents](#ai-agents-mcp).
+- **Turn AI off**: **Settings → General → AI features** hides Ask, Suggest tags and AI agents everywhere and turns
+  agents off. Your key, your tags and unreviewed suggestions stay for when you turn it back on. Search by meaning,
+  which runs on your computer, keeps its own switch.
 - **Updates** (Windows): the app checks for a new version on launch and installs it in place. See [Updates](#updates).
 - **Themes**: light, dark, black, midnight, sepia and two high-contrast themes, plus eight accent colours, in
   **Settings → Appearance**. The sidebar footer switches between System, Dark and Light.

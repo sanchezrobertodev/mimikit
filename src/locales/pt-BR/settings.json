@@ -37,6 +37,12 @@
   },
   "ai": {
     "intro": "Perguntar e Sugerir tags usam o Claude com sua própria chave de API da Anthropic, cobrada na sua conta da API.",
+    "switch": "Funções de IA",
+    "switchHint": "Perguntar, Sugerir tags e os agentes de IA. Desligadas, somem de todo lugar; sua chave e suas tags continuam.",
+    "switchRunning_one": "O Claude está pondo tags em {{count}} recurso. Desligar as funções de IA cancela isso.",
+    "switchRunning_other": "O Claude está pondo tags em {{count}} recursos. Desligar as funções de IA cancela isso.",
+    "switchKeep": "Manter ligadas",
+    "switchOff": "Desligar",
     "key": "Chave de API da Anthropic",
     "keySet": "Definida. Guardada no armazenamento de credenciais do sistema, nunca na biblioteca.",
     "keyNotSet": "Não definida.",

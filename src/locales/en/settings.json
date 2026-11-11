@@ -37,6 +37,12 @@
   },
   "ai": {
     "intro": "Ask and Suggest tags run on Claude with your own Anthropic API key, billed to your API account.",
+    "switch": "AI features",
+    "switchHint": "Ask, Suggest tags and AI agents. Off hides them everywhere; your key and your tags stay.",
+    "switchRunning_one": "Claude is tagging {{count}} asset. Turning AI features off cancels that.",
+    "switchRunning_other": "Claude is tagging {{count}} assets. Turning AI features off cancels that.",
+    "switchKeep": "Keep on",
+    "switchOff": "Turn off",
     "key": "Anthropic API key",
     "keySet": "Set. Kept in your system's credential store, never in the library.",
     "keyNotSet": "Not set.",

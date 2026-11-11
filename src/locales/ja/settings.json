@@ -37,6 +37,11 @@
   },
   "ai": {
     "intro": "「Claude に尋ねる」と「タグを提案」は、あなた自身の Anthropic API キーで Claude を使い、API アカウントに課金されます。",
+    "switch": "AI 機能",
+    "switchHint": "Claude に尋ねる、タグを提案、AI エージェント。オフにするとどこにも表示されません。キーとタグはそのまま残ります。",
+    "switchRunning_other": "Claude が{{count}}個のアセットにタグ付け中です。AI 機能をオフにすると中止されます。",
+    "switchKeep": "オンのままにする",
+    "switchOff": "オフにする",
     "key": "Anthropic API キー",
     "keySet": "設定済み。ライブラリではなく、システムの資格情報ストアに保存されています。",
     "keyNotSet": "未設定。",

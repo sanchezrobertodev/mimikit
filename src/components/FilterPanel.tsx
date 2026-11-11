@@ -93,7 +93,7 @@ function NumField({ label, value, onChange, scale = 1 }: { label: string; value:
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
 export function FilterButton() {
-  const { assets, filters: f, setFilters } = useStore();
+  const { assets, filters: f, setFilters, ai } = useStore();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -252,9 +252,11 @@ export function FilterButton() {
                 <Chip on={f.untagged} onClick={() => setFilters({ untagged: !f.untagged, anyTags: [] })}>
                   {t("filterPanel.untaggedOnly")}
                 </Chip>
-                <Chip on={f.suggested} onClick={() => setFilters({ suggested: !f.suggested })}>
-                  {t("tagging.filterChip")}
-                </Chip>
+                {ai.on && (
+                  <Chip on={f.suggested} onClick={() => setFilters({ suggested: !f.suggested })}>
+                    {t("tagging.filterChip")}
+                  </Chip>
+                )}
                 {tags.map((tag) => (
                   <Chip key={tag} on={f.anyTags.includes(tag)} onClick={() => setFilters({ anyTags: toggle(f.anyTags, tag), untagged: false })}>
                     #{tag}

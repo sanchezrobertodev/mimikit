@@ -195,9 +195,10 @@ export function TagEditor({ items }: { items: Asset[] }) {
  * chips go, then moves to Suggest tags.
  */
 export function SuggestedTags({ items }: { items: Asset[] }) {
-  const { acceptSuggestions, rejectSuggestions, setSuggestFor } = useStore();
+  const { ai, acceptSuggestions, rejectSuggestions, setSuggestFor } = useStore();
   const row = useRef<HTMLDivElement>(null);
   const suggest = useRef<HTMLButtonElement>(null);
+  if (!ai.on) return null;
   const ids = items.map((a) => a.id);
   const having = new Map<string, number[]>();
   for (const a of items) for (const tag of a.suggested) having.set(tag, [...(having.get(tag) ?? []), a.id]);

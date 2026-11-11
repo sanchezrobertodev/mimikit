@@ -37,6 +37,12 @@
   },
   "ai": {
     "intro": "Demander et Suggérer des tags utilisent Claude avec votre propre clé API Anthropic, facturée sur votre compte API.",
+    "switch": "Fonctions IA",
+    "switchHint": "Demander, Suggérer des tags et les agents IA. Désactivées, elles sont masquées partout ; votre clé et vos tags restent.",
+    "switchRunning_one": "Claude tague {{count}} ressource. Désactiver les fonctions IA l'annule.",
+    "switchRunning_other": "Claude tague {{count}} ressources. Désactiver les fonctions IA l'annule.",
+    "switchKeep": "Laisser activées",
+    "switchOff": "Désactiver",
     "key": "Clé d'API Anthropic",
     "keySet": "Définie. Conservée dans le gestionnaire d'identifiants du système, jamais dans la bibliothèque.",
     "keyNotSet": "Non définie.",

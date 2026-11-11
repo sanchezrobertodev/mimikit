@@ -17,6 +17,8 @@ export type SidebarMode = "expanded" | "collapsed";
 export const AI_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"] as const;
 export const AI_EFFORTS = ["low", "medium", "high"] as const;
 export interface AiPrefs {
+  /** AI features at all: off hides Ask, Suggest tags and AI agents everywhere (Settings › General). */
+  on: boolean;
   model: (typeof AI_MODELS)[number];
   effort: (typeof AI_EFFORTS)[number];
   /** Suggest tags' model, always at low effort. Haiku by default: by far the cheapest (see the M3 eval). */
@@ -65,7 +67,7 @@ const defaults: Prefs = {
   checkUpdates: true,
   audioLoop: false,
   sidebar: "expanded",
-  ai: { model: "claude-haiku-5-5", effort: "low", tagModel: "claude-haiku-5-5" },
+  ai: { on: true, model: "claude-haiku-5-5", effort: "low", tagModel: "claude-haiku-5-5" },
 };
 
 const KEY = "assetden.prefs.v2";
@@ -84,6 +86,7 @@ export function loadPrefs(): Prefs {
     if (!Array.isArray(p.recentFolders)) p.recentFolders = defaults.recentFolders;
     // A model a later version dropped falls back to the default rather than failing every Ask.
     p.ai = {
+      on: p.ai?.on !== false,
       model: AI_MODELS.includes(p.ai?.model) ? p.ai.model : defaults.ai.model,
       effort: AI_EFFORTS.includes(p.ai?.effort) ? p.ai.effort : defaults.ai.effort,
       tagModel: AI_MODELS.includes(p.ai?.tagModel) ? p.ai.tagModel : defaults.ai.tagModel,

@@ -37,6 +37,12 @@
   },
   "ai": {
     "intro": "Fragen und Tags vorschlagen laufen über Claude mit deinem eigenen Anthropic-API-Schlüssel, abgerechnet über dein API-Konto.",
+    "switch": "KI-Funktionen",
+    "switchHint": "Fragen, Tags vorschlagen und KI-Agenten. Aus blendet sie überall aus; dein Schlüssel und deine Tags bleiben.",
+    "switchRunning_one": "Claude taggt gerade {{count}} Asset. Wenn du die KI-Funktionen ausschaltest, wird das abgebrochen.",
+    "switchRunning_other": "Claude taggt gerade {{count}} Assets. Wenn du die KI-Funktionen ausschaltest, wird das abgebrochen.",
+    "switchKeep": "Anlassen",
+    "switchOff": "Ausschalten",
     "key": "Anthropic-API-Schlüssel",
     "keySet": "Gespeichert. Liegt im Anmeldedatenspeicher des Systems, nie in der Bibliothek.",
     "keyNotSet": "Nicht festgelegt.",
