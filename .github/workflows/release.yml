@@ -2,7 +2,7 @@ name: Release
 
 # Manual only: day-to-day checks run locally with `make check`.
 # Builds the signed macOS (universal) and Linux bundles of one version and adds them, with their update-feed entries,
-# to that version's release in this repo. Windows comes from `make release`; either can go first (see README).
+# to that version's release in this repo. Windows comes from `make release`; either can go first (see docs/releasing.md).
 on:
   workflow_dispatch:
     inputs:
