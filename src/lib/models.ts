@@ -14,6 +14,7 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 import { fileUrl } from "../api";
 import type { Asset } from "../types";
 import { mtlCandidates } from "./mtl.ts";
+import { plyHasFaces } from "./ply.ts";
 
 export interface LoadedModel {
   object: THREE.Object3D;
@@ -85,10 +86,11 @@ export async function loadModel(asset: Asset, renderer: THREE.WebGLRenderer): Pr
       return { object: o, animations: [] };
     }
     case "ply": {
-      const geo = await new PLYLoader().loadAsync(url);
+      const data = await (await read(asset, url)).arrayBuffer();
+      const geo = new PLYLoader().parse(data);
       const colors = geo.hasAttribute("color");
       // A PLY without faces is a point cloud (a scan): drawn as dots, since triangles would be noise.
-      if (!geo.index)
+      if (!plyHasFaces(data))
         return { object: new THREE.Points(geo, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, vertexColors: colors })), animations: [] };
       if (!geo.hasAttribute("normal")) geo.computeVertexNormals();
       const mat = defaultMaterial();
