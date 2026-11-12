@@ -6,7 +6,7 @@
   "tips": "Astuces",
   "drag": {
     "title": "Glissez vers votre moteur",
-    "body": "Déposez une carte dans Unity, Godot ou un dossier pour y copier le fichier."
+    "body": "Déposez une carte dans la fenêtre Project de Unity, dans Godot ou dans un dossier pour y copier le fichier."
   },
   "preview": {
     "title": "Prévisualisez sur place",

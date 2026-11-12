@@ -6,7 +6,7 @@
   "tips": "提示",
   "drag": {
     "title": "拖入引擎",
-    "body": "将任意卡片拖到 Unity、Godot 或文件夹中，即可把文件复制过去。"
+    "body": "将任意卡片拖到 Unity 的 Project 窗口、Godot 或文件夹中，即可把文件复制过去。"
   },
   "preview": {
     "title": "就地预览",

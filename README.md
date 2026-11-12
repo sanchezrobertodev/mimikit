@@ -46,7 +46,8 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **Backups**: **Settings → Backups and storage** saves a copy of the library (folders, tags, ratings, notes,
   collections, sprite grids) wherever you like, and restores one. Mimikit also keeps a backup a day, the last 5. Restoring saves the
   current library first, so you can switch back.
-- **Drag out**: drag one card or a selection into Unity, Godot, Unreal, Blender or a folder. It always copies.
+- **Drag out**: drag one card or a selection into Unity, Godot, Unreal, Blender or a folder. It always copies. In Unity, drop
+  onto the **Project** window: the Hierarchy and Scene view only take assets that are already in the project.
 - **Find similar** and **search by colour**: the side panel finds images that look like the open one (resized,
   recoloured or lightly cropped copies included), and the Colour filter or `color:red` / `color:#ff8800` finds images by
   their main colours. Both need images analysed: the ones you browse are done as you go, **Analyse images** in

@@ -5,6 +5,12 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Changed
+
+- **The welcome tip says to drop into Unity's Project window.** Unity's Hierarchy and Scene view only take assets
+  that are already in the project, so a card dropped there failed with "Invalid AssetDatabase path". The README says
+  the same under **Drag out**.
+
 ## [0.14.0] - 2026-11-11
 
 ### Added
