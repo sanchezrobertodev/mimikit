@@ -58,7 +58,7 @@ async function renderModelThumb(a: Asset): Promise<string | null> {
   const scene = new THREE.Scene();
   addLights(scene);
   const camera = new THREE.PerspectiveCamera(35, 1);
-  const { object } = await loadModel(a);
+  const { object } = await loadModel(a, renderer);
   scene.add(object);
   frame(camera, object);
   renderer.render(scene, camera);

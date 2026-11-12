@@ -3,22 +3,26 @@ use std::sync::RwLock;
 /// What kind of asset a file is, decided by its extension alone.
 pub fn kind_of(ext: &str) -> &'static str {
     match ext {
-        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "tga" | "psd" | "tif" | "tiff" | "ico" | "svg" | "ase"
-        | "aseprite" => "image",
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "tga" | "psd" | "tif" | "tiff" | "ico" | "svg" | "dds"
+        | "exr" | "hdr" | "qoi" | "ase" | "aseprite" => "image",
         "wav" | "ogg" | "mp3" | "flac" | "m4a" | "aac" | "opus" | "aif" | "aiff" => "audio",
-        "glb" | "gltf" | "obj" | "fbx" | "stl" | "blend" => "model",
+        "glb" | "gltf" | "obj" | "fbx" | "stl" | "vox" | "dae" | "3ds" | "ply" | "blend" => "model",
         "ttf" | "otf" | "woff" | "woff2" => "font",
         "mp4" | "webm" | "mov" | "m4v" => "video",
         "txt" | "md" | "json" | "csv" | "xml" | "yaml" | "yml" | "toml" | "ini" | "cfg" | "glsl" | "hlsl" | "frag"
         | "vert" | "shader" | "gdshader" | "wgsl" | "lua" | "cs" | "gd" | "tres" | "tscn" | "mtl" | "atlas" | "tmx"
         | "tsx" => "text",
+        // Tiled JSON, LDtk, TexturePacker and BMFont data; Unity's YAML assets; more shader sources.
+        "tmj" | "tsj" | "ldtk" | "ldtkl" | "plist" | "tpsheet" | "fnt" | "prefab" | "mat" | "asset" | "anim"
+        | "controller" | "unity" | "hlsli" | "cginc" | "compute" | "comp" | "shadergraph" => "text",
         _ => "other",
     }
 }
 
 /// Image formats the backend decodes itself (for thumbnails, and for previews of formats the webview can't show).
-pub const DECODABLE: [&str; 13] = [
-    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "ase", "aseprite",
+pub const DECODABLE: [&str; 17] = [
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "dds", "exr", "hdr", "qoi", "ase",
+    "aseprite",
 ];
 
 pub fn decodable(ext: &str) -> bool {
@@ -92,6 +96,34 @@ mod tests {
         assert_eq!(kind_of("aif"), "audio");
         assert!(decodable("tga") && decodable("psd") && decodable("ase") && !decodable("svg"));
         assert!(drawable("blend") && !decodable("blend") && !drawable("fbx"));
+        for ext in ["dds", "exr", "hdr", "qoi"] {
+            assert!(kind_of(ext) == "image" && decodable(ext), "{ext}");
+        }
+        for ext in ["vox", "dae", "3ds", "ply"] {
+            assert_eq!(kind_of(ext), "model", "{ext}");
+        }
+        for ext in [
+            "tmj",
+            "tsj",
+            "ldtk",
+            "ldtkl",
+            "plist",
+            "tpsheet",
+            "fnt",
+            "prefab",
+            "mat",
+            "asset",
+            "anim",
+            "controller",
+            "unity",
+            "hlsli",
+            "cginc",
+            "compute",
+            "comp",
+            "shadergraph",
+        ] {
+            assert_eq!(kind_of(ext), "text", "{ext}");
+        }
     }
 
     #[test]

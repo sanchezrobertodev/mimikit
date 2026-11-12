@@ -568,9 +568,7 @@ async fn find_similar(
         None => {
             let a = asset(&state, id)?;
             if a.kind != "image" || !kind::decodable(&a.ext) {
-                return Err(
-                    "Find similar works on PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO and Aseprite images.".into(),
-                );
+                return Err("Find similar works on PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR, QOI and Aseprite images.".into());
             }
             let thumb = state.thumbs_dir.join(thumbs::cache_name(&a.path, a.size, a.mtime));
             let _permit = state.thumb_permits.acquire().await.map_err(err)?;

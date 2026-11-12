@@ -14,7 +14,7 @@
   "spriteGrid": "Usa de 1 a 1024 columnas y filas, y de 1 a 60 fps.",
   "scanning": "Se está escaneando esta carpeta. Vuelve a intentarlo cuando termine.",
   "noPreview": "No hay vista previa para este tipo de archivo",
-  "similarTypes": "Buscar similares funciona con imágenes PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO y Aseprite.",
+  "similarTypes": "Buscar similares funciona con imágenes PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR, QOI y Aseprite.",
   "couldntRead": "No se pudo leer {{name}}: {{error}}",
   "trashFailed": "No se pudo mover {{name}} a la papelera: {{error}}",
   "notIdentical": "{{path}} ya no es idéntico, así que no se movió nada.",

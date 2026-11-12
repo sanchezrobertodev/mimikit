@@ -14,7 +14,7 @@
   "spriteGrid": "Verwende 1 bis 1024 Spalten und Zeilen und 1 bis 60 fps.",
   "scanning": "Dieser Ordner wird gerade gescannt. Versuch es erneut, wenn der Scan fertig ist.",
   "noPreview": "Keine Vorschau für diesen Dateityp",
-  "similarTypes": "„Ähnliche finden“ funktioniert mit PNG-, JPEG-, GIF-, WebP-, BMP-, TGA-, PSD-, TIFF-, ICO- und Aseprite-Bildern.",
+  "similarTypes": "„Ähnliche finden“ funktioniert mit PNG-, JPEG-, GIF-, WebP-, BMP-, TGA-, PSD-, TIFF-, ICO-, DDS-, EXR-, HDR-, QOI- und Aseprite-Bildern.",
   "couldntRead": "{{name}} konnte nicht gelesen werden: {{error}}",
   "trashFailed": "{{name}} konnte nicht in den Papierkorb verschoben werden: {{error}}",
   "notIdentical": "{{path}} ist nicht mehr identisch, daher wurde nichts verschoben.",

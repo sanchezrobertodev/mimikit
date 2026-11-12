@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost blob:; font-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost asset: http://asset.localhost blob: data:; worker-src 'self' blob:",
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost blob:; font-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost asset: http://asset.localhost blob: data:; worker-src 'self' blob:",
       "devCsp": null,
       "assetProtocol": {
         "enable": true,
