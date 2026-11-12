@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { Pause, Play, Repeat } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
-import { errorText, fileUrl } from "../api";
+import { audioUrl, errorText } from "../api";
 import { t } from "../lib/i18n";
 import { onThemeColors, reducedMotion, themeColor } from "../lib/prefs";
 import { useStore } from "../store";
@@ -25,7 +25,6 @@ export default function AudioView({ asset, full }: { asset: Asset; full: boolean
     let live = true;
     const w = WaveSurfer.create({
       container: box.current,
-      url: fileUrl(asset.path),
       height: full ? 180 : 90,
       waveColor: themeColor("--faint"),
       progressColor: themeColor("--accent"),
@@ -45,6 +44,12 @@ export default function AudioView({ asset, full }: { asset: Asset; full: boolean
     // Read at the end rather than captured, so toggling Loop doesn't reload the waveform.
     w.on("finish", () => useStore.getState().audioLoop && void w.play(0).catch(() => {}));
     w.on("error", (e) => live && fail(t("audioView.playFailed", { error: errorText(e) })));
+    audioUrl(asset).then(
+      (url) => {
+        if (live) w.load(url).catch(() => {}); // reported through "error"
+      },
+      (e) => live && fail(t("audioView.playFailed", { error: errorText(e) })),
+    );
     return () => {
       live = false;
       w.destroy();

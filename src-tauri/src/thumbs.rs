@@ -39,10 +39,19 @@ pub fn rendered_name(path: &str, current: (i64, i64), rendered: (i64, i64)) -> R
     Ok(cache_name(path, current.0, current.1))
 }
 
-/// Decodes the whole original image (PSD: its flattened composite).
+/// Decodes the whole original image (PSD: its flattened composite; Aseprite: its first frame; .blend: the preview
+/// Blender saved in it).
 pub fn decode(path: &Path, ext: &str) -> Result<DynamicImage, String> {
     // Decoders can panic on a bad file (psd does on ZIP-compressed and truncated ones): that file then fails instead.
     std::panic::catch_unwind(|| {
+        match ext {
+            "ase" | "aseprite" => {
+                let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+                return crate::aseprite::first_frame(&bytes).map(DynamicImage::ImageRgba8);
+            }
+            "blend" => return crate::blend::preview(path).map(DynamicImage::ImageRgba8),
+            _ => {}
+        }
         if ext == "psd" {
             // shortcut: uses the flattened composite only, so some layered/16-bit files fail and show an icon instead.
             let bytes = std::fs::read(path).map_err(|e| e.to_string())?;

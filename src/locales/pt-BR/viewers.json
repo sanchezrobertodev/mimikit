@@ -56,5 +56,7 @@
   "loadingAudio": "Carregando áudio…",
   "loadingModel": "Carregando modelo…",
   "videoUnsupported": "Este formato de vídeo não pode ser reproduzido aqui.",
-  "noPreview": "Sem prévia para este tipo de arquivo"
+  "noPreview": "Sem prévia para este tipo de arquivo",
+  "blendPreview": "Prévia salva pelo Blender",
+  "blendNoPreview": "O Blender não salvou uma prévia neste arquivo."
 }

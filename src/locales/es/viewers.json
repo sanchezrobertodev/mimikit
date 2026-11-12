@@ -53,5 +53,7 @@
   "loadingAudio": "Cargando audio…",
   "loadingModel": "Cargando modelo…",
   "videoUnsupported": "Este formato de video no se puede reproducir aquí.",
-  "noPreview": "No hay vista previa para este tipo de archivo"
+  "noPreview": "No hay vista previa para este tipo de archivo",
+  "blendPreview": "Vista previa guardada por Blender",
+  "blendNoPreview": "Blender no guardó una vista previa en este archivo."
 }

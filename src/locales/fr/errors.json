@@ -14,7 +14,7 @@
   "spriteGrid": "Utilisez de 1 à 1024 colonnes et lignes, et de 1 à 60 fps.",
   "scanning": "Ce dossier est en cours de scan. Réessayez quand ce sera terminé.",
   "noPreview": "Pas d'aperçu pour ce type de fichier",
-  "similarTypes": "Trouver des similaires fonctionne avec les images PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF et ICO.",
+  "similarTypes": "Trouver des similaires fonctionne avec les images PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO et Aseprite.",
   "couldntRead": "Impossible de lire {{name}} : {{error}}",
   "trashFailed": "Impossible de mettre {{name}} à la Corbeille : {{error}}",
   "notIdentical": "{{path}} n'est plus identique, rien n'a donc été déplacé.",
@@ -45,5 +45,8 @@
   "meaningStart": "Impossible de démarrer la recherche par le sens : {{error}}",
   "meaningVcRuntime": "La recherche par le sens nécessite le runtime Visual C++ de Microsoft. Installez-le, puis réessayez.",
   "meaningNotIndexed": "Cette ressource n'est pas encore indexée pour la recherche par le sens.",
-  "meaningUndrawn": "Mimikit n'a pas pu dessiner d'aperçu de cette ressource."
+  "meaningUndrawn": "Mimikit n'a pas pu dessiner d'aperçu de cette ressource.",
+  "soundTooLong": "Ce son est trop long pour être lu dans Mimikit.",
+  "noSound": "Ce fichier ne contient pas de son",
+  "cantReadSound": "Mimikit n'a pas pu lire ce son."
 }

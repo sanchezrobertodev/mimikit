@@ -50,5 +50,7 @@
   "loadingAudio": "正在加载音频…",
   "loadingModel": "正在加载模型…",
   "videoUnsupported": "此视频格式无法在此播放。",
-  "noPreview": "此文件类型无法预览"
+  "noPreview": "此文件类型无法预览",
+  "blendPreview": "Blender 保存的预览",
+  "blendNoPreview": "Blender 未在此文件中保存预览。"
 }

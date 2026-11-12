@@ -53,5 +53,7 @@
   "loadingAudio": "Audio wird geladen…",
   "loadingModel": "Modell wird geladen…",
   "videoUnsupported": "Dieses Videoformat kann hier nicht abgespielt werden.",
-  "noPreview": "Keine Vorschau für diesen Dateityp"
+  "noPreview": "Keine Vorschau für diesen Dateityp",
+  "blendPreview": "Von Blender gespeicherte Vorschau",
+  "blendNoPreview": "Blender hat in dieser Datei keine Vorschau gespeichert."
 }

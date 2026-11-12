@@ -58,10 +58,12 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
   `node_modules` are skipped, plus any folder names you add in **Settings → Library**.
 - **Previews in place**, in the side panel (<kbd>Space</kbd>) or full screen (<kbd>Enter</kbd>):
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
-    TGA/PSD/TIFF via a decoded preview), and **Animate** to play a sprite sheet with a remembered grid and fps
-  - audio: waveform and playback, plus play-on-hover in the grid
+    TGA/PSD/TIFF/Aseprite via a decoded preview), and **Animate** to play a sprite sheet with a remembered grid and fps
+  - audio: waveform and playback, plus play-on-hover in the grid (WAV, OGG, MP3, FLAC, M4A/AAC, Opus, and AIFF via a
+    WAV copy)
   - 3D models: orbit, wireframe, triangle counts and the first animation (GLB/glTF, FBX, OBJ, STL), with
-    auto-rendered thumbnails. OBJ files load the materials and textures from their `.mtl`
+    auto-rendered thumbnails. OBJ files load the materials and textures from their `.mtl`. Blender files show the
+    preview picture saved in them
   - fonts: a specimen with editable sample text
   - video, with a frame from the video as its grid thumbnail, and text
 - **Browse your way**: a grid or list grouped by folder (or all together), type chips, sorting and a thumbnail-size
@@ -230,6 +232,11 @@ identical. "Copy to folder…" only ever creates new files.
 ## Known limits
 
 - PSD previews use the flattened composite. Some layered or 16-bit files fall back to an icon.
+- Aseprite files show their first frame only, and every layer is drawn in Normal mode: layers with other blend modes,
+  tilemap layers and indexed files from Aseprite before 1.2 can look different than in Aseprite.
+- Blender files have no 3D view, only the 128×128 preview Blender saves in them. Files saved without one (Blender's
+  **File Preview Type** set to None) show a plain card.
+- AIFF sounds longer than about 25 minutes (in stereo) don't play.
 - FBX textures with absolute paths from another machine won't load.
 - Which audio and video formats play, and which videos get a frame thumbnail, depends on the OS webview. Windows
   (WebView2) plays the most; on Linux, install the GStreamer plugins for MP4/H.264.
@@ -238,10 +245,10 @@ identical. "Copy to folder…" only ever creates new files.
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
   scan only when **Keep new and changed images analysed** is on.
-- Search by meaning covers images (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF and ICO; not SVG), and 3D
-  models, videos and fonts by one picture each (a video by one frame, a font by one line of sample text), not sounds
-  or text files, and doesn't read text inside pictures. It doesn't combine with Find similar. Several `looks:` words
-  in one search each keep their own best matches, so they rarely overlap: one description works better.
+- Search by meaning covers images (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF, ICO and Aseprite; not
+  SVG), and 3D models, videos and fonts by one picture each (a video by one frame, a font by one line of sample text),
+  not sounds or text files, and doesn't read text inside pictures. It doesn't combine with Find similar. Several
+  `looks:` words in one search each keep their own best matches, so they rarely overlap: one description works better.
 - Search by meaning isn't available on Intel Macs, since Microsoft publishes no ONNX Runtime build for them. On
   Windows it needs Microsoft's Visual C++ runtime; Settings links to it when it's missing.
 - Syntax highlighting for text and code is not built yet.

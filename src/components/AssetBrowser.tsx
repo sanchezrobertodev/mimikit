@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
-import { api, errorText, fileUrl } from "../api";
+import { api, audioUrl, errorText } from "../api";
 import type { Group } from "../lib/filter";
 import { folderOf } from "../lib/format";
 import { ago, bytes, duration } from "../lib/fmt";
@@ -43,16 +43,24 @@ async function dragOut(e: DragEvent, asset: Asset, all: Asset[]) {
 // One shared player for hover previews of audio.
 const hoverAudio = typeof Audio !== "undefined" ? new Audio() : null;
 let hoverTimer: ReturnType<typeof setTimeout> | null = null;
+let hovered: Asset | null = null;
 function hoverPlay(a: Asset | null) {
   if (hoverTimer) clearTimeout(hoverTimer);
+  hovered = a;
   if (!hoverAudio) return;
   hoverAudio.pause();
   // Reduced motion also means no media that starts by itself.
   if (!a || reducedMotion()) return;
   hoverTimer = setTimeout(() => {
-    hoverAudio.src = fileUrl(a.path);
-    hoverAudio.volume = 0.6;
-    void hoverAudio.play().catch(() => {});
+    audioUrl(a)
+      .then((url) => {
+        // An AIFF is converted first: only play if the pointer is still on its card.
+        if (hovered !== a) return;
+        hoverAudio.src = url;
+        hoverAudio.volume = 0.6;
+        return hoverAudio.play();
+      })
+      .catch(() => {});
   }, 350);
 }
 

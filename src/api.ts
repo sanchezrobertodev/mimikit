@@ -41,6 +41,8 @@ export const api = {
   saveThumbnail: (a: Asset, png: Uint8Array) =>
     invoke<string>("save_thumbnail", { id: a.id, size: a.size, mtime: a.mtime, png: Array.from(png) }),
   preview: (id: number) => invoke<string>("preview", { id }),
+  /** A WAV copy of a sound the webview can't play (AIFF), converted by the backend on first request. */
+  playableAudio: (id: number) => invoke<string>("playable_audio", { id }),
   readText: (id: number) => invoke<TextPreview>("read_text", { id }),
   setFavorite: (ids: number[], favorite: boolean) => invoke<void>("set_favorite", { ids, favorite }),
   setRating: (ids: number[], rating: number) => invoke<void>("set_rating", { ids, rating }),
@@ -204,6 +206,10 @@ export function fileUrl(path: string): string {
 
 /** {@link fileUrl} for this version of an asset, so the webview loads it again after the file changes. */
 export const assetUrl = (a: Asset) => `${fileUrl(a.path)}?v=${a.mtime}-${a.size}`;
+
+/** Where a sound plays from: its file, or for AIFF (kind::needs_wav) a WAV copy the webview can play. */
+export const audioUrl = async (a: Asset) =>
+  a.ext === "aif" || a.ext === "aiff" ? convertFileSrc(await api.playableAudio(a.id)) : fileUrl(a.path);
 
 /** An error as text for the user; backend messages in the UI language when locales/en/errors.json knows them. */
 export function errorText(e: unknown): string {
