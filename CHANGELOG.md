@@ -13,7 +13,8 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   **AI agents** (which apps are connected). **What agents did**, with its Undo, moved here from Settings. Each feature
   still works where it did before. The view goes away with AI features off.
 - **AI is marked Beta**, in the sidebar, on the AI view and on **Settings › AI**: it works, and it will still change.
-- **AI features can be turned off.** **Settings › General › AI features** hides Ask, Suggest tags and AI agents
+- **AI features have a switch, off at first while they're in beta.** **Settings › General › AI features** turns on
+  Ask, Suggest tags and AI agents. If you're updating, it starts on, so nothing you use goes away. Off hides them
   everywhere: in search, the side panel, the sidebar, More filters, the shortcuts list and Settings, whose AI page
   goes too. AI agents are turned off with it, and a tagging run still going is canceled after asking.
   Your API key, your tags and the suggestions you haven't reviewed stay, so turning it back on brings everything back

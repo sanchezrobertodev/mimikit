@@ -40,7 +40,7 @@ function Section({ title, children }: { title?: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, hint, children }: { label: string; hint?: ReactNode; children?: ReactNode }) {
+function Row({ label, hint, children }: { label: ReactNode; hint?: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-6 py-2">
       <div className="flex min-w-0 flex-col gap-0.5">
@@ -383,10 +383,16 @@ function AiSwitch() {
     setConfirming(false);
     refocus();
   };
+  const label = (
+    <span className="flex items-center gap-2">
+      {t("settings.ai.switch")}
+      <Beta />
+    </span>
+  );
   return (
     <div ref={row}>
       {confirming ? (
-        <Row label={t("settings.ai.switch")} hint={t("settings.ai.switchRunning", { count: tagging.assets })}>
+        <Row label={label} hint={t("settings.ai.switchRunning", { count: tagging.assets })}>
           <div className="flex flex-none gap-2">
             <Button size="sm" onClick={() => (setConfirming(false), refocus())}>
               {t("settings.ai.switchKeep")}
@@ -397,7 +403,7 @@ function AiSwitch() {
           </div>
         </Row>
       ) : (
-        <Row label={t("settings.ai.switch")} hint={t("settings.ai.switchHint")}>
+        <Row label={label} hint={t("settings.ai.switchHint")}>
           <Switch
             label={t("settings.ai.switch")}
             on={ai.on}

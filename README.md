@@ -61,9 +61,10 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **AI agents**: let any app that speaks MCP, such as Claude Code, Claude Desktop or Cursor, search your library and
   look at your assets ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app
   asks first. See [AI agents](#ai-agents-mcp).
-- **Turn AI off**: **Settings → General → AI features** hides the AI view, Ask, Suggest tags and AI agents
-  everywhere and turns agents off. Your key, your tags and unreviewed suggestions stay for when you turn it back on. Search by meaning,
-  which runs on your computer, keeps its own switch.
+- **Turn AI on**: AI is in beta, so it's off at first. **Settings → General → AI features** shows the AI view, Ask,
+  Suggest tags and AI agents. Off hides them everywhere and turns agents off; your key, your tags and unreviewed
+  suggestions stay for when you turn it back on. Updating from an earlier version keeps it on. Search by meaning, which
+  runs on your computer, keeps its own switch.
 - **Updates** (Windows): the app checks for a new version on launch and installs it in place. See [Updates](#updates).
 - **Themes**: light, dark, black, midnight, sepia and two high-contrast themes, plus eight accent colours, in
   **Settings → Appearance**. The sidebar footer switches between System, Dark and Light.
@@ -180,8 +181,9 @@ model: that part is up to the agent app.
 
 ### Set it up
 
-1. In Mimikit, turn on **Settings → AI → Let AI agents see your library**. Settings then shows the commands
-   below with the path of your copy of Mimikit filled in, each with **Copy**.
+1. In Mimikit, turn on **Settings → General → AI features**, then **Settings → AI → Let AI agents see your
+   library**. Settings then shows the commands below with the path of your copy of Mimikit filled in, each with
+   **Copy**.
 2. Connect your agent app, once:
 
    **Claude Code**
@@ -386,7 +388,7 @@ this into a search** (the first result when your words match nothing). Claude Ha
 syntax, here `type:audio forest dur:>1m`. The search goes into the box, where you can see and change it, and Mimikit
 runs it on your computer like one you typed. **Back to my words** puts your words back.
 
-- **Your own key.** Add an Anthropic API key in **Settings → AI**
+- **Your own key.** Turn on **Settings → General → AI features**, then add an Anthropic API key in **Settings → AI**
   ([get one](https://platform.claude.com/settings/keys)). Mimikit keeps it in the system's credential store (Windows
   Credential Manager, macOS Keychain, Secret Service on Linux), never in the library, its settings or its logs. The
   window never sees it: Mimikit's backend calls `api.anthropic.com` itself. **Remove** deletes it.
