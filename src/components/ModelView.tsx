@@ -77,7 +77,7 @@ export default function ModelView({ asset, full }: { asset: Asset; full: boolean
     };
     loop();
 
-    loadModel(asset)
+    loadModel(asset, renderer)
       .then(({ object: o, animations }) => {
         if (!live) return dispose(o);
         object = o;

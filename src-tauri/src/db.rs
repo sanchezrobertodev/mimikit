@@ -111,6 +111,25 @@ pub fn open(path: &Path) -> Result<Connection> {
     Ok(conn)
 }
 
+/// Files indexed before their extension had a kind stay "other", since scans skip unchanged files: gives them their kind.
+/// The next scan then reads image dimensions for them like for any new image.
+pub fn reclassify(conn: &Connection) -> Result<()> {
+    let exts = conn
+        .prepare("SELECT DISTINCT ext FROM assets WHERE kind = 'other'")?
+        .query_map([], |r| r.get::<_, String>(0))?
+        .collect::<Result<Vec<_>>>()?;
+    for ext in exts {
+        let kind = crate::kind::kind_of(&ext);
+        if kind != "other" {
+            conn.execute(
+                "UPDATE assets SET kind = ?2 WHERE kind = 'other' AND ext = ?1",
+                params![ext, kind],
+            )?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 pub fn open_memory() -> Connection {
     let conn = Connection::open_in_memory().unwrap();
@@ -530,6 +549,21 @@ mod tests {
 
         conn.execute("DELETE FROM assets WHERE id = 1", []).unwrap();
         assert!(notes(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn reclassify_gives_old_rows_their_new_kind() {
+        let conn = with_assets(1);
+        for (name, ext) in [("a.dae", "dae"), ("b.dds", "dds"), ("c.blend", "blend")] {
+            conn.execute(
+                "INSERT INTO assets (root_id, rel_path, name, ext, kind, size, mtime) VALUES (1, ?1, ?1, ?2, 'other', 1, 0)",
+                [name, ext],
+            )
+            .unwrap();
+        }
+        reclassify(&conn).unwrap();
+        let kinds: Vec<String> = assets(&conn, None).unwrap().into_iter().map(|a| a.kind).collect();
+        assert_eq!(kinds, ["image", "model", "image", "other"]);
     }
 
     #[test]

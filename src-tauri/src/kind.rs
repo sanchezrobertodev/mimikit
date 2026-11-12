@@ -3,21 +3,25 @@ use std::sync::RwLock;
 /// What kind of asset a file is, decided by its extension alone.
 pub fn kind_of(ext: &str) -> &'static str {
     match ext {
-        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "tga" | "psd" | "tif" | "tiff" | "ico" | "svg" => "image",
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "tga" | "psd" | "tif" | "tiff" | "ico" | "svg" | "dds"
+        | "exr" | "hdr" | "qoi" => "image",
         "wav" | "ogg" | "mp3" | "flac" | "m4a" | "aac" | "opus" => "audio",
-        "glb" | "gltf" | "obj" | "fbx" | "stl" => "model",
+        "glb" | "gltf" | "obj" | "fbx" | "stl" | "vox" | "dae" | "3ds" | "ply" => "model",
         "ttf" | "otf" | "woff" | "woff2" => "font",
         "mp4" | "webm" | "mov" | "m4v" => "video",
         "txt" | "md" | "json" | "csv" | "xml" | "yaml" | "yml" | "toml" | "ini" | "cfg" | "glsl" | "hlsl" | "frag"
         | "vert" | "shader" | "gdshader" | "wgsl" | "lua" | "cs" | "gd" | "tres" | "tscn" | "mtl" | "atlas" | "tmx"
         | "tsx" => "text",
+        // Tiled JSON, LDtk, TexturePacker and BMFont data; Unity's YAML assets; more shader sources.
+        "tmj" | "tsj" | "ldtk" | "ldtkl" | "plist" | "tpsheet" | "fnt" | "prefab" | "mat" | "asset" | "anim"
+        | "controller" | "unity" | "hlsli" | "cginc" | "compute" | "comp" | "shadergraph" => "text",
         _ => "other",
     }
 }
 
 /// Image formats the backend decodes itself (for thumbnails, and for previews of formats the webview can't show).
-pub const DECODABLE: [&str; 11] = [
-    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico",
+pub const DECODABLE: [&str; 15] = [
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "dds", "exr", "hdr", "qoi",
 ];
 
 pub fn decodable(ext: &str) -> bool {
@@ -77,6 +81,34 @@ mod tests {
         assert_eq!(kind_of("gdshader"), "text");
         assert_eq!(kind_of("blend"), "other");
         assert!(decodable("tga") && decodable("psd") && !decodable("svg"));
+        for ext in ["dds", "exr", "hdr", "qoi"] {
+            assert!(kind_of(ext) == "image" && decodable(ext), "{ext}");
+        }
+        for ext in ["vox", "dae", "3ds", "ply"] {
+            assert_eq!(kind_of(ext), "model", "{ext}");
+        }
+        for ext in [
+            "tmj",
+            "tsj",
+            "ldtk",
+            "ldtkl",
+            "plist",
+            "tpsheet",
+            "fnt",
+            "prefab",
+            "mat",
+            "asset",
+            "anim",
+            "controller",
+            "unity",
+            "hlsli",
+            "cginc",
+            "compute",
+            "comp",
+            "shadergraph",
+        ] {
+            assert_eq!(kind_of(ext), "text", "{ext}");
+        }
     }
 
     #[test]

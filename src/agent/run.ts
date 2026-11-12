@@ -561,7 +561,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     try {
       ids = await io.similar(target.id, (a.maxDistance as number | undefined) ?? 10);
     } catch {
-      return errorResult("unreadable", "Mimikit couldn't analyse that image. Find similar reads PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF and ICO.", "Try another image.");
+      return errorResult("unreadable", "Mimikit couldn't analyse that image. Find similar reads PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR and QOI.", "Try another image.");
     }
     const { found } = pick(lib, ids);
     const names = rootNames(lib.roots);

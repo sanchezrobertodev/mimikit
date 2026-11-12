@@ -39,7 +39,9 @@ pub fn rendered_name(path: &str, current: (i64, i64), rendered: (i64, i64)) -> R
     Ok(cache_name(path, current.0, current.1))
 }
 
-/// Decodes the whole original image (PSD: its flattened composite).
+const UNREADABLE: &str = "Mimikit couldn't read this image.";
+
+/// Decodes the whole original image (PSD: its flattened composite; EXR and HDR: tone mapped to 8 bits).
 pub fn decode(path: &Path, ext: &str) -> Result<DynamicImage, String> {
     // Decoders can panic on a bad file (psd does on ZIP-compressed and truncated ones): that file then fails instead.
     std::panic::catch_unwind(|| {
@@ -50,9 +52,29 @@ pub fn decode(path: &Path, ext: &str) -> Result<DynamicImage, String> {
             let img = RgbaImage::from_raw(psd.width(), psd.height(), psd.rgba()).ok_or("PSD has an unexpected size")?;
             return Ok(DynamicImage::ImageRgba8(img));
         }
-        image::open(path).map_err(|e| e.to_string())
+        image::open(path).map(tone_map).map_err(|e| match e {
+            // A variant the decoder doesn't do, like a BC7 DDS: the card keeps its icon, the panel says so plainly.
+            image::ImageError::Unsupported(_) => UNREADABLE.into(),
+            e => e.to_string(),
+        })
     })
-    .unwrap_or_else(|_| Err("Mimikit couldn't read this image.".into()))
+    .unwrap_or_else(|_| Err(UNREADABLE.into()))
+}
+
+/// EXR and HDR hold linear light that goes past 1.0: Reinhard (c / (1 + c)) and a 2.2 gamma bring it into 8 bits
+/// without blowing out the highlights. Other images pass through.
+fn tone_map(img: DynamicImage) -> DynamicImage {
+    if !matches!(img, DynamicImage::ImageRgb32F(_) | DynamicImage::ImageRgba32F(_)) {
+        return img;
+    }
+    let mut f = img.into_rgba32f();
+    for p in f.pixels_mut() {
+        for c in &mut p.0[..3] {
+            let v = c.max(0.0);
+            *c = (v / (1.0 + v)).powf(1.0 / 2.2);
+        }
+    }
+    DynamicImage::ImageRgba32F(f).into_rgba8().into()
 }
 
 /// Writes a PNG of at most `max` px on its long side to `out`, unless it's already cached.
@@ -114,6 +136,58 @@ mod tests {
         assert!(rendered_name("a", (1, 3), (1, 2)).is_err());
         assert!(rendered_name("a", (5, 2), (1, 2)).is_err());
         assert_ne!(sample_name("a.ttf", 1, 2), cache_name("a.ttf", 1, 2));
+    }
+
+    /// A 4×4 DDS with one 8-byte block, and a DX10 header when `dxgi` is set.
+    fn dds(fourcc: &[u8; 4], dxgi: Option<u32>, block: [u8; 8]) -> Vec<u8> {
+        let mut b = b"DDS ".to_vec();
+        // Size, flags (caps, height, width, pixel format), height, width, linear size, depth, mipmaps; reserved.
+        for v in [124u32, 0x1007, 4, 4, 8, 0, 0] {
+            b.extend(v.to_le_bytes());
+        }
+        b.extend([0; 44]);
+        // Pixel format: its size, the "has a FourCC" flag, the FourCC, unused masks. Then caps (texture) and the rest.
+        b.extend(32u32.to_le_bytes());
+        b.extend(4u32.to_le_bytes());
+        b.extend(fourcc);
+        b.extend([0; 20]);
+        b.extend(0x1000u32.to_le_bytes());
+        b.extend([0; 16]);
+        // DX10: format, 2D texture, no flags, one layer, no alpha mode.
+        for v in dxgi.map_or(vec![], |f| vec![f, 3, 0, 1, 0]) {
+            b.extend(v.to_le_bytes());
+        }
+        b.extend(block);
+        b
+    }
+
+    #[test]
+    fn exr_is_tone_mapped_and_dds_decodes_unless_bc7() {
+        let dir = tempfile::tempdir().unwrap();
+        let exr = dir.path().join("sky.exr");
+        // Linear light: 4.0 is four times white and must not clip; 0.25 is a dim grey.
+        image::Rgb32FImage::from_fn(2, 1, |x, _| image::Rgb([if x == 0 { 4.0 } else { 0.25 }; 3]))
+            .save(&exr)
+            .unwrap();
+        let img = decode(&exr, "exr").unwrap();
+        let px = img.as_rgba8().expect("8-bit after tone mapping");
+        // (4 / 5)^(1 / 2.2) and (0.25 / 1.25)^(1 / 2.2), out of 255.
+        assert_eq!(px.get_pixel(0, 0).0, [230, 230, 230, 255]);
+        assert_eq!(px.get_pixel(1, 0).0, [123, 123, 123, 255]);
+        assert!(thumbnail(&exr, "exr", &dir.path().join("exr.png")).is_ok());
+
+        // DXT1, one block of colour 0 (pure red in RGB565).
+        let dxt1 = dir.path().join("red.dds");
+        std::fs::write(&dxt1, dds(b"DXT1", None, [0x00, 0xF8, 0x1F, 0x00, 0, 0, 0, 0])).unwrap();
+        let img = decode(&dxt1, "dds").unwrap();
+        assert_eq!((img.width(), img.height()), (4, 4));
+        assert_eq!(img.to_rgba8().get_pixel(3, 3).0, [255, 0, 0, 255]);
+
+        // BC7 (DXGI format 98) isn't decoded: a plain error, so the card keeps its icon.
+        let bc7 = dir.path().join("bc7.dds");
+        std::fs::write(&bc7, dds(b"DX10", Some(98), [0; 8])).unwrap();
+        assert_eq!(decode(&bc7, "dds").unwrap_err(), UNREADABLE);
+        assert!(thumbnail(&bc7, "dds", &dir.path().join("bc7.png")).is_err());
     }
 
     #[test]
