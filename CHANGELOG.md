@@ -5,14 +5,15 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-11
+
 ### Added
 
-- **The AI view** (**AI** in the sidebar, or **Go to AI** in <kbd>Ctrl+K</kbd>) lists every AI feature with how it
-  stands and the next thing to do: **Ask** (whether your API key is set), **Suggest tags** (how many assets have no
-  tags, **Review** when suggestions are waiting, the last run's cost), **Search by meaning** (how much is indexed) and
-  **AI agents** (which apps are connected). **What agents did**, with its Undo, moved here from Settings. Each feature
+- **The AI view** (**AI** in the sidebar, or **Go to AI** in search) lists every AI feature with how it stands and
+  the next thing to do: **Ask** (whether your API key is set), **Suggest tags** (how many assets have no tags,
+  **Review** when suggestions are waiting, the last run's cost), **Search by meaning** (how much is indexed) and **AI
+  agents** (which apps are connected). **What agents did**, with its Undo, moved here from Settings. Each feature
   still works where it did before. The view goes away with AI features off.
-- **AI is marked Beta**, in the sidebar, on the AI view and on **Settings › AI**: it works, and it will still change.
 - **AI features have a switch, off at first while they're in beta.** **Settings › General › AI features** turns on
   Ask, Suggest tags and AI agents. If you're updating, it starts on, so nothing you use goes away. Off hides them
   everywhere: in search, the side panel, the sidebar, More filters, the shortcuts list and Settings, whose AI page
@@ -20,6 +21,7 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   Your API key, your tags and the suggestions you haven't reviewed stay, so turning it back on brings everything back
   (AI agents stay off until you turn them on). Search by meaning runs on your computer and keeps its own switch in
   **Settings › Library**.
+- **AI is marked Beta**, in the sidebar, on the AI view and on **Settings › AI**: it works, and it will still change.
 
 ### Changed
 
