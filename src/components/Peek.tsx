@@ -472,7 +472,7 @@ export function Peek({ list }: { list: Asset[] }) {
 }
 
 /** Image formats the backend can analyse; the same list as kind::DECODABLE. */
-const ANALYSABLE = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "dds", "exr", "hdr", "qoi"];
+const ANALYSABLE = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "dds", "exr", "hdr", "qoi", "ase", "aseprite"];
 
 function PeekBody({ a }: { a: Asset }) {
   const setFavorite = useStore((s) => s.setFavorite);

@@ -1,7 +1,9 @@
 mod ai;
 mod analysis;
+mod aseprite;
 mod audio;
 mod backup;
+mod blend;
 mod bridge;
 mod db;
 mod dupes;
@@ -361,7 +363,7 @@ async fn thumbnail(app: AppHandle, state: State<'_, AppState>, id: i64) -> Resul
     let a = asset(&state, id)?;
     let out = state.thumbs_dir.join(thumbs::cache_name(&a.path, a.size, a.mtime));
     if !out.exists() {
-        if a.kind != "image" || !kind::decodable(&a.ext) {
+        if !kind::drawable(&a.ext) {
             return Ok(None);
         }
         let _permit = state.thumb_permits.acquire().await.map_err(err)?;
@@ -393,11 +395,11 @@ fn save_font_sample(state: State<'_, AppState>, id: i64, size: i64, mtime: i64, 
     thumbs::save_png(&png, &state.thumbs_dir.join(thumbs::sample_name(&a.path, size, mtime)))
 }
 
-/// Full-size PNG for image formats the webview can't display (TGA, PSD, TIFF).
+/// Full-size PNG for image formats the webview can't display (TGA, PSD, TIFF, Aseprite), and of a .blend's preview.
 #[tauri::command]
 async fn preview(state: State<'_, AppState>, id: i64) -> Result<String, String> {
     let a = asset(&state, id)?;
-    if !kind::decodable(&a.ext) {
+    if !kind::drawable(&a.ext) {
         return Err("No preview for this file type".into());
     }
     let out = state.previews_dir.join(thumbs::cache_name(&a.path, a.size, a.mtime));
@@ -409,6 +411,27 @@ async fn preview(state: State<'_, AppState>, id: i64) -> Result<String, String> 
         .await
         .map_err(err)??;
     Ok(made.display().to_string())
+}
+
+/// A WAV copy of a sound the webview can't play (AIFF), converted on first request and cached with the previews.
+#[tauri::command]
+async fn playable_audio(state: State<'_, AppState>, id: i64) -> Result<String, String> {
+    let a = asset(&state, id)?;
+    if !kind::needs_wav(&a.ext) {
+        return Err("No preview for this file type".into());
+    }
+    let out = state
+        .previews_dir
+        .join(thumbs::cache_name(&a.path, a.size, a.mtime))
+        .with_extension("wav");
+    if !out.exists() {
+        let _permit = state.thumb_permits.acquire().await.map_err(err)?;
+        let to = out.clone();
+        tauri::async_runtime::spawn_blocking(move || audio::to_wav(Path::new(&a.path), &a.ext, &to))
+            .await
+            .map_err(err)??;
+    }
+    Ok(out.display().to_string())
 }
 
 #[derive(Serialize)]
@@ -545,7 +568,7 @@ async fn find_similar(
         None => {
             let a = asset(&state, id)?;
             if a.kind != "image" || !kind::decodable(&a.ext) {
-                return Err("Find similar works on PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR and QOI images.".into());
+                return Err("Find similar works on PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR, QOI and Aseprite images.".into());
             }
             let thumb = state.thumbs_dir.join(thumbs::cache_name(&a.path, a.size, a.mtime));
             let _permit = state.thumb_permits.acquire().await.map_err(err)?;
@@ -1044,6 +1067,7 @@ pub fn run() {
             save_thumbnail,
             save_font_sample,
             preview,
+            playable_audio,
             read_text,
             set_favorite,
             set_rating,

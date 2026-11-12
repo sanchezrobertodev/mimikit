@@ -14,7 +14,7 @@
   "spriteGrid": "Use 1 to 1024 columns and rows, and 1 to 60 fps.",
   "scanning": "This folder is being scanned. Try again when it's done.",
   "noPreview": "No preview for this file type",
-  "similarTypes": "Find similar works on PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR and QOI images.",
+  "similarTypes": "Find similar works on PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR, QOI and Aseprite images.",
   "couldntRead": "Couldn't read {{name}}: {{error}}",
   "trashFailed": "Couldn't move {{name}} to the trash: {{error}}",
   "notIdentical": "{{path}} is no longer identical, so nothing was moved.",
@@ -45,5 +45,8 @@
   "meaningStart": "Couldn't start search by meaning: {{error}}",
   "meaningVcRuntime": "Search by meaning needs Microsoft's Visual C++ runtime. Install it, then try again.",
   "meaningNotIndexed": "This asset isn't indexed for search by meaning yet.",
-  "meaningUndrawn": "Mimikit couldn't draw a preview of this asset."
+  "meaningUndrawn": "Mimikit couldn't draw a preview of this asset.",
+  "soundTooLong": "This sound is too long to play in Mimikit.",
+  "noSound": "No sound in this file",
+  "cantReadSound": "Mimikit couldn't read this sound."
 }

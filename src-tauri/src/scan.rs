@@ -46,6 +46,11 @@ fn dimensions(path: &Path, ext: &str) -> Option<(u32, u32)> {
                 (be(&h[18..22]), be(&h[14..18]))
             })
         }
+        "ase" | "aseprite" => {
+            let mut h = [0u8; 12];
+            std::fs::File::open(path).ok()?.read_exact(&mut h).ok()?;
+            crate::aseprite::size(&h)
+        }
         // Caught like in thumbs::decode: a decoder panic here would poison the db lock the watcher holds.
         e if DECODABLE.contains(&e) => std::panic::catch_unwind(|| image::image_dimensions(path).ok())
             .ok()

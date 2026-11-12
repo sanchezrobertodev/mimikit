@@ -1,10 +1,15 @@
-//! Audio details (length, sample rate, channels, bit depth) read from file headers with Symphonia. Nothing is decoded.
+//! Audio details (length, sample rate, channels, bit depth) read from file headers with Symphonia, and WAV copies of
+//! sounds the webview can't play.
 
+use std::fs::File;
+use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use rusqlite::{Connection, Result, params};
 use symphonia::core::codecs::CodecParameters;
+use symphonia::core::codecs::audio::AudioDecoderOptions;
 use symphonia::core::formats::probe::Hint;
 use symphonia::core::formats::{FormatOptions, TrackType};
 use symphonia::core::io::MediaSourceStream;
@@ -84,6 +89,130 @@ pub fn store(conn: &Connection, id: i64, size: i64, mtime: i64, i: &AudioInfo) -
     .map(|_| ())
 }
 
+/// Longest WAV a converted sound may become, about 25 minutes of 16-bit 44.1 kHz stereo; longer sounds don't play.
+const MAX_WAV: u64 = 256 << 20;
+/// Bytes of converted sounds kept in their folder; the oldest go first.
+const WAV_CACHE: u64 = 1 << 30;
+
+/// The 44-byte header of a PCM WAV holding `data` bytes.
+pub fn wav_header(rate: u32, channels: u16, bits: u16, data: u32) -> Vec<u8> {
+    let block = channels * bits / 8;
+    let mut b = Vec::with_capacity(44);
+    b.extend_from_slice(b"RIFF");
+    b.extend_from_slice(&(36 + data).to_le_bytes());
+    b.extend_from_slice(b"WAVEfmt ");
+    b.extend_from_slice(&16u32.to_le_bytes());
+    b.extend_from_slice(&1u16.to_le_bytes()); // PCM
+    b.extend_from_slice(&channels.to_le_bytes());
+    b.extend_from_slice(&rate.to_le_bytes());
+    b.extend_from_slice(&(rate * u32::from(block)).to_le_bytes());
+    b.extend_from_slice(&block.to_le_bytes());
+    b.extend_from_slice(&bits.to_le_bytes());
+    b.extend_from_slice(b"data");
+    b.extend_from_slice(&data.to_le_bytes());
+    b
+}
+
+/// Decodes a sound the webview can't play (AIFF) to a 16-bit WAV at `out`, unless it's there already, then deletes the
+/// oldest WAVs beside it past [`WAV_CACHE`]. The source is only read.
+pub fn to_wav(src: &Path, ext: &str, out: &Path) -> std::result::Result<(), String> {
+    if out.exists() {
+        return Ok(());
+    }
+    // A temp name of its own: the side panel and play-on-hover can ask for the same sound at once.
+    static N: AtomicU32 = AtomicU32::new(0);
+    let tmp = out.with_extension(format!("{}.tmp", N.fetch_add(1, Ordering::Relaxed)));
+    // Caught like in read_info: a demuxer or decoder panic fails this sound only.
+    let made = std::panic::catch_unwind(|| write_wav(src, ext, &tmp))
+        .unwrap_or_else(|_| Err("Mimikit couldn't read this sound.".into()))
+        .and_then(|()| std::fs::rename(&tmp, out).map_err(|e| e.to_string()));
+    if let Err(e) = made {
+        let _ = std::fs::remove_file(&tmp);
+        // Another request may have made it meanwhile (Windows won't replace a file that's playing).
+        if !out.exists() {
+            return Err(e);
+        }
+    }
+    trim(out, WAV_CACHE);
+    Ok(())
+}
+
+fn write_wav(src: &Path, ext: &str, out: &Path) -> std::result::Result<(), String> {
+    let s = |e: symphonia::core::errors::Error| e.to_string();
+    let io = |e: std::io::Error| e.to_string();
+    let mut hint = Hint::new();
+    hint.with_extension(ext);
+    let file = File::open(src).map_err(io)?;
+    let mut reader = symphonia::default::get_probe()
+        .probe(
+            &hint,
+            MediaSourceStream::new(Box::new(file), Default::default()),
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .map_err(s)?;
+    let track = reader
+        .default_track(TrackType::Audio)
+        .ok_or("No sound in this file")?
+        .clone();
+    let Some(CodecParameters::Audio(p)) = &track.codec_params else {
+        return Err("No sound in this file".into());
+    };
+    let mut decoder = symphonia::default::get_codecs()
+        .make_audio_decoder(p, &AudioDecoderOptions::default())
+        .map_err(s)?;
+    let mut w = BufWriter::new(File::create(out).map_err(io)?);
+    w.write_all(&[0; 44]).map_err(io)?; // the header, once the length is known
+    let (mut rate, mut channels, mut data) = (0, 0, 0u64);
+    let mut samples: Vec<i16> = Vec::new();
+    while let Some(packet) = reader.next_packet().map_err(s)? {
+        if packet.track_id != track.id {
+            continue;
+        }
+        let buf = decoder.decode(&packet).map_err(s)?;
+        (rate, channels) = (buf.spec().rate(), buf.spec().channels().count() as u16);
+        buf.copy_to_vec_interleaved(&mut samples);
+        data += samples.len() as u64 * 2;
+        if data > MAX_WAV {
+            return Err("This sound is too long to play in Mimikit.".into());
+        }
+        for v in &samples {
+            w.write_all(&v.to_le_bytes()).map_err(io)?;
+        }
+    }
+    if channels == 0 {
+        return Err("No sound in this file".into());
+    }
+    let mut f = w.into_inner().map_err(|e| e.to_string())?;
+    f.seek(SeekFrom::Start(0)).map_err(io)?;
+    f.write_all(&wav_header(rate, channels, 16, data as u32)).map_err(io)
+}
+
+/// Deletes the oldest WAVs in `keep`'s folder, never `keep`, while they add up to more than `cap` bytes.
+fn trim(keep: &Path, cap: u64) {
+    let Some(Ok(dir)) = keep.parent().map(std::fs::read_dir) else {
+        return;
+    };
+    let mut wavs: Vec<_> = dir
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x == "wav"))
+        .filter_map(|e| {
+            let m = e.metadata().ok()?;
+            Some((m.modified().ok()?, m.len(), e.path()))
+        })
+        .collect();
+    wavs.sort();
+    let mut total: u64 = wavs.iter().map(|w| w.1).sum();
+    for (_, len, path) in wavs {
+        if total <= cap {
+            break;
+        }
+        if path != keep && std::fs::remove_file(&path).is_ok() {
+            total -= len;
+        }
+    }
+}
+
 const BATCH: usize = 500;
 
 /// Reads audio details for a root's audio files that have none yet or changed since, [`BATCH`] files per transaction.
@@ -152,23 +281,81 @@ pub mod tests {
 
     /// A PCM WAV of `frames` silent frames, written by hand.
     pub fn wav(path: &Path, rate: u32, channels: u16, bits: u16, frames: u32) {
-        let block = channels * bits / 8;
-        let data = frames * u32::from(block);
-        let mut b = Vec::new();
-        b.extend_from_slice(b"RIFF");
-        b.extend_from_slice(&(36 + data).to_le_bytes());
-        b.extend_from_slice(b"WAVEfmt ");
-        b.extend_from_slice(&16u32.to_le_bytes());
-        b.extend_from_slice(&1u16.to_le_bytes()); // PCM
-        b.extend_from_slice(&channels.to_le_bytes());
-        b.extend_from_slice(&rate.to_le_bytes());
-        b.extend_from_slice(&(rate * u32::from(block)).to_le_bytes());
-        b.extend_from_slice(&block.to_le_bytes());
-        b.extend_from_slice(&bits.to_le_bytes());
-        b.extend_from_slice(b"data");
-        b.extend_from_slice(&data.to_le_bytes());
+        let data = frames * u32::from(channels * bits / 8);
+        let mut b = wav_header(rate, channels, bits, data);
         b.resize(b.len() + data as usize, 0);
         fs::write(path, b).unwrap();
+    }
+
+    /// A 16-bit AIFF of `frames` frames whose samples count up from 0 in steps of 7, written by hand.
+    pub fn aiff(path: &Path, rate: u32, channels: u16, frames: u32) {
+        let samples: Vec<u8> = (0..frames * u32::from(channels))
+            .flat_map(|i| ((i * 7) as i16).to_be_bytes())
+            .collect();
+        // The rate as an 80-bit float: exponent, then the mantissa with its leading 1 at the top.
+        let e = 31 - rate.leading_zeros();
+        let mut b = b"FORM".to_vec();
+        b.extend_from_slice(&(4 + 26 + 16 + samples.len() as u32).to_be_bytes());
+        b.extend_from_slice(b"AIFFCOMM");
+        b.extend_from_slice(&18u32.to_be_bytes());
+        b.extend_from_slice(&channels.to_be_bytes());
+        b.extend_from_slice(&frames.to_be_bytes());
+        b.extend_from_slice(&16u16.to_be_bytes());
+        b.extend_from_slice(&(16383 + e as u16).to_be_bytes());
+        b.extend_from_slice(&(u64::from(rate) << (63 - e)).to_be_bytes());
+        b.extend_from_slice(b"SSND");
+        b.extend_from_slice(&(8 + samples.len() as u32).to_be_bytes());
+        b.extend_from_slice(&[0; 8]); // offset, block size
+        b.extend_from_slice(&samples);
+        fs::write(path, b).unwrap();
+    }
+
+    #[test]
+    fn converts_aiff_to_wav() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("a.aiff");
+        aiff(&src, 8_000, 2, 4_000);
+        let want = || AudioInfo {
+            duration_ms: Some(500),
+            sample_rate: Some(8_000),
+            channels: Some(2),
+            bits: Some(16),
+        };
+        assert_eq!(read_info(&src, "aiff"), Some(want()));
+        let cache = dir.path().join("cache");
+        fs::create_dir(&cache).unwrap();
+        let out = cache.join("a.wav");
+        to_wav(&src, "aiff", &out).unwrap();
+        assert_eq!(read_info(&out, "wav"), Some(want()));
+        let wav = fs::read(&out).unwrap();
+        assert_eq!(wav.len(), 44 + 4_000 * 2 * 2);
+        // Samples come through unchanged, now little-endian.
+        assert_eq!(&wav[44..50], &[0, 0, 7, 0, 14, 0]);
+        assert_eq!(fs::read_dir(&cache).unwrap().count(), 1, "no temp file left");
+
+        // Not a sound: an error, and nothing written.
+        fs::write(&src, "garbage").unwrap();
+        assert!(to_wav(&src, "aiff", &cache.join("b.wav")).is_err());
+        assert_eq!(fs::read_dir(&cache).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn trims_the_oldest_wavs() {
+        let dir = tempfile::tempdir().unwrap();
+        let at = |name: &str, secs: u64| {
+            let p = dir.path().join(name);
+            fs::write(&p, [0; 100]).unwrap();
+            let t = std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+            File::options().write(true).open(&p).unwrap().set_modified(t).unwrap();
+            p
+        };
+        let (old, mid, new) = (at("old.wav", 1_000), at("mid.wav", 2_000), at("new.wav", 3_000));
+        let png = at("thumb.png", 0);
+        trim(&old, 250);
+        // The oldest that isn't the one just asked for goes; other files stay.
+        assert!(old.exists() && !mid.exists() && new.exists() && png.exists());
+        trim(&new, 1_000);
+        assert!(old.exists());
     }
 
     #[test]

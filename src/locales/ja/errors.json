@@ -14,7 +14,7 @@
   "spriteGrid": "列と行は1〜1024、fpsは1〜60の範囲で指定してください。",
   "scanning": "このフォルダーはスキャン中です。完了してからもう一度お試しください。",
   "noPreview": "この種類のファイルはプレビューできません",
-  "similarTypes": "「類似を検索」はPNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO、DDS、EXR、HDR、QOI画像で使えます。",
+  "similarTypes": "「類似を検索」はPNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO、DDS、EXR、HDR、QOI、Aseprite画像で使えます。",
   "couldntRead": "「{{name}}」を読み込めませんでした：{{error}}",
   "trashFailed": "「{{name}}」をごみ箱に移動できませんでした：{{error}}",
   "notIdentical": "「{{path}}」は同一ではなくなったため、何も移動していません。",
@@ -45,5 +45,8 @@
   "meaningStart": "意味で検索を開始できませんでした：{{error}}",
   "meaningVcRuntime": "意味で検索には Microsoft の Visual C++ ランタイムが必要です。インストールしてから、もう一度お試しください。",
   "meaningNotIndexed": "このアセットはまだ意味で検索に登録されていません。",
-  "meaningUndrawn": "Mimikitはこのアセットのプレビューを描画できませんでした。"
+  "meaningUndrawn": "Mimikitはこのアセットのプレビューを描画できませんでした。",
+  "soundTooLong": "このサウンドは長すぎて Mimikit では再生できません。",
+  "noSound": "このファイルには音声がありません",
+  "cantReadSound": "Mimikit はこのサウンドを読み込めませんでした。"
 }

@@ -36,8 +36,13 @@ rmcp = { version = "3.8", default-features = false, features = ["server", "trans
 # The agent bridge's random token, and the data folder the relay finds it in.
 getrandom = "0.3"
 dirs = "7"
-# Header probing only (no decoding): formats for the audio extensions in kind.rs. Opus has no Symphonia support.
-symphonia = { version = "0.6", default-features = false, features = ["wav", "ogg", "mp3", "flac", "isomp4", "aac", "id3v2"] }
+# Header probing for the audio extensions in kind.rs (Opus has no Symphonia support), and AIFF decoding (`pcm`): the
+# webview can't play AIFF, so audio.rs converts it to WAV.
+symphonia = { version = "0.6", default-features = false, features = ["wav", "aiff", "pcm", "ogg", "mp3", "flac", "isomp4", "aac", "id3v2"] }
+# Aseprite cels and gzip-compressed .blend files (Blender 2.x). Already in the build through `image`.
+flate2 = "1"
+# zstd-compressed .blend files (Blender 3.0+). Pure Rust, decoding only; no other crates without the default features.
+ruzstd = { version = "0.9", default-features = false, features = ["std"] }
 # Low OS priority for background passes (image analysis, duplicate hashing, audio headers).
 thread-priority = "3"
 # The user's Anthropic API key, in the OS credential store (Windows Credential Manager, macOS Keychain, Secret Service).

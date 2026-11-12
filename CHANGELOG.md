@@ -18,7 +18,14 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   - **More text and data files**: Tiled JSON (`.tmj`, `.tsj`), LDtk (`.ldtk`, `.ldtkl`), TexturePacker (`.plist`,
     `.tpsheet`), BMFont (`.fnt`), Unity's YAML assets (`.prefab`, `.mat`, `.asset`, `.anim`, `.controller`, `.unity`)
     and shaders (`.hlsli`, `.cginc`, `.compute`, `.comp`, `.shadergraph`).
-  - Files of these types already in your library show as their new type from the next launch, without a rescan.
+- **Aseprite files** (`.ase`, `.aseprite`) are images: their grid thumbnail and preview show the first frame, with
+  the visible layers flattened. Find similar, search by colour and **Export frames** work on them like on PNGs.
+- **Blender files** (`.blend`) are 3D models: the grid and the side panel show the preview picture Blender saves in
+  each file, including compressed ones. There's no 3D view. A file saved without a preview shows a plain card.
+- **AIFF sounds** (`.aif`, `.aiff`) play, with their waveform and play-on-hover, and show their length, sample rate and
+  channels. The webview can't play AIFF, so Mimikit makes a WAV copy the first time one plays and keeps the copies
+  with the image previews, up to 1 GB, deleting the oldest first. **Clear thumbnail cache** clears them too.
+- Files of all these types already in your library show as their new type from the next launch, without a rescan.
 
 ### Changed
 

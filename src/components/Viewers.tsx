@@ -497,6 +497,37 @@ function TextView({ asset, full }: { asset: Asset; full: boolean }) {
   );
 }
 
+/** A .blend has no 3D view here: the preview picture Blender saved in it, if it has one. */
+function BlendView({ asset, full }: { asset: Asset; full: boolean }) {
+  // undefined while it loads, null when the file has none.
+  const [src, setSrc] = useState<string | null>();
+  useEffect(() => {
+    let live = true;
+    api.preview(asset.id).then(
+      (p) => live && setSrc(convertFileSrc(p)),
+      () => live && setSrc(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [asset.id, asset.mtime]);
+
+  if (src === undefined) return <Note busy>{t("viewers.image.decoding")}</Note>;
+  if (src === null)
+    return (
+      <Note>
+        <span className={clsx("font-mono text-fg", full ? "text-[28px]" : "text-xl")}>.blend</span>
+        {t("viewers.blendNoPreview")}
+      </Note>
+    );
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+      <img src={src} alt={asset.name} draggable={false} className="min-h-0 w-64 max-w-full flex-1 object-contain" />
+      <span className={chip}>{t("viewers.blendPreview")}</span>
+    </div>
+  );
+}
+
 // three.js and wavesurfer are most of the bundle, so these load on first use.
 const AudioView = lazy(() => import("./AudioView"));
 const ModelView = lazy(() => import("./ModelView"));
@@ -515,6 +546,7 @@ export function Viewer({ asset, pixelated, full = false }: { asset: Asset; pixel
         </Suspense>
       );
     case "model":
+      if (asset.ext === "blend") return <BlendView key={asset.id} asset={asset} full={full} />;
       return (
         <Suspense
           fallback={

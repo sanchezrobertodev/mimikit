@@ -58,12 +58,14 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
   `node_modules` are skipped, plus any folder names you add in **Settings → Library**.
 - **Previews in place**, in the side panel (<kbd>Space</kbd>) or full screen (<kbd>Enter</kbd>):
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
-    TGA/PSD/TIFF/DDS/EXR/HDR/QOI via a decoded preview, with EXR and HDR tone mapped), and **Animate** to play a
-    sprite sheet with a remembered grid and fps
-  - audio: waveform and playback, plus play-on-hover in the grid
+    TGA/PSD/TIFF/DDS/EXR/HDR/QOI/Aseprite via a decoded preview, with EXR and HDR tone mapped), and **Animate** to
+    play a sprite sheet with a remembered grid and fps
+  - audio: waveform and playback, plus play-on-hover in the grid (WAV, OGG, MP3, FLAC, M4A/AAC, Opus, and AIFF via a
+    WAV copy)
   - 3D models: orbit, wireframe, triangle counts and the first animation (GLB/glTF, including Draco and KTX2
     compressed, FBX, OBJ, STL, Collada, 3DS, PLY and MagicaVoxel VOX), with auto-rendered thumbnails. OBJ files load
-    the materials and textures from their `.mtl`, Collada and 3DS files from their folder
+    the materials and textures from their `.mtl`, Collada and 3DS files from their folder. Blender files show the
+    preview picture saved in them
   - fonts: a specimen with editable sample text
   - video, with a frame from the video as its grid thumbnail
   - text and data: shaders, Tiled and LDtk maps, TexturePacker sheets, BMFont files, Godot resources and Unity's YAML
@@ -234,6 +236,11 @@ identical. "Copy to folder…" only ever creates new files.
 ## Known limits
 
 - PSD previews use the flattened composite. Some layered or 16-bit files fall back to an icon.
+- Aseprite files show their first frame only, and every layer is drawn in Normal mode: layers with other blend modes
+  and tilemap layers can look different than in Aseprite.
+- Blender files have no 3D view, only the 128×128 preview Blender saves in them. Files saved without one (Blender's
+  **File Preview Type** set to None) show a plain card.
+- AIFF sounds longer than about 25 minutes (in stereo) don't play.
 - DDS previews cover DXT1, DXT3 and DXT5 (BC1–BC3) and show the top mip level. BC4–BC7 and uncompressed DDS files
   show a plain card.
 - FBX, Collada and 3DS textures with absolute paths from another machine won't load.
@@ -246,9 +253,9 @@ identical. "Copy to folder…" only ever creates new files.
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
   scan only when **Keep new and changed images analysed** is on.
-- Search by meaning covers images (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR and
-  QOI; not SVG), and 3D models, videos and fonts by one picture each (a video by one frame, a font by one line of
-  sample text), not sounds or text files, and doesn't read text inside pictures. It doesn't combine with Find
+- Search by meaning covers images (PNG, JPEG, GIF's first frame, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR, QOI
+  and Aseprite; not SVG), and 3D models, videos and fonts by one picture each (a video by one frame, a font by one
+  line of sample text), not sounds or text files, and doesn't read text inside pictures. It doesn't combine with Find
   similar. Several `looks:` words in one search each keep their own best matches, so they rarely overlap: one
   description works better.
 - Search by meaning isn't available on Intel Macs, since Microsoft publishes no ONNX Runtime build for them. On

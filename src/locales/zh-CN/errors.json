@@ -14,7 +14,7 @@
   "spriteGrid": "列数和行数须为 1 到 1024，帧率须为 1 到 60 fps。",
   "scanning": "此文件夹正在扫描中。请在扫描完成后重试。",
   "noPreview": "此文件类型无法预览",
-  "similarTypes": "“查找相似”适用于 PNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO、DDS、EXR、HDR 和 QOI 图片。",
+  "similarTypes": "“查找相似”适用于 PNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO、DDS、EXR、HDR、QOI 和 Aseprite 图片。",
   "couldntRead": "无法读取 {{name}}：{{error}}",
   "trashFailed": "无法将 {{name}} 移到回收站：{{error}}",
   "notIdentical": "{{path}} 已不再完全相同，因此未移动任何文件。",
@@ -45,5 +45,8 @@
   "meaningStart": "无法启动按含义搜索：{{error}}",
   "meaningVcRuntime": "按含义搜索需要 Microsoft 的 Visual C++ 运行库。请安装后重试。",
   "meaningNotIndexed": "此资源尚未为按含义搜索建立索引。",
-  "meaningUndrawn": "Mimikit 无法绘制此资源的预览。"
+  "meaningUndrawn": "Mimikit 无法绘制此资源的预览。",
+  "soundTooLong": "此音频太长，无法在 Mimikit 中播放。",
+  "noSound": "此文件中没有音频",
+  "cantReadSound": "Mimikit 无法读取此音频。"
 }

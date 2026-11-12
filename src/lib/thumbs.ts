@@ -23,7 +23,8 @@ const modelThumbs = createScheduler(cachedOr(renderModelThumb), 1);
 
 /** Asks for a thumbnail; `onReady` gets its path (null when there's none). Returns a function that withdraws the request. */
 export function requestThumbnail(a: Asset, onReady: (path: string | null) => void): () => void {
-  const queue = a.kind === "video" ? videoThumbs : a.kind === "model" ? modelThumbs : thumbs;
+  // A .blend has no model to render: the backend reads the preview Blender saved in it.
+  const queue = a.kind === "video" ? videoThumbs : a.kind === "model" && a.ext !== "blend" ? modelThumbs : thumbs;
   return queue.request(`${a.id}:${a.mtime}:${a.size}`, a, onReady);
 }
 

@@ -50,5 +50,7 @@
   "loadingAudio": "オーディオを読み込んでいます…",
   "loadingModel": "モデルを読み込んでいます…",
   "videoUnsupported": "この動画形式はここでは再生できません。",
-  "noPreview": "この種類のファイルはプレビューできません"
+  "noPreview": "この種類のファイルはプレビューできません",
+  "blendPreview": "Blender が保存したプレビュー",
+  "blendNoPreview": "このファイルには Blender のプレビューが保存されていません。"
 }

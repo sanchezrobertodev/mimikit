@@ -554,7 +554,14 @@ mod tests {
     #[test]
     fn reclassify_gives_old_rows_their_new_kind() {
         let conn = with_assets(1);
-        for (name, ext) in [("a.dae", "dae"), ("b.dds", "dds"), ("c.blend", "blend")] {
+        for (name, ext) in [
+            ("a.dae", "dae"),
+            ("b.dds", "dds"),
+            ("c.aseprite", "aseprite"),
+            ("d.blend", "blend"),
+            ("e.aif", "aif"),
+            ("f.xyz", "xyz"),
+        ] {
             conn.execute(
                 "INSERT INTO assets (root_id, rel_path, name, ext, kind, size, mtime) VALUES (1, ?1, ?1, ?2, 'other', 1, 0)",
                 [name, ext],
@@ -563,7 +570,7 @@ mod tests {
         }
         reclassify(&conn).unwrap();
         let kinds: Vec<String> = assets(&conn, None).unwrap().into_iter().map(|a| a.kind).collect();
-        assert_eq!(kinds, ["image", "model", "image", "other"]);
+        assert_eq!(kinds, ["image", "model", "image", "image", "model", "audio", "other"]);
     }
 
     #[test]

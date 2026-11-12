@@ -4,9 +4,9 @@ use std::sync::RwLock;
 pub fn kind_of(ext: &str) -> &'static str {
     match ext {
         "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "tga" | "psd" | "tif" | "tiff" | "ico" | "svg" | "dds"
-        | "exr" | "hdr" | "qoi" => "image",
-        "wav" | "ogg" | "mp3" | "flac" | "m4a" | "aac" | "opus" => "audio",
-        "glb" | "gltf" | "obj" | "fbx" | "stl" | "vox" | "dae" | "3ds" | "ply" => "model",
+        | "exr" | "hdr" | "qoi" | "ase" | "aseprite" => "image",
+        "wav" | "ogg" | "mp3" | "flac" | "m4a" | "aac" | "opus" | "aif" | "aiff" => "audio",
+        "glb" | "gltf" | "obj" | "fbx" | "stl" | "vox" | "dae" | "3ds" | "ply" | "blend" => "model",
         "ttf" | "otf" | "woff" | "woff2" => "font",
         "mp4" | "webm" | "mov" | "m4v" => "video",
         "txt" | "md" | "json" | "csv" | "xml" | "yaml" | "yml" | "toml" | "ini" | "cfg" | "glsl" | "hlsl" | "frag"
@@ -20,12 +20,24 @@ pub fn kind_of(ext: &str) -> &'static str {
 }
 
 /// Image formats the backend decodes itself (for thumbnails, and for previews of formats the webview can't show).
-pub const DECODABLE: [&str; 15] = [
-    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "dds", "exr", "hdr", "qoi",
+pub const DECODABLE: [&str; 17] = [
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "tga", "psd", "tif", "tiff", "ico", "dds", "exr", "hdr", "qoi", "ase",
+    "aseprite",
 ];
 
 pub fn decodable(ext: &str) -> bool {
     DECODABLE.contains(&ext)
+}
+
+/// Files the backend draws a thumbnail and preview of: the images it decodes, and .blend files from the picture Blender
+/// saves in them.
+pub fn drawable(ext: &str) -> bool {
+    decodable(ext) || ext == "blend"
+}
+
+/// Sounds the webview can't play: the backend converts them to WAV first (audio::to_wav).
+pub fn needs_wav(ext: &str) -> bool {
+    matches!(ext, "aif" | "aiff")
 }
 
 /// [`DECODABLE`] as an SQL list, for `ext IN (...)`.
@@ -79,8 +91,11 @@ mod tests {
         assert_eq!(kind_of("woff2"), "font");
         assert_eq!(kind_of("webm"), "video");
         assert_eq!(kind_of("gdshader"), "text");
-        assert_eq!(kind_of("blend"), "other");
-        assert!(decodable("tga") && decodable("psd") && !decodable("svg"));
+        assert_eq!(kind_of("blend"), "model");
+        assert_eq!(kind_of("aseprite"), "image");
+        assert_eq!(kind_of("aif"), "audio");
+        assert!(decodable("tga") && decodable("psd") && decodable("ase") && !decodable("svg"));
+        assert!(drawable("blend") && !decodable("blend") && !drawable("fbx"));
         for ext in ["dds", "exr", "hdr", "qoi"] {
             assert!(kind_of(ext) == "image" && decodable(ext), "{ext}");
         }

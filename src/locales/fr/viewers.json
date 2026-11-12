@@ -53,5 +53,7 @@
   "loadingAudio": "Chargement de l'audio…",
   "loadingModel": "Chargement du modèle…",
   "videoUnsupported": "Ce format vidéo ne peut pas être lu ici.",
-  "noPreview": "Pas d'aperçu pour ce type de fichier"
+  "noPreview": "Pas d'aperçu pour ce type de fichier",
+  "blendPreview": "Aperçu enregistré par Blender",
+  "blendNoPreview": "Blender n'a pas enregistré d'aperçu dans ce fichier."
 }

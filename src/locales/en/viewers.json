@@ -53,5 +53,7 @@
   "loadingAudio": "Loading audio…",
   "loadingModel": "Loading model…",
   "videoUnsupported": "This video format can't be played here.",
-  "noPreview": "No preview for this file type"
+  "noPreview": "No preview for this file type",
+  "blendPreview": "Preview saved by Blender",
+  "blendNoPreview": "Blender didn't save a preview in this file."
 }
