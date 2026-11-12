@@ -1,7 +1,6 @@
 import clsx from "clsx";
 import { getVersion } from "@tauri-apps/api/app";
 import {
-  Bot,
   Check,
   ExternalLink,
   HardDrive,
@@ -27,7 +26,7 @@ import { forgetThumbnails } from "../lib/thumbs";
 import { languageName, systemLanguage } from "../locales";
 import { useStore } from "../store";
 import { analyse, cancelAnalysis, pauseAnalysis } from "./Analysis";
-import { Button, Label, Modal, Segmented, T } from "./ui";
+import { Beta, Button, Label, Modal, Segmented, T } from "./ui";
 
 const close = () => useStore.getState().setModal(null);
 
@@ -215,23 +214,25 @@ function AccentPicker() {
   );
 }
 
-export type SettingsPage = "general" | "appearance" | "library" | "claude" | "agents" | "data" | "about";
+export type SettingsPage = "general" | "appearance" | "library" | "ai" | "data" | "about";
 const PAGES: [SettingsPage, LucideIcon][] = [
   ["general", SlidersHorizontal],
   ["appearance", PaletteIcon],
   ["library", LibraryBig],
-  ["claude", Sparkles],
-  ["agents", Bot],
+  ["ai", Sparkles],
   ["data", HardDrive],
   ["about", Info],
 ];
 /** The pages AI features off hides (Settings › General). */
-const AI_PAGES: SettingsPage[] = ["claude", "agents"];
+const AI_PAGES: SettingsPage[] = ["ai"];
 
 /** The page Settings opens on: the last one shown, or the one a link into Settings asked for. */
 let lastPage: SettingsPage = "general";
-export function openSettings(page?: SettingsPage) {
+/** The id of a part of that page to scroll to, such as AI agents on the AI page. */
+let scrollTo: string | undefined;
+export function openSettings(page?: SettingsPage, part?: string) {
   if (page) lastPage = page;
+  scrollTo = part;
   useStore.getState().setModal("settings");
 }
 
@@ -246,6 +247,10 @@ export function SettingsDialog() {
     lastPage = p;
     setPage(p);
   };
+  useEffect(() => {
+    if (scrollTo) document.getElementById(scrollTo)?.scrollIntoView({ block: "start" });
+    scrollTo = undefined;
+  }, []);
   return (
     <Modal title={t("settings.title")} onClose={close} pages>
       <div
@@ -275,13 +280,17 @@ export function SettingsDialog() {
               <Icon aria-hidden className={clsx("size-4 flex-none", on ? "text-accent" : "text-muted")} />
               {/* Wraps rather than cuts off: some languages' names are long. */}
               <span className="min-w-0 [overflow-wrap:anywhere]">{t(`settings.pages.${id}`)}</span>
+              {id === "ai" && <Beta />}
             </button>
           );
         })}
       </div>
       {/* Keyed by page, so a new page starts scrolled to the top. */}
       <div key={page} id="settings-page" role="tabpanel" aria-labelledby={`settings-tab-${page}`} className="min-w-0 flex-1 overflow-y-auto px-6 pb-4 text-fg-2">
-        <h3 className="pb-2 text-[15px] font-semibold text-fg">{t(`settings.pages.${page}`)}</h3>
+        <h3 className="flex items-center gap-2 pb-2 text-[15px] font-semibold text-fg">
+          {t(`settings.pages.${page}`)}
+          {page === "ai" && <Beta />}
+        </h3>
         <AgentQuestions />
         {page === "general" && <General />}
         {page === "appearance" && <Appearance />}
@@ -296,8 +305,17 @@ export function SettingsDialog() {
             </Section>
           </>
         )}
-        {page === "claude" && <Claude />}
-        {page === "agents" && <Agents />}
+        {page === "ai" && (
+          <>
+            {/* Two parts that work in opposite directions: Mimikit calling Claude with your key, and agent apps calling Mimikit. */}
+            <h4 className="pb-1 text-sm font-semibold text-fg">Claude</h4>
+            <Claude />
+            <h4 id="settings-agents" className="mt-4 border-t border-line pt-4 pb-1 text-sm font-semibold text-fg">
+              {t("agents.title")}
+            </h4>
+            <Agents />
+          </>
+        )}
         {page === "data" && (
           <>
             <Backups />
@@ -711,7 +729,7 @@ function ThumbnailCache() {
 let wantKey = false;
 export function openKeySetup() {
   wantKey = true;
-  openSettings("claude");
+  openSettings("ai");
 }
 
 /** Product names, the same in every language. */
@@ -721,7 +739,7 @@ export const MODEL_NAMES: Record<AiPrefs["model"], string> = {
   "claude-opus-5-5": "Opus 5.5",
 };
 
-/** Settings › Claude: Ask's and Suggest tags' models, the API key, and Remove all AI tags at the bottom. */
+/** Settings › AI › Claude: Ask's and Suggest tags' models, the API key, and Remove all AI tags at the bottom. */
 function Claude() {
   const { ai, setAi } = useStore();
   return (
@@ -1154,7 +1172,7 @@ function AgentQuestions() {
   ));
 }
 
-/** Settings › AI agents: the switch, how to connect an agent app, and who's connected (src/agent/bridge.ts). */
+/** Settings › AI › AI agents: the switch, how to connect an agent app, and who's connected (src/agent/bridge.ts). */
 function Agents() {
   const a = useAgents();
   const exe = a.exe ?? "mimikit";

@@ -44,7 +44,7 @@ import { themeName } from "../lib/themes";
 import { sidebarRail, useStore } from "../store";
 import { KINDS, type ViewName } from "../types";
 import { api } from "../api";
-import { Button, IconButton, Label, Modal, T } from "./ui";
+import { Beta, Button, IconButton, Label, Modal, T } from "./ui";
 import logo24 from "../../icon/24.png";
 import logo48 from "../../icon/48.png";
 
@@ -62,6 +62,7 @@ function NavItem({
   onClick,
   count,
   badge,
+  beta,
   rail,
 }: {
   label: string;
@@ -70,6 +71,8 @@ function NavItem({
   onClick: () => void;
   count?: number;
   badge?: number;
+  /** Still being worked on: says Beta where the count would go. */
+  beta?: boolean;
   /** Icon only, with the label as its tooltip; screen readers still get the label and count. */
   rail: boolean;
 }) {
@@ -101,6 +104,8 @@ function NavItem({
         </span>
       ) : count !== undefined ? (
         <span className={rail ? "sr-only" : "font-mono text-[11px] text-faint"}>{num(count)}</span>
+      ) : beta && !rail ? (
+        <Beta />
       ) : null}
     </button>
   );
@@ -146,7 +151,7 @@ export function Sidebar() {
   const looks = ruleLooks(s.collections).length ? s.looks : null;
   const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks), [s.collections, s.assets, s.notes, palettes, looks]);
 
-  const nav: { view: ViewName; label: string; icon: LucideIcon; count?: number; badge?: number }[] = [
+  const nav: { view: ViewName; label: string; icon: LucideIcon; count?: number; badge?: number; beta?: boolean }[] = [
     { view: "home", label: t("sidebar.home"), icon: House },
     { view: "library", label: t("sidebar.library"), icon: LibraryBig, count: s.assets.length },
     { view: "favorites", label: t("sidebar.favorites"), icon: Heart, count: favorites },
@@ -156,7 +161,7 @@ export function Sidebar() {
     { view: "duplicates", label: t("sidebar.duplicates"), icon: Copy, badge: s.dups?.length || undefined },
     { view: "insights", label: t("sidebar.insights"), icon: ChartNoAxesColumn },
     // Gone with AI features off (Settings › General).
-    ...(s.ai.on ? [{ view: "ai" as const, label: t("sidebar.ai"), icon: Sparkles }] : []),
+    ...(s.ai.on ? [{ view: "ai" as const, label: t("sidebar.ai"), icon: Sparkles, beta: true }] : []),
   ];
   const ThemeIcon = s.theme === "dark" ? Moon : s.theme === "light" ? Sun : s.theme === "system" ? Monitor : Palette;
   const updatesSupported = useAppUpdate((u) => u.supported);
@@ -191,6 +196,7 @@ export function Sidebar() {
             icon={n.icon}
             count={n.count}
             badge={n.badge}
+            beta={n.beta}
             active={s.view === n.view}
             onClick={() => s.go(n.view)}
             rail={rail}

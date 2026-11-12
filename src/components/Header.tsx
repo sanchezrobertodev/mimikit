@@ -12,7 +12,7 @@ import { useStore } from "../store";
 import { KINDS, type Asset } from "../types";
 import { AnalysisNote, LooksNote } from "./Analysis";
 import { FilterButton } from "./FilterPanel";
-import { Button, focusAssets, IconButton, KindDot, KindName, Kbd, Segmented, T } from "./ui";
+import { Beta, Button, focusAssets, IconButton, KindDot, KindName, Kbd, Segmented, T } from "./ui";
 
 const titles = {
   home: t("header.titles.home"),
@@ -37,7 +37,10 @@ export function Header() {
           )}
         </div>
       ) : (
-        <h1 className="flex-none text-[17px] font-semibold tracking-[-.01em]">{titles[view]}</h1>
+        <h1 className="flex flex-none items-center gap-2 text-[17px] font-semibold tracking-[-.01em]">
+          {titles[view]}
+          {view === "ai" && <Beta />}
+        </h1>
       )}
       {/* Home has its own big search field. */}
       {view !== "home" && (

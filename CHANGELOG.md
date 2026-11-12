@@ -10,25 +10,26 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 - **The AI view** (**AI** in the sidebar, or **Go to AI** in <kbd>Ctrl+K</kbd>) lists every AI feature with how it
   stands and the next thing to do: **Ask** (whether your API key is set), **Suggest tags** (how many assets have no
   tags, **Review** when suggestions are waiting, the last run's cost), **Search by meaning** (how much is indexed) and
-  **AI agents** (which apps are connected). **What agents did**, with its Undo, moved here from **Settings › AI
-  agents**. Each feature still works where it did before. The view goes away with AI features off.
+  **AI agents** (which apps are connected). **What agents did**, with its Undo, moved here from Settings. Each feature
+  still works where it did before. The view goes away with AI features off.
+- **AI is marked Beta**, in the sidebar, on the AI view and on **Settings › AI**: it works, and it will still change.
 - **AI features can be turned off.** **Settings › General › AI features** hides Ask, Suggest tags and AI agents
-  everywhere: in search, the side panel, the sidebar, More filters, the shortcuts list and Settings, whose Claude and
-  AI agents pages go too. AI agents are turned off with it, and a tagging run still going is canceled after asking.
+  everywhere: in search, the side panel, the sidebar, More filters, the shortcuts list and Settings, whose AI page
+  goes too. AI agents are turned off with it, and a tagging run still going is canceled after asking.
   Your API key, your tags and the suggestions you haven't reviewed stay, so turning it back on brings everything back
   (AI agents stay off until you turn them on). Search by meaning runs on your computer and keeps its own switch in
   **Settings › Library**.
 
 ### Changed
 
-- **AI agents are any MCP app, not just Claude's.** **Settings › AI agents** and the AI view name Cursor next to
+- **AI agents are any MCP app, not just Claude's.** **Settings › AI** and the AI view name Cursor next to
   Claude Code and Claude Desktop, and say the setup JSON works for any app with an `mcpServers` file. The README adds
   VS Code's setup, which uses `servers`.
-- **Settings has pages.** A list on the left picks one at a time: General, Appearance, Library, Claude, AI agents,
-  Backups and storage, and About. Each fits on one screen instead of one long page, and Settings opens on the page
-  you last used. Search by meaning moved to **Library**, next to image analysis; Ask's and Suggest tags' models and
-  your API key are under **Claude**. Hints are shorter, and Remove all AI tags and Delete model and index sit at the
-  bottom of their page in red. Links into Settings, such as Ask's "add a key", open the right page.
+- **Settings has pages.** A list on the left picks one at a time: General, Appearance, Library, AI, Backups and
+  storage, and About, instead of one long page, and Settings opens on the page you last used. Search by meaning moved
+  to **Library**, next to image analysis. **AI** has two parts: **Claude** (your API key, and Ask's and Suggest tags'
+  models), then **AI agents**. Hints are shorter, and Remove all AI tags and Delete model and index are in red,
+  below the settings they belong to. Links into Settings, such as Ask's "add a key", open the right page.
 
 ### Fixed
 

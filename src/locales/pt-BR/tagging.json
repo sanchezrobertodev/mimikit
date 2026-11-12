@@ -8,7 +8,7 @@
   "sentTitle": "O que vai para a Anthropic",
   "sent": "Uma pequena prévia de cada imagem, modelo, vídeo e fonte, o nome de cada arquivo e o da sua pasta, e os primeiros 2 KB dos arquivos de texto. Nunca arquivos inteiros nem caminhos completos. O áudio recebe tags pelo nome.",
   "model": "Modelo",
-  "modelHint": "Mude em Configurações › Claude.",
+  "modelHint": "Mude em Configurações › IA.",
   "mode": "Envio",
   "modeNow": "Agora",
   "modeBatch": "Em lote, metade do preço",

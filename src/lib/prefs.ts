@@ -47,7 +47,7 @@ export interface Prefs {
   /** Audio previews start again when they end. */
   audioLoop: boolean;
   sidebar: SidebarMode;
-  /** The model and effort for Ask (and later AI features), in Settings › Claude. */
+  /** The model and effort for Ask (and later AI features), in Settings › AI. */
   ai: AiPrefs;
 }
 

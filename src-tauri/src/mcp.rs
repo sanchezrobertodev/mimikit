@@ -46,7 +46,7 @@ impl Relay {
     /// keeps working across restarts of Mimikit and of its bridge.
     async fn forward(&self, call: Value) -> CallToolResult {
         let not_running = || {
-            let hint = "Ask the user to open Mimikit and turn on Settings › AI agents, then try again.";
+            let hint = "Ask the user to open Mimikit and turn on Settings › AI, then try again.";
             error(
                 "not_running",
                 "Mimikit isn't running, or AI agents are off in its Settings.",

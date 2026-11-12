@@ -145,6 +145,15 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="rounded border border-line-x px-1.5 font-mono text-[11px] text-fg-2">{children}</kbd>;
 }
 
+/** Marks a feature that works but is still being worked on. */
+export function Beta() {
+  return (
+    <span title={t("aiView.betaHint")} className="flex-none rounded-full border border-line px-1.5 text-[10px] leading-4 font-medium tracking-[.06em] text-muted uppercase">
+      {t("aiView.beta")}
+    </span>
+  );
+}
+
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
   return <span className={clsx("text-[11px] font-medium tracking-[.06em] text-faint uppercase", className)}>{children}</span>;
 }

@@ -20,7 +20,7 @@
   "allowedHint": "Leurs nouvelles sessions se connectent sans demander.",
   "forget": "Oublier",
   "askTitle": "Autoriser {{name}} à voir votre bibliothèque ?",
-  "askBody": "Il peut chercher dans votre bibliothèque, lire les noms de fichiers, dossiers, tags et notes, et regarder vos ressources. Il ne peut rien modifier sans votre accord, donné dans Paramètres › Agents IA, où vous pouvez aussi le déconnecter à tout moment.",
+  "askBody": "Il peut chercher dans votre bibliothèque, lire les noms de fichiers, dossiers, tags et notes, et regarder vos ressources. Il ne peut rien modifier sans votre accord, donné dans Paramètres › IA, où vous pouvez aussi le déconnecter à tout moment.",
   "allow": "Autoriser",
   "deny": "Ne pas autoriser",
   "shown": "Montré par {{name}}",

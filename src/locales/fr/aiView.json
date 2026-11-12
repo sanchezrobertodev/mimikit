@@ -31,5 +31,7 @@
     "off": "Désactivé",
     "running": "En cours"
   },
-  "setUp": "Configurer"
+  "setUp": "Configurer",
+  "beta": "Bêta",
+  "betaHint": "Encore en chantier : ça marche, mais ça peut changer."
 }

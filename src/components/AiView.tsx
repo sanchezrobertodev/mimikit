@@ -156,11 +156,11 @@ export function AiView() {
 
         <Feature
           icon={Bot}
-          title={t("settings.pages.agents")}
+          title={t("agents.title")}
           sub={agents.on && agents.sessions.length ? t("aiView.agents.connected", { names: agents.sessions.map((x) => agentName(x.name)).join(", ") }) : t("aiView.agents.hint")}
           pill={<Pill tone={agents.on ? "ok" : "off"}>{agents.on ? t("aiView.status.on") : t("aiView.status.off")}</Pill>}
         >
-          <Button size="sm" onClick={() => openSettings("agents")}>
+          <Button size="sm" onClick={() => openSettings("ai", "settings-agents")}>
             {agents.on ? t("aiView.agents.manage") : t("aiView.setUp")}
           </Button>
         </Feature>

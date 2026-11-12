@@ -31,5 +31,7 @@
     "off": "Off",
     "running": "Running"
   },
-  "setUp": "Set up"
+  "setUp": "Set up",
+  "beta": "Beta",
+  "betaHint": "Still being worked on: it works, and it may change."
 }

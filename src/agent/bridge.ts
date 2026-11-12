@@ -1,4 +1,4 @@
-// The window's side of the agent bridge (Settings › AI agents). The backend listens for the `mimikit mcp` relays that
+// The window's side of the agent bridge (Settings › AI). The backend listens for the `mimikit mcp` relays that
 // agent apps start and hands each tool call here (event "agent-call"). The call is checked against the apps the user
 // allowed, asking "Allow …?" the first time; run.ts runs it on the library this window holds; `agent_reply` answers.
 // Changes need the app's "Allow changes"; each one lands in the activity list (`activity`) with an Undo.

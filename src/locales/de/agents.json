@@ -20,7 +20,7 @@
   "allowedHint": "Ihre neuen Sitzungen verbinden sich ohne Nachfrage.",
   "forget": "Vergessen",
   "askTitle": "{{name}} erlauben, deine Bibliothek zu sehen?",
-  "askBody": "Es kann deine Bibliothek durchsuchen, Datei- und Ordnernamen, Tags und Notizen lesen und deine Assets ansehen. Es kann nichts ändern, außer du erlaubst es zusätzlich unter Einstellungen › KI-Agenten, wo du es auch jederzeit trennen kannst.",
+  "askBody": "Es kann deine Bibliothek durchsuchen, Datei- und Ordnernamen, Tags und Notizen lesen und deine Assets ansehen. Es kann nichts ändern, außer du erlaubst es zusätzlich unter Einstellungen › KI, wo du es auch jederzeit trennen kannst.",
   "allow": "Erlauben",
   "deny": "Nicht erlauben",
   "shown": "Gezeigt von {{name}}",

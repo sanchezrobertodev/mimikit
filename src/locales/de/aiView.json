@@ -31,5 +31,7 @@
     "off": "Aus",
     "running": "Läuft"
   },
-  "setUp": "Einrichten"
+  "setUp": "Einrichten",
+  "beta": "Beta",
+  "betaHint": "Noch in Arbeit: Es funktioniert, kann sich aber noch ändern."
 }

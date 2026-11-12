@@ -20,7 +20,7 @@
   "allowedHint": "Their new sessions connect without asking.",
   "forget": "Forget",
   "askTitle": "Allow {{name}} to see your library?",
-  "askBody": "It can search your library, read its file names, folders, tags and notes, and look at your assets. It can't change anything unless you also let it, in Settings › AI agents, where you can disconnect it at any time.",
+  "askBody": "It can search your library, read its file names, folders, tags and notes, and look at your assets. It can't change anything unless you also let it, in Settings › AI, where you can disconnect it at any time.",
   "allow": "Allow",
   "deny": "Don't allow",
   "shown": "Shown by {{name}}",

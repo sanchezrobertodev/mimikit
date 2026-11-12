@@ -6,7 +6,7 @@
   "sentTitle": "会发送给 Anthropic 的内容",
   "sent": "每张图片、每个模型、视频和字体的小预览，每个文件及其文件夹的名称，以及文本文件的前 2 KB。绝不发送完整文件或完整路径。音频按名称添加标签。",
   "model": "模型",
-  "modelHint": "可在设置 › Claude中更改。",
+  "modelHint": "可在设置 › AI中更改。",
   "mode": "发送方式",
   "modeNow": "立即",
   "modeBatch": "批处理，半价",

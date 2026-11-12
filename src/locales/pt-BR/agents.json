@@ -20,7 +20,7 @@
   "allowedHint": "As novas sessões deles se conectam sem perguntar.",
   "forget": "Esquecer",
   "askTitle": "Permitir que {{name}} veja sua biblioteca?",
-  "askBody": "Ele pode pesquisar sua biblioteca, ler nomes de arquivos, pastas, tags e notas, e ver seus recursos. Ele não pode alterar nada a menos que você também permita, em Configurações › Agentes de IA, onde você pode desconectá-lo a qualquer momento.",
+  "askBody": "Ele pode pesquisar sua biblioteca, ler nomes de arquivos, pastas, tags e notas, e ver seus recursos. Ele não pode alterar nada a menos que você também permita, em Configurações › IA, onde você pode desconectá-lo a qualquer momento.",
   "allow": "Permitir",
   "deny": "Não permitir",
   "shown": "Mostrado por {{name}}",
