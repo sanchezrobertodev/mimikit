@@ -1,8 +1,15 @@
 # Mimikit
 
-A desktop asset browser for game developers on Windows, macOS and Linux. Point it at your asset folders and it
-indexes every sprite, sound, model, font, video and data file so you can find, preview, tag and drag them into your
-engine. Mimikit was called Asset Den until 0.4.0.
+**Every game asset. Seen, sorted, managed.**
+
+<!-- Launch video: on github.com, edit this file and drop the video on the blank line below. -->
+
+
+A desktop asset manager for game developers on Windows, macOS and Linux. Point it at the folders your sprites, sounds,
+models, fonts and videos are spread across, and Mimikit shows them all in one visual library, every file as a
+thumbnail you can preview in place. Sort them with tags, ratings and collections, clear out duplicate copies, see what
+your library holds and what takes the space, then drag what you need into your engine. Mimikit was called Asset Den
+until 0.4.0.
 
 ![Mimikit browsing a sample library: folder tree, type chips, and image, video and 3D thumbnails](docs/screenshot-library.webp)
 
@@ -21,16 +28,6 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   **Include subfolders** switches between a folder's own files and everything below it.
 - **Browse**: a grid or list grouped by folder (or all together), type chips, sorting and a thumbnail-size slider.
   **More filters** narrows by extension, image size, file size, date, tags and rating.
-- **Search** (<kbd>Ctrl/⌘ K</kbd> or <kbd>/</kbd>): one box for assets, folders and actions, with `type:audio`,
-  `in:sprites`, `#player`, `size:>1mb`, `rating:>=4` (or `rating:3`, `rating:<2`) and `note:redo`. Its first result
-  applies the search to the grid.
-- **Ask** (<kbd>Ctrl/⌘ Enter</kbd> in the search box): describe what you want in plain words and Claude writes the
-  search for you, which you see and can change. Needs your own Anthropic API key. See [Ask](#ask).
-- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box, or `looks:red-potion-icon`): find images, 3D models,
-  videos and fonts by describing them, in any language ("red potion icon", "poción roja"), tagged or not, also in smart
-  collections, Ask and AI agents, and **Find related** in the side panel shows the assets closest in meaning to the
-  open one. Runs on
-  your computer after a one-time download, with no account or key. See [Search by meaning](#search-by-meaning).
 - **Side panel** (<kbd>Space</kbd>) and **full screen** (<kbd>Enter</kbd>) previews:
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
     TGA/PSD/TIFF via a decoded preview), and **Animate** to play a sprite sheet with a remembered grid and fps
@@ -43,19 +40,29 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
   files into a folder for a build or a handoff. **Save as smart collection** turns the current search and filters into
   a collection that keeps itself up to date. An open collection has the same type chips, search, filters, sort and
   layouts as the library. Most changes show a toast with **Undo**.
-- **Backups**: **Settings → Backups and storage** saves a copy of the library (folders, tags, ratings, notes,
-  collections, sprite grids) wherever you like, and restores one. Mimikit also keeps a backup a day, the last 5. Restoring saves the
-  current library first, so you can switch back.
-- **Drag out**: drag one card or a selection into Unity, Godot, Unreal, Blender or a folder. It always copies. In Unity, drop
-  onto the **Project** window: the Hierarchy and Scene view only take assets that are already in the project.
+- **Duplicates**: identical files side by side. Keep the one you want, then mark the rest as not duplicates or move
+  them to the Trash, with tags, favorites, ratings, notes and collections merged into the kept file.
+- **Insights**: totals, storage by type, the largest files and folders. Each row jumps to the matching assets.
+- **Search** (<kbd>Ctrl/⌘ K</kbd> or <kbd>/</kbd>): one box for assets, folders and actions, with `type:audio`,
+  `in:sprites`, `#player`, `size:>1mb`, `rating:>=4` (or `rating:3`, `rating:<2`) and `note:redo`. Its first result
+  applies the search to the grid.
+- **Ask** (<kbd>Ctrl/⌘ Enter</kbd> in the search box): describe what you want in plain words and Claude writes the
+  search for you, which you see and can change. Needs your own Anthropic API key. See [Ask](#ask).
+- **Search by meaning** (<kbd>Shift+Enter</kbd> in the search box, or `looks:red-potion-icon`): find images, 3D models,
+  videos and fonts by describing them, in any language ("red potion icon", "poción roja"), tagged or not, also in smart
+  collections, Ask and AI agents, and **Find related** in the side panel shows the assets closest in meaning to the
+  open one. Runs on
+  your computer after a one-time download, with no account or key. See [Search by meaning](#search-by-meaning).
 - **Find similar** and **search by colour**: the side panel finds images that look like the open one (resized,
   recoloured or lightly cropped copies included), and the Colour filter or `color:red` / `color:#ff8800` finds images by
   their main colours. Both need images analysed: the ones you browse are done as you go, **Analyse images** in
   **Settings → Library** does the rest (on spare CPU, with Pause and Cancel), and **Keep new and changed images
   analysed** keeps it current. Results say how many images they cover.
-- **Duplicates**: identical files side by side. Keep the one you want, then mark the rest as not duplicates or move
-  them to the Trash, with tags, favorites, ratings, notes and collections merged into the kept file.
-- **Insights**: totals, storage by type, the largest files and folders. Each row jumps to the matching assets.
+- **Drag out**: drag one card or a selection into Unity, Godot, Unreal, Blender or a folder. It always copies. In Unity, drop
+  onto the **Project** window: the Hierarchy and Scene view only take assets that are already in the project.
+- **Backups**: **Settings → Backups and storage** saves a copy of the library (folders, tags, ratings, notes,
+  collections, sprite grids) wherever you like, and restores one. Mimikit also keeps a backup a day, the last 5. Restoring saves the
+  current library first, so you can switch back.
 - **AI** (beta): every AI feature in one list, with how it stands and the next thing to do: [Ask](#ask),
   [Suggest tags](#suggest-tags) for the assets with no tags, [search by meaning](#search-by-meaning), and the
   [AI agents](#ai-agents-mcp) connected now, with what they did.
