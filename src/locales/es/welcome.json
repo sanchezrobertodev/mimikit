@@ -6,7 +6,7 @@
   "tips": "Consejos",
   "drag": {
     "title": "Arrastra a tu motor",
-    "body": "Suelta cualquier tarjeta en Unity, Godot o una carpeta para copiar el archivo ahí."
+    "body": "Suelta cualquier tarjeta en la ventana Project de Unity, en Godot o en una carpeta para copiar el archivo ahí."
   },
   "preview": {
     "title": "Vista previa sin salir",

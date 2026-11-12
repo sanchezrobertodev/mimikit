@@ -5,6 +5,12 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Changed
+
+- **The welcome tip says to drop into Unity's Project window.** Unity's Hierarchy and Scene view only take assets
+  that are already in the project, so a card dropped there failed with "Invalid AssetDatabase path". The README says
+  the same under **Drag out**.
+
 ## [0.14.0] - 2026-11-11
 
 ### Added
@@ -180,7 +186,7 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   can ask one to "find a coin sprite and tell me its path". Turn it on in **Settings → AI agents**, which shows the
   command or config to connect each app. Agents only read: nothing in the library or your files changes. Each app asks
   you first, and Settings lists the connected ones with Pause and Disconnect. An agent can also show you assets in the
-  library. See [AI agents](README.md#ai-agents-mcp).
+  library. See [AI agents](docs/ai-agents.md).
 - The sidebar's sections have icons.
 - Thumbnails show their rating (★ 4) next to the favorite heart: in the grid, the list and on Home. On Home this
   explains why an asset is under "Favorites and top rated".

@@ -6,7 +6,7 @@
   "tips": "Dicas",
   "drag": {
     "title": "Arraste para a sua engine",
-    "body": "Solte qualquer card no Unity, no Godot ou em uma pasta para copiar o arquivo para lá."
+    "body": "Solte qualquer card na janela Project do Unity, no Godot ou em uma pasta para copiar o arquivo para lá."
   },
   "preview": {
     "title": "Visualize sem sair daqui",

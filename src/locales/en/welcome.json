@@ -6,7 +6,7 @@
   "tips": "Tips",
   "drag": {
     "title": "Drag into your engine",
-    "body": "Drop any card into Unity, Godot or a folder to copy the file there."
+    "body": "Drop any card into Unity's Project window, Godot or a folder to copy the file there."
   },
   "preview": {
     "title": "Preview in place",

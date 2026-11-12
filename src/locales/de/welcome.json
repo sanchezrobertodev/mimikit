@@ -6,7 +6,7 @@
   "tips": "Tipps",
   "drag": {
     "title": "In deine Engine ziehen",
-    "body": "Zieh eine Karte in Unity, Godot oder einen Ordner, um die Datei dorthin zu kopieren."
+    "body": "Zieh eine Karte ins Project-Fenster von Unity, in Godot oder in einen Ordner, um die Datei dorthin zu kopieren."
   },
   "preview": {
     "title": "Direkt ansehen",
