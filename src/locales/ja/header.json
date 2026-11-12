@@ -5,7 +5,8 @@
     "favorites": "お気に入り",
     "collections": "コレクション",
     "duplicates": "重複",
-    "insights": "統計"
+    "insights": "統計",
+    "ai": "AI"
   },
   "favoritesIn": "<2/> <1>内の</1> <0>お気に入り</0>",
   "searchPlaceholder": "アセット、{{hash}}タグ、{{type}}を検索",

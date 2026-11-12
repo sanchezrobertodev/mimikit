@@ -38,7 +38,7 @@ const write = (title: string, idempotentHint: boolean, destructiveHint = true) =
 /** Tools that change the library: they need the user's "Allow changes" for the app (run.ts gate). */
 export const isChange = (name: string) => TOOLS.find((t) => t.name === name)?.annotations.readOnlyHint === false;
 
-const CHANGES = `Needs the user's "Allow changes" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most ${LIMITS.change} assets per call and ${LIMITS.perMinute} changes a minute.`;
+const CHANGES = `Needs the user's "Allow changes" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most ${LIMITS.change} assets per call and ${LIMITS.perMinute} changes a minute.`;
 const tagList = (what: string): Schema => ({ type: "array", items: { type: "string", maxLength: 65 }, minItems: 1, maxItems: 20, description: `${what} At most 20.` });
 const ids = (max: number, what: string): Schema => ({ type: "array", items: { type: "integer" }, minItems: 1, maxItems: max, description: `${what} At most ${max}.` });
 const object = (properties: Record<string, Schema> = {}, required: string[] = []): Schema => ({

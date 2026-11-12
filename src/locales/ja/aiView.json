@@ -1,0 +1,35 @@
+{
+  "ask": {
+    "hint": "Claude があなたの言葉を検索に変えます。検索に入力して {{keys}} を押してください。",
+    "button": "尋ねる…"
+  },
+  "tags": {
+    "untagged_other": "{{count}}個のアセットにタグがありません",
+    "allTagged": "すべてのアセットにタグがあります",
+    "suggest": "タグを提案…",
+    "review_other": "{{count}}個が確認待ち"
+  },
+  "meaning": {
+    "title": "意味で検索",
+    "hint": "写っているものからアセットを見つけます。無料で、何もこのコンピューターの外に出ません。",
+    "indexed": "{{total}}個中{{done}}個のアセットをこのコンピューター上でインデックス済み。検索で {{keys}} を押してください。",
+    "button": "検索…"
+  },
+  "agents": {
+    "hint": "Claude Code、Claude Desktop、Cursor など MCP に対応したアプリ",
+    "connected": "接続中: {{names}}",
+    "manage": "管理",
+    "moved": "AI ビューに移動しました。元に戻すもあります。",
+    "open": "開く"
+  },
+  "status": {
+    "ready": "準備完了",
+    "needsKey": "キーが必要",
+    "on": "オン",
+    "off": "オフ",
+    "running": "実行中"
+  },
+  "setUp": "設定する",
+  "beta": "ベータ",
+  "betaHint": "開発中です。動作しますが、今後変わる可能性があります。"
+}

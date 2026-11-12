@@ -8,7 +8,7 @@
   "sentTitle": "Ce qui part chez Anthropic",
   "sent": "Un petit aperçu de chaque image, modèle, vidéo et police, le nom de chaque fichier et celui de son dossier, et les 2 premiers Ko des fichiers texte. Jamais de fichiers entiers ni de chemins complets. L'audio est tagué d'après son nom.",
   "model": "Modèle",
-  "modelHint": "À changer dans Paramètres › Claude.",
+  "modelHint": "À changer dans Paramètres › IA.",
   "mode": "Envoi",
   "modeNow": "Tout de suite",
   "modeBatch": "Par lot, moitié prix",

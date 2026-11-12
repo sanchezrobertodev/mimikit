@@ -5,7 +5,8 @@
     "favorites": "Favoriten",
     "collections": "Sammlungen",
     "duplicates": "Duplikate",
-    "insights": "Statistiken"
+    "insights": "Statistiken",
+    "ai": "KI"
   },
   "favoritesIn": "<0>Favoriten</0> <1>in</1> <2/>",
   "searchPlaceholder": "Assets, {{hash}}Tags, {{type}} suchen",

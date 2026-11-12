@@ -1,0 +1,37 @@
+{
+  "ask": {
+    "hint": "Claude turns your words into a search. Type them in search, then press {{keys}}.",
+    "button": "Ask…"
+  },
+  "tags": {
+    "untagged_one": "{{count}} asset has no tags",
+    "untagged_other": "{{count}} assets have no tags",
+    "allTagged": "Every asset has tags",
+    "suggest": "Suggest tags…",
+    "review_one": "{{count}} to review",
+    "review_other": "{{count}} to review"
+  },
+  "meaning": {
+    "title": "Search by meaning",
+    "hint": "Finds assets by what they show. Free, and nothing leaves this computer.",
+    "indexed": "{{done}} of {{total}} assets indexed, on this computer. In search, press {{keys}}.",
+    "button": "Search…"
+  },
+  "agents": {
+    "hint": "Any app that speaks MCP, such as Claude Code, Claude Desktop or Cursor",
+    "connected": "Connected: {{names}}",
+    "manage": "Manage",
+    "moved": "Now in the AI view, with Undo.",
+    "open": "Open"
+  },
+  "status": {
+    "ready": "Ready",
+    "needsKey": "Needs key",
+    "on": "On",
+    "off": "Off",
+    "running": "Running"
+  },
+  "setUp": "Set up",
+  "beta": "Beta",
+  "betaHint": "Still being worked on: it works, and it may change."
+}

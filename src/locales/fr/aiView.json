@@ -1,0 +1,37 @@
+{
+  "ask": {
+    "hint": "Claude transforme vos mots en recherche. Tapez-les dans la recherche, puis appuyez sur {{keys}}.",
+    "button": "Demander…"
+  },
+  "tags": {
+    "untagged_one": "{{count}} ressource n'a pas de tags",
+    "untagged_other": "{{count}} ressources n'ont pas de tags",
+    "allTagged": "Toutes les ressources ont des tags",
+    "suggest": "Suggérer des tags…",
+    "review_one": "{{count}} à vérifier",
+    "review_other": "{{count}} à vérifier"
+  },
+  "meaning": {
+    "title": "Recherche par le sens",
+    "hint": "Trouve les ressources d'après ce qu'elles montrent. Gratuit, et rien ne quitte cet ordinateur.",
+    "indexed": "{{done}} ressources sur {{total}} indexées, sur cet ordinateur. Dans la recherche, appuyez sur {{keys}}.",
+    "button": "Rechercher…"
+  },
+  "agents": {
+    "hint": "Toute application compatible MCP, comme Claude Code, Claude Desktop ou Cursor",
+    "connected": "Connectés : {{names}}",
+    "manage": "Gérer",
+    "moved": "Désormais dans la vue IA, avec Annuler.",
+    "open": "Ouvrir"
+  },
+  "status": {
+    "ready": "Prêt",
+    "needsKey": "Clé manquante",
+    "on": "Activé",
+    "off": "Désactivé",
+    "running": "En cours"
+  },
+  "setUp": "Configurer",
+  "beta": "Bêta",
+  "betaHint": "Encore en chantier : ça marche, mais ça peut changer."
+}

@@ -55,12 +55,16 @@ byte-for-byte identical. "Copy to folder…" only ever creates new files.
 - **Duplicates**: identical files side by side. Keep the one you want, then mark the rest as not duplicates or move
   them to the Trash, with tags, favorites, ratings, notes and collections merged into the kept file.
 - **Insights**: totals, storage by type, the largest files and folders. Each row jumps to the matching assets.
-- **AI agents**: let Claude Code, Claude Desktop or another MCP app search your library and look at your assets
-  ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app asks first. See
-  [AI agents](#ai-agents-mcp).
-- **Turn AI off**: **Settings → General → AI features** hides Ask, Suggest tags and AI agents everywhere and turns
-  agents off. Your key, your tags and unreviewed suggestions stay for when you turn it back on. Search by meaning,
-  which runs on your computer, keeps its own switch.
+- **AI** (beta): every AI feature in one list, with how it stands and the next thing to do: [Ask](#ask),
+  [Suggest tags](#suggest-tags) for the assets with no tags, [search by meaning](#search-by-meaning), and the
+  [AI agents](#ai-agents-mcp) connected now, with what they did.
+- **AI agents**: let any app that speaks MCP, such as Claude Code, Claude Desktop or Cursor, search your library and
+  look at your assets ("find a coin sprite and tell me its path"). Off until you turn it on, read only, and each app
+  asks first. See [AI agents](#ai-agents-mcp).
+- **Turn AI on**: AI is in beta, so it's off at first. **Settings → General → AI features** shows the AI view, Ask,
+  Suggest tags and AI agents. Off hides them everywhere and turns agents off; your key, your tags and unreviewed
+  suggestions stay for when you turn it back on. Updating from an earlier version keeps it on. Search by meaning, which
+  runs on your computer, keeps its own switch.
 - **Updates** (Windows): the app checks for a new version on launch and installs it in place. See [Updates](#updates).
 - **Themes**: light, dark, black, midnight, sepia and two high-contrast themes, plus eight accent colours, in
   **Settings → Appearance**. The sidebar footer switches between System, Dark and Light.
@@ -164,11 +168,12 @@ The workflow needs two repository secrets (Settings → Secrets and variables �
 
 ## AI agents (MCP)
 
-Mimikit can let an AI agent app on your computer search your library and look at your assets: Claude Code, Claude
-Desktop, or any app that runs [MCP](https://modelcontextprotocol.io) servers. Ask it things like "find a coin sprite
-and tell me its path" or "which of my packs has a pixel font?". Agents only read until you turn on **Allow changes**
-for an app. Then it can also tag and rate assets, mark favorites, write notes, make collections and copy files into a
-folder, and each change can be undone. Agents can never move, rename or delete your files.
+Mimikit can let an AI agent app on your computer search your library and look at your assets: any app that runs
+[MCP](https://modelcontextprotocol.io) servers, such as Claude Code, Claude Desktop, Cursor or VS Code. Ask it things
+like "find a coin sprite and tell me its path" or "which of my packs has a pixel font?". Agents only read until you
+turn on **Allow changes** for an app. Then it can also tag and rate assets, mark favorites, write notes, make
+collections and copy files into a folder, and each change can be undone. Agents can never move, rename or delete your
+files.
 
 Nothing goes online through Mimikit. The agent app starts `mimikit mcp`, the same program with no window, which talks
 to the Mimikit you have open on the same computer. What the tools return goes to your agent app and from there to its
@@ -176,8 +181,9 @@ model: that part is up to the agent app.
 
 ### Set it up
 
-1. In Mimikit, turn on **Settings → AI agents → Let AI agents see your library**. Settings then shows the commands
-   below with the path of your copy of Mimikit filled in, each with **Copy**.
+1. In Mimikit, turn on **Settings → General → AI features**, then **Settings → AI → Let AI agents see your
+   library**. Settings then shows the commands below with the path of your copy of Mimikit filled in, each with
+   **Copy**.
 2. Connect your agent app, once:
 
    **Claude Code**
@@ -190,8 +196,9 @@ model: that part is up to the agent app.
    macOS the program is `/Applications/Mimikit.app/Contents/MacOS/mimikit`; on Linux, the AppImage or
    `/usr/bin/mimikit`.
 
-   **Claude Desktop**: add this to `claude_desktop_config.json` (Settings › Developer › Edit Config), then restart
-   Claude Desktop:
+   **Claude Desktop, Cursor and other apps with an `mcpServers` file**: add this to it, then restart the app. Claude
+   Desktop's is `claude_desktop_config.json` (Settings › Developer › Edit Config); Cursor's is `~/.cursor/mcp.json`
+   for every project, or `.cursor/mcp.json` for one:
 
    ```json
    {
@@ -204,11 +211,26 @@ model: that part is up to the agent app.
    }
    ```
 
+   **VS Code**: its `mcp.json` (in your user profile, or `.vscode/mcp.json` for one workspace) has `servers` instead,
+   and each one says its type:
+
+   ```json
+   {
+     "servers": {
+       "mimikit": {
+         "type": "stdio",
+         "command": "C:\\Users\\<you>\\AppData\\Local\\Mimikit\\mimikit.exe",
+         "args": ["mcp"]
+       }
+     }
+   }
+   ```
+
    **Other apps**: add a stdio MCP server whose command is the Mimikit program with the argument `mcp`.
 3. Ask the agent about your assets. The first time an app calls, Mimikit asks **Allow Claude Code to see your
-   library?** in the corner of its window (and in Settings → AI agents). Until you answer, or when Mimikit is closed or
+   library?** in the corner of its window (and in Settings → AI). Until you answer, or when Mimikit is closed or
    AI agents are off, the agent is told so and can say it to you; it still sees the list of tools.
-4. To let it organize too, turn on **Let Claude Code change your library** under the app in Settings → AI agents.
+4. To let it organize too, turn on **Let Claude Code change your library** under the app in Settings → AI.
    Until then a change fails with `read_only`, and the agent can ask you to turn it on.
 
 ### Things to try
@@ -272,10 +294,10 @@ An error says what happened and what to do, with a code: `not_running`, `not_all
 - **The switch**, off at first. Off stops listening and forgets the apps you allowed, so each one asks again.
 - **The first call of each app** asks you. **Don't allow** refuses that agent session; a new session asks again.
 - **Allow changes**, off at first for each allowed app, and kept until you turn it off or **Forget** the app.
-- **Connected agents** in Settings → AI agents lists each agent session with its calls. **Pause** refuses its changes
+- **Connected agents** in Settings → AI lists each agent session with its calls. **Pause** refuses its changes
   until you press **Resume**, while it can still search and look; **Disconnect** refuses that session from then on.
   **Allowed apps** has **Forget**.
-- **What agents did** lists the last 50 changes since Mimikit started, newest first, with the values they replaced.
+- **What agents did**, in the AI view, lists the last 50 changes since Mimikit started, newest first, with the values they replaced.
   **Undo last agent change** takes back the newest one still standing, all of a `batch` at once. Each change also shows
   a message with **Undo**, and **Ctrl+Z** (⌘Z) undoes it like your own changes. Undo leaves a value you changed
   yourself since as you left it, and removes a collection the agent made. Copied files stay: Mimikit never deletes
@@ -366,14 +388,14 @@ this into a search** (the first result when your words match nothing). Claude Ha
 syntax, here `type:audio forest dur:>1m`. The search goes into the box, where you can see and change it, and Mimikit
 runs it on your computer like one you typed. **Back to my words** puts your words back.
 
-- **Your own key.** Add an Anthropic API key in **Settings → Claude**
+- **Your own key.** Turn on **Settings → General → AI features**, then add an Anthropic API key in **Settings → AI**
   ([get one](https://platform.claude.com/settings/keys)). Mimikit keeps it in the system's credential store (Windows
   Credential Manager, macOS Keychain, Secret Service on Linux), never in the library, its settings or its logs. The
   window never sees it: Mimikit's backend calls `api.anthropic.com` itself. **Remove** deletes it.
 - **What's sent.** The words you typed, a description of the search syntax with examples, and the names of your 300
   most used tags, so `#tag` searches only use tags you have. Never file names, folder paths, file contents or
   thumbnails.
-- **Model and effort.** **Settings → Claude** picks the model, Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus
+- **Model and effort.** **Settings → AI** picks the model, Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus
   5.5, and the effort: how much it thinks before answering, Low (the default), Medium or High. A bigger model or more
   effort is slower and costs more, and Low on Haiku is enough for most searches.
 - **Cost.** Billed to your API account: about $0.00015 a search with Haiku 5.5 at Low (measured: about 1,500 tokens in
@@ -405,13 +427,13 @@ anything leaves your computer.
   instructions and the names of your 300 most used tags, so suggestions reuse them. Never whole files or full paths.
   Assets Claude was already asked about are left out unless you tick **Also ask again**; a file that changed since
   counts as new.
-- **Model.** **Settings → Claude → Suggest tags → Model** picks Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus 5.5,
+- **Model.** **Settings → AI → Suggest tags → Model** picks Claude Haiku 5.5 (the default), Sonnet 5.5 or Opus 5.5,
   always at low effort. See the pull request that added it for how the default was chosen.
 - **Cost.** Billed to your API account. Measured on 100 mixed assets at batch prices: about $0.02 per 1,000 assets with
   Haiku 5.5, $0.40 with Sonnet 5.5 and $0.80 with Opus 5.5. **Right away** costs twice as much per asset, which for
   50 assets is at most a few cents. The dialog estimates each run, and what it would cost if every reply ran as long
   as allowed. Both are estimates, not limits.
-- **Undo.** **Settings → Claude → Remove all AI tags** takes off every tag you accepted from a suggestion, after
+- **Undo.** **Settings → AI → Remove all AI tags** takes off every tag you accepted from a suggestion, after
   showing how many. Tags you added yourself stay, even ones Claude also suggested. Mimikit never changes your files.
 
 ## Develop

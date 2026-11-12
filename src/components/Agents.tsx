@@ -7,7 +7,7 @@ import { useStore } from "../store";
 import { Button } from "./ui";
 
 /**
- * Settings › AI agents › What agents did: the changes agents made since Mimikit started, newest first, with the values
+ * The AI view › AI agents › What agents did: the changes agents made since Mimikit started, newest first, with the values
  * they replaced, and Undo for the newest one still standing.
  */
 export function AgentActivity() {

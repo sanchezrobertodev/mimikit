@@ -734,9 +734,9 @@ export function gate(
   if (!s.allowed.includes(agent.name)) return "ask";
   if (!isChange(tool)) return "run";
   if (s.sessions.find((x) => x.pid === agent.pid)?.paused)
-    return errorResult("paused", "The user paused this agent's changes in Mimikit.", "Searching and looking still work. For changes, wait or ask the user to press Resume in Mimikit (Settings › AI agents). Don't retry in a loop.");
+    return errorResult("paused", "The user paused this agent's changes in Mimikit.", "Searching and looking still work. For changes, wait or ask the user to press Resume in Mimikit (Settings › AI). Don't retry in a loop.");
   if (!s.writers.includes(agent.name))
-    return errorResult("read_only", "The user hasn't let your app change their Mimikit library.", "Ask the user to turn on Allow changes for your app in Mimikit (Settings › AI agents), then call again. Searching and looking still work.");
+    return errorResult("read_only", "The user hasn't let your app change their Mimikit library.", "Ask the user to turn on Allow changes for your app in Mimikit (Settings › AI), then call again. Searching and looking still work.");
   const recent = s.made.filter((c) => c.by === agent.name && now - c.at < 60_000);
   if (recent.length >= LIMITS.perMinute) {
     const wait = Math.ceil((60_000 - (now - Math.min(...recent.map((c) => c.at)))) / 1000);

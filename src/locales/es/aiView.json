@@ -1,0 +1,37 @@
+{
+  "ask": {
+    "hint": "Claude convierte tus palabras en una búsqueda. Escríbelas en la búsqueda y pulsa {{keys}}.",
+    "button": "Preguntar…"
+  },
+  "tags": {
+    "untagged_one": "{{count}} recurso no tiene etiquetas",
+    "untagged_other": "{{count}} recursos no tienen etiquetas",
+    "allTagged": "Todos los recursos tienen etiquetas",
+    "suggest": "Sugerir etiquetas…",
+    "review_one": "{{count}} por revisar",
+    "review_other": "{{count}} por revisar"
+  },
+  "meaning": {
+    "title": "Búsqueda por significado",
+    "hint": "Encuentra recursos por lo que muestran. Gratis, y nada sale de este equipo.",
+    "indexed": "{{done}} de {{total}} recursos indexados, en este equipo. En la búsqueda, pulsa {{keys}}.",
+    "button": "Buscar…"
+  },
+  "agents": {
+    "hint": "Cualquier app compatible con MCP, como Claude Code, Claude Desktop o Cursor",
+    "connected": "Conectados: {{names}}",
+    "manage": "Gestionar",
+    "moved": "Ahora en la vista IA, con Deshacer.",
+    "open": "Abrir"
+  },
+  "status": {
+    "ready": "Listo",
+    "needsKey": "Falta la clave",
+    "on": "Activado",
+    "off": "Desactivado",
+    "running": "En curso"
+  },
+  "setUp": "Configurar",
+  "beta": "Beta",
+  "betaHint": "Aún en desarrollo: funciona, pero puede cambiar."
+}

@@ -5,7 +5,8 @@
     "favorites": "Favoritos",
     "collections": "Colecciones",
     "duplicates": "Duplicados",
-    "insights": "Estadísticas"
+    "insights": "Estadísticas",
+    "ai": "IA"
   },
   "favoritesIn": "<0>Favoritos</0> <1>en</1> <2/>",
   "searchPlaceholder": "Buscar recursos, {{hash}}etiquetas, {{type}}",

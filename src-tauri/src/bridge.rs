@@ -1,4 +1,4 @@
-//! The agent bridge (Settings › AI agents). While it's on, Mimikit listens on 127.0.0.1 for the `mimikit mcp` relays
+//! The agent bridge (Settings › AI). While it's on, Mimikit listens on 127.0.0.1 for the `mimikit mcp` relays
 //! that agent apps start (mcp.rs) and hands each tool call to the window, where the tools run (src/agent). It writes its
 //! port and a new random token to agent-bridge.json in the data folder, which only this user can read. A request must
 //! carry that token, name 127.0.0.1 as its Host (a page that rebinds a name sends that name) and have no Origin

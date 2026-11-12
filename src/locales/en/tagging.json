@@ -8,7 +8,7 @@
   "sentTitle": "What goes to Anthropic",
   "sent": "A small preview of each image, model, video and font, each file's name and the name of its folder, and the first 2 KB of text files. Never whole files or full paths. Audio is tagged from its name.",
   "model": "Model",
-  "modelHint": "Change it in Settings › Claude.",
+  "modelHint": "Change it in Settings › AI.",
   "mode": "Send",
   "modeNow": "Right away",
   "modeBatch": "As a batch, half price",

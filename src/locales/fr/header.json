@@ -5,7 +5,8 @@
     "favorites": "Favoris",
     "collections": "Collections",
     "duplicates": "Doublons",
-    "insights": "Statistiques"
+    "insights": "Statistiques",
+    "ai": "IA"
   },
   "favoritesIn": "<0>Favoris</0> <1>dans</1> <2/>",
   "searchPlaceholder": "Chercher des ressources, {{hash}}tags, {{type}}",

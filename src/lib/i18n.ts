@@ -5,6 +5,7 @@
 // formatted for the locale. With a numeric `count`, "key_one" / "key_other" (and "_zero", "_few", "_many" where the
 // language has them) are picked by Intl.PluralRules.
 import type agents from "../locales/en/agents.json";
+import type aiView from "../locales/en/aiView.json";
 import type analysis from "../locales/en/analysis.json";
 import type api from "../locales/en/api.json";
 import type app from "../locales/en/app.json";
@@ -38,6 +39,7 @@ import type welcome from "../locales/en/welcome.json";
 
 interface Resources {
   agents: typeof agents;
+  aiView: typeof aiView;
   analysis: typeof analysis;
   api: typeof api;
   app: typeof app;

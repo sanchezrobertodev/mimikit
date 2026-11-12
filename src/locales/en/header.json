@@ -5,7 +5,8 @@
     "favorites": "Favorites",
     "collections": "Collections",
     "duplicates": "Duplicates",
-    "insights": "Insights"
+    "insights": "Insights",
+    "ai": "AI"
   },
   "favoritesIn": "<0>Favorites</0> <1>in</1> <2/>",
   "searchPlaceholder": "Search assets, {{hash}}tags, {{type}}",

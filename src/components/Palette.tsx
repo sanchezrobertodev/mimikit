@@ -253,6 +253,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       [t("palette.actions.home"), () => s.go("home")],
       [t("palette.actions.duplicates"), () => s.go("duplicates")],
       [t("palette.actions.insights"), () => s.go("insights")],
+      ...(s.ai.on ? [[t("palette.actions.ai"), () => s.go("ai")] as [string, () => void]] : []),
       [t("palette.actions.newCollection"), () => void s.newCollection()],
       [t("palette.actions.favorites"), () => s.go("favorites", { kinds: [] })],
       [t("palette.actions.import"), () => {

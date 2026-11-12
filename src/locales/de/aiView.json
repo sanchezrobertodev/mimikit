@@ -1,0 +1,37 @@
+{
+  "ask": {
+    "hint": "Claude macht aus deinen Worten eine Suche. Tipp sie in die Suche und drück {{keys}}.",
+    "button": "Fragen…"
+  },
+  "tags": {
+    "untagged_one": "{{count}} Asset hat keine Tags",
+    "untagged_other": "{{count}} Assets haben keine Tags",
+    "allTagged": "Jedes Asset hat Tags",
+    "suggest": "Tags vorschlagen…",
+    "review_one": "{{count}} zu prüfen",
+    "review_other": "{{count}} zu prüfen"
+  },
+  "meaning": {
+    "title": "Suche nach Bedeutung",
+    "hint": "Findet Assets nach dem, was sie zeigen. Kostenlos, und nichts verlässt diesen Computer.",
+    "indexed": "{{done}} von {{total}} Assets indexiert, auf diesem Computer. Drück in der Suche {{keys}}.",
+    "button": "Suchen…"
+  },
+  "agents": {
+    "hint": "Jede App, die MCP spricht, etwa Claude Code, Claude Desktop oder Cursor",
+    "connected": "Verbunden: {{names}}",
+    "manage": "Verwalten",
+    "moved": "Jetzt in der KI-Ansicht, mit Rückgängig.",
+    "open": "Öffnen"
+  },
+  "status": {
+    "ready": "Bereit",
+    "needsKey": "Schlüssel fehlt",
+    "on": "An",
+    "off": "Aus",
+    "running": "Läuft"
+  },
+  "setUp": "Einrichten",
+  "beta": "Beta",
+  "betaHint": "Noch in Arbeit: Es funktioniert, kann sich aber noch ändern."
+}

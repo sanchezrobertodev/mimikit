@@ -73,7 +73,7 @@ pub fn remove_api_key(app: AppHandle) -> Result<(), String> {
     }
 }
 
-/// The models Settings › Claude offers (AI_MODELS in src/lib/prefs.ts). Any other value is refused when a command's
+/// The models Settings › AI offers (AI_MODELS in src/lib/prefs.ts). Any other value is refused when a command's
 /// arguments are read, so the window can't use a model or effort the setting doesn't show.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum Model {

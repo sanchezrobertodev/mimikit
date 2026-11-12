@@ -1,0 +1,35 @@
+{
+  "ask": {
+    "hint": "Claude 把你的话变成搜索。在搜索框中输入，然后按 {{keys}}。",
+    "button": "询问…"
+  },
+  "tags": {
+    "untagged_other": "{{count}} 个资源没有标签",
+    "allTagged": "所有资源都有标签",
+    "suggest": "建议标签…",
+    "review_other": "{{count}} 个待审阅"
+  },
+  "meaning": {
+    "title": "按含义搜索",
+    "hint": "按资源展示的内容找到它们。免费，且任何内容都不会离开这台电脑。",
+    "indexed": "已在这台电脑上为 {{total}} 个资源中的 {{done}} 个建立索引。在搜索中按 {{keys}}。",
+    "button": "搜索…"
+  },
+  "agents": {
+    "hint": "Claude Code、Claude Desktop、Cursor 等支持 MCP 的应用",
+    "connected": "已连接：{{names}}",
+    "manage": "管理",
+    "moved": "已移到 AI 视图，可撤销。",
+    "open": "打开"
+  },
+  "status": {
+    "ready": "就绪",
+    "needsKey": "需要密钥",
+    "on": "开",
+    "off": "关",
+    "running": "进行中"
+  },
+  "setUp": "设置",
+  "beta": "测试版",
+  "betaHint": "仍在完善中：可以使用，但之后可能会有变化。"
+}

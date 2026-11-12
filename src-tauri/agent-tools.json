@@ -390,7 +390,7 @@
   },
   {
     "name": "tag",
-    "description": "Add and remove tags on assets. Use the user's own tags (list_tags) where they fit rather than new spellings. Tags are saved lowercase, 1 to 64 characters, without #. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
+    "description": "Add and remove tags on assets. Use the user's own tags (list_tags) where they fit rather than new spellings. Tags are saved lowercase, 1 to 64 characters, without #. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -439,7 +439,7 @@
   },
   {
     "name": "rate",
-    "description": "Set the star rating of assets, 1 to 5, or 0 to clear it. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
+    "description": "Set the star rating of assets, 1 to 5, or 0 to clear it. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -475,7 +475,7 @@
   },
   {
     "name": "favorite",
-    "description": "Mark assets as the user's favorites, or unmark them. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
+    "description": "Mark assets as the user's favorites, or unmark them. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -509,7 +509,7 @@
   },
   {
     "name": "note",
-    "description": "Set the note on one asset (what search's note: finds and the user reads in the side panel). It replaces the asset's note; an empty note clears it. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
+    "description": "Set the note on one asset (what search's note: finds and the user reads in the side panel). It replaces the asset's note; an empty note clears it. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -540,7 +540,7 @@
   },
   {
     "name": "collect",
-    "description": "Make a collection, or add assets to one or take them out.\n- New collection: name, and ids in add to put in it.\n- New smart collection: name and search. Its assets are whatever matches the search, now and later.\n- Change one: collection (an id from list_collections) with add, remove or both. A smart collection's assets follow its search, so they can't be added or removed.\nThe library's files stay where they are; collections only group them.\nNeeds the user's \"Allow changes\" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
+    "description": "Make a collection, or add assets to one or take them out.\n- New collection: name, and ids in add to put in it.\n- New smart collection: name and search. Its assets are whatever matches the search, now and later.\n- Change one: collection (an id from list_collections) with add, remove or both. A smart collection's assets follow its search, so they can't be added or removed.\nThe library's files stay where they are; collections only group them.\nNeeds the user's \"Allow changes\" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -725,7 +725,7 @@
   },
   {
     "name": "batch",
-    "description": "Several changes as one step: the user sees one entry in Mimikit's activity list, and one Undo takes all of it back. Each change is { tool, args }, with tool one of tag, rate, favorite, note or collect, and args as that tool takes them. All are checked before any is made, then made in order. At most 20 changes and 500 assets in all. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI agents). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
+    "description": "Several changes as one step: the user sees one entry in Mimikit's activity list, and one Undo takes all of it back. Each change is { tool, args }, with tool one of tag, rate, favorite, note or collect, and args as that tool takes them. All are checked before any is made, then made in order. At most 20 changes and 500 assets in all. Needs the user's \"Allow changes\" for your app in Mimikit (Settings › AI). Each call is one step in Mimikit's activity list, which the user can undo; for a task of several changes, use batch so one Undo takes it all back. At most 500 assets per call and 30 changes a minute.",
     "inputSchema": {
       "type": "object",
       "properties": {
