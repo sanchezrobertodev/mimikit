@@ -14,7 +14,7 @@
   "spriteGrid": "列と行は1〜1024、fpsは1〜60の範囲で指定してください。",
   "scanning": "このフォルダーはスキャン中です。完了してからもう一度お試しください。",
   "noPreview": "この種類のファイルはプレビューできません",
-  "similarTypes": "「類似を検索」はPNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO画像で使えます。",
+  "similarTypes": "「類似を検索」はPNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO、DDS、EXR、HDR、QOI画像で使えます。",
   "couldntRead": "「{{name}}」を読み込めませんでした：{{error}}",
   "trashFailed": "「{{name}}」をごみ箱に移動できませんでした：{{error}}",
   "notIdentical": "「{{path}}」は同一ではなくなったため、何も移動していません。",

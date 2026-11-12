@@ -5,6 +5,21 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **Previews for more game formats**, with thumbnails, in the side panel and full screen:
+  - **Images: DDS, OpenEXR, Radiance HDR and QOI.** EXR and HDR are tone mapped, so a bright sky or sun isn't blown
+    out. Find similar, search by colour and search by meaning cover them too. DDS covers DXT1, DXT3 and DXT5
+    (BC1–BC3); a BC7 or uncompressed DDS keeps a plain card.
+  - **3D models: MagicaVoxel `.vox`, Collada `.dae`, `.3ds` and `.ply`.** Collada and 3DS textures load from the
+    model's folder, PLY vertex colours show, and a PLY without faces (a scan) shows as a point cloud.
+  - **Compressed glTF and GLB**: files compressed with Draco, or with KTX2 textures (`KHR_texture_basisu`), now load
+    instead of failing. The decoders ship with Mimikit, so nothing is downloaded.
+  - **More text and data files**: Tiled JSON (`.tmj`, `.tsj`), LDtk (`.ldtk`, `.ldtkl`), TexturePacker (`.plist`,
+    `.tpsheet`), BMFont (`.fnt`), Unity's YAML assets (`.prefab`, `.mat`, `.asset`, `.anim`, `.controller`, `.unity`)
+    and shaders (`.hlsli`, `.cginc`, `.compute`, `.comp`, `.shadergraph`).
+  - Files of these types already in your library show as their new type from the next launch, without a rescan.
+
 ### Changed
 
 - **The welcome tip says to drop into Unity's Project window.** Unity's Hierarchy and Scene view only take assets

@@ -14,7 +14,7 @@
   "spriteGrid": "Utilisez de 1 à 1024 colonnes et lignes, et de 1 à 60 fps.",
   "scanning": "Ce dossier est en cours de scan. Réessayez quand ce sera terminé.",
   "noPreview": "Pas d'aperçu pour ce type de fichier",
-  "similarTypes": "Trouver des similaires fonctionne avec les images PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF et ICO.",
+  "similarTypes": "Trouver des similaires fonctionne avec les images PNG, JPEG, GIF, WebP, BMP, TGA, PSD, TIFF, ICO, DDS, EXR, HDR et QOI.",
   "couldntRead": "Impossible de lire {{name}} : {{error}}",
   "trashFailed": "Impossible de mettre {{name}} à la Corbeille : {{error}}",
   "notIdentical": "{{path}} n'est plus identique, rien n'a donc été déplacé.",

@@ -14,7 +14,7 @@
   "spriteGrid": "列数和行数须为 1 到 1024，帧率须为 1 到 60 fps。",
   "scanning": "此文件夹正在扫描中。请在扫描完成后重试。",
   "noPreview": "此文件类型无法预览",
-  "similarTypes": "“查找相似”适用于 PNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF 和 ICO 图片。",
+  "similarTypes": "“查找相似”适用于 PNG、JPEG、GIF、WebP、BMP、TGA、PSD、TIFF、ICO、DDS、EXR、HDR 和 QOI 图片。",
   "couldntRead": "无法读取 {{name}}：{{error}}",
   "trashFailed": "无法将 {{name}} 移到回收站：{{error}}",
   "notIdentical": "{{path}} 已不再完全相同，因此未移动任何文件。",
