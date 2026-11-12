@@ -1,16 +1,17 @@
 //! The first frame of an Aseprite file (.ase, .aseprite) with its visible layers flattened, for thumbnails and
 //! previews. Format: https://github.com/aseprite/aseprite/blob/main/docs/ase-file-specs.md
 //!
-//! shortcut: every layer is drawn in Normal mode, tilemap layers are skipped and only the new palette chunk (Aseprite
-//! 1.2+) is read, so other blend modes, tilemaps and indexed files from older versions look wrong; upgrade if users
-//! report it.
+//! shortcut: every layer is drawn in Normal mode, tilemap layers are skipped and 6-bit palettes (chunk 0x0011, from
+//! very old files) aren't read, so other blend modes and tilemaps look wrong; upgrade if users report it.
 
 use std::io::Read;
 
 use image::RgbaImage;
 
-/// Largest canvas or cel decoded, in pixels (8192×8192).
+/// Largest canvas or cel decoded, in pixels (8192×8192); also caps the canvases groups are composited on.
 const MAX_PIXELS: usize = 1 << 26;
+/// Deepest group nesting drawn, so drawing can't run out of stack.
+const MAX_DEPTH: usize = 64;
 const NOT_ASE: &str = "Not an Aseprite file";
 
 fn u16_at(b: &[u8], i: usize) -> Option<u16> {
@@ -27,8 +28,12 @@ pub fn size(header: &[u8]) -> Option<(u32, u32)> {
 }
 
 struct Layer {
-    /// Opacity with its groups' applied; None when it or a group it's in is hidden.
-    opacity: Option<u32>,
+    /// Visible and not a reference layer (those are never exported).
+    shown: bool,
+    group: bool,
+    /// The group it's in.
+    parent: Option<usize>,
+    opacity: u32,
     background: bool,
 }
 
@@ -41,6 +46,15 @@ struct Cel {
     w: usize,
     h: usize,
     pixels: Vec<u8>,
+}
+
+/// The first frame's layers and cels, and what drawing them needs.
+struct Sprite {
+    layers: Vec<Layer>,
+    cels: Vec<Cel>,
+    bpp: usize,
+    palette: [[u8; 4]; 256],
+    transparent: u8,
 }
 
 pub fn first_frame(b: &[u8]) -> Result<RgbaImage, String> {
@@ -60,7 +74,6 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
         return Some(Err(format!("A {w}×{h} Aseprite canvas is too large to draw")));
     }
     let flags = u32_at(b, 14)?;
-    let transparent = *b.get(28)?;
     let frame = b.get(128..)?;
     if u16_at(frame, 4)? != 0xF1FA {
         return None;
@@ -71,11 +84,16 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
         n => n,
     };
 
-    let mut layers: Vec<Layer> = Vec::new();
-    // The opacity each open group passes to its children, by child level.
-    let mut groups: Vec<Option<u32>> = Vec::new();
-    let mut palette = [[0u8; 4]; 256];
-    let mut cels = Vec::new();
+    let mut s = Sprite {
+        layers: Vec::new(),
+        cels: Vec::new(),
+        bpp,
+        palette: [[0; 4]; 256],
+        transparent: *b.get(28)?,
+    };
+    // The open groups, by child level.
+    let mut open: Vec<usize> = Vec::new();
+    let mut new_palette = false;
     let mut at = 16;
     for _ in 0..chunks {
         let len = u32_at(frame, at)? as usize;
@@ -85,24 +103,28 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
         match kind {
             0x2004 => {
                 let lflags = u16_at(d, 0)?;
-                let level = usize::from(u16_at(d, 4)?);
-                // Layer opacity is only valid when the header says so; group opacity only with its own flag.
-                let own = if flags & 1 != 0 { u32::from(*d.get(12)?) } else { 255 };
-                // Visible, and not a reference layer (those are never exported).
-                let shown = lflags & 1 != 0 && lflags & 64 == 0;
-                groups.truncate(level);
-                let parent = groups.last().copied().unwrap_or(Some(255));
-                let opacity = parent.filter(|_| shown).map(|p| p * own / 255);
-                let is_group = u16_at(d, 2)? == 1;
-                groups.push(if is_group && flags & 2 == 0 {
-                    parent.filter(|_| shown)
+                let group = u16_at(d, 2)? == 1;
+                // Layer opacity is only valid when the header says so; group opacity only with its own flag too.
+                let valid = if group { 3 } else { 1 };
+                let opacity = if flags & valid == valid {
+                    u32::from(*d.get(12)?)
                 } else {
-                    opacity
-                });
-                layers.push(Layer {
+                    255
+                };
+                open.truncate(usize::from(u16_at(d, 4)?));
+                s.layers.push(Layer {
+                    shown: lflags & 1 != 0 && lflags & 64 == 0,
+                    group,
+                    parent: open.last().copied(),
                     opacity,
                     background: lflags & 8 != 0,
                 });
+                if group {
+                    if open.len() == MAX_DEPTH {
+                        return Some(Err("Aseprite groups are nested too deeply to draw".into()));
+                    }
+                    open.push(s.layers.len() - 1);
+                }
             }
             0x2005 => {
                 let (cw, ch) = (usize::from(u16_at(d, 16)?), usize::from(u16_at(d, 18)?));
@@ -126,7 +148,7 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
                 if pixels.len() != want {
                     return None;
                 }
-                cels.push(Cel {
+                s.cels.push(Cel {
                     layer: usize::from(u16_at(d, 0)?),
                     x: i32::from(u16_at(d, 2)? as i16),
                     y: i32::from(u16_at(d, 4)? as i16),
@@ -138,9 +160,10 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
                 });
             }
             0x2019 => {
+                new_palette = true;
                 let (first, last) = (u32_at(d, 4)? as usize, u32_at(d, 8)? as usize);
                 let mut p = 20;
-                for slot in palette.iter_mut().take(last.saturating_add(1)).skip(first) {
+                for slot in s.palette.iter_mut().take(last.saturating_add(1)).skip(first) {
                     let e = d.get(p..p + 6)?;
                     *slot = [e[2], e[3], e[4], e[5]];
                     p += 6;
@@ -149,34 +172,90 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
                     }
                 }
             }
+            // The old palette chunk: Aseprite 1.3.5+ writes only this one for opaque palettes of up to 256 colours.
+            0x0004 if !new_palette => {
+                let (mut p, mut slot) = (2, 0);
+                for _ in 0..u16_at(d, 0)? {
+                    slot += usize::from(*d.get(p)?); // entries skipped since the last packet
+                    let n = match *d.get(p + 1)? {
+                        0 => 256,
+                        n => usize::from(n),
+                    };
+                    p += 2;
+                    for _ in 0..n {
+                        let e = d.get(p..p + 3)?;
+                        if let Some(c) = s.palette.get_mut(slot) {
+                            *c = [e[0], e[1], e[2], 255];
+                        }
+                        (p, slot) = (p + 3, slot + 1);
+                    }
+                }
+            }
             _ => {}
         }
     }
 
-    // Cels draw in layer order, moved by their z-index; on a tie the lower z-index goes first.
-    cels.sort_by_key(|c| (c.layer as i32 + c.z, c.z));
     let mut canvas = RgbaImage::new(w, h);
-    for c in &cels {
-        let Some(layer) = layers.get(c.layer) else { continue };
-        let Some(opacity) = layer.opacity else { continue };
-        let opacity = opacity * c.opacity / 255;
+    s.draw(&mut canvas, None, 255, 1);
+    Some(Ok(canvas))
+}
+
+impl Sprite {
+    /// Draws the shown layers in `group` (None for the top level) onto `canvas` at `opacity`, in layer order with
+    /// cels moved by their z-index. A group that isn't opaque is composited on its own canvas first, as the format
+    /// asks, while the `canvases` in use fit in MAX_PIXELS; past that its opacity goes to each child instead.
+    fn draw(&self, canvas: &mut RgbaImage, group: Option<usize>, opacity: u32, canvases: usize) {
+        let inside = |l: &Layer| l.shown && l.parent == group;
+        let cels = self
+            .cels
+            .iter()
+            .filter(|c| self.layers.get(c.layer).is_some_and(|l| inside(l) && !l.group));
+        let groups = self.layers.iter().enumerate().filter(|(_, l)| inside(l) && l.group);
+        let mut items: Vec<(i32, i32, usize, Option<&Cel>)> = cels
+            .map(|c| (c.layer as i32 + c.z, c.z, c.layer, Some(c)))
+            .chain(groups.map(|(i, _)| (i as i32, 0, i, None)))
+            .collect();
+        // On a tie the lower z-index goes first.
+        items.sort_by_key(|&(order, z, ..)| (order, z));
+        let pixels = canvas.width() as usize * canvas.height() as usize;
+        for (_, _, i, cel) in items {
+            let layer = &self.layers[i];
+            let opacity = opacity * layer.opacity / 255;
+            match cel {
+                Some(c) => self.draw_cel(canvas, c, layer.background, opacity * c.opacity / 255),
+                None if layer.opacity == 255 || (canvases + 1) * pixels > MAX_PIXELS => {
+                    self.draw(canvas, Some(i), opacity, canvases)
+                }
+                None => {
+                    let mut own = RgbaImage::new(canvas.width(), canvas.height());
+                    self.draw(&mut own, Some(i), 255, canvases + 1);
+                    for (d, s) in canvas.pixels_mut().zip(own.pixels()) {
+                        over(&mut d.0, s.0, u32::from(s[3]) * opacity / 255);
+                    }
+                }
+            }
+        }
+    }
+
+    fn draw_cel(&self, canvas: &mut RgbaImage, c: &Cel, background: bool, opacity: u32) {
+        let (w, h) = (canvas.width() as i32, canvas.height() as i32);
         for row in 0..c.h {
             let y = c.y + row as i32;
-            if y < 0 || y >= h as i32 {
+            if y < 0 || y >= h {
                 continue;
             }
             for col in 0..c.w {
                 let x = c.x + col as i32;
-                if x < 0 || x >= w as i32 {
+                if x < 0 || x >= w {
                     continue;
                 }
-                let i = (row * c.w + col) * bpp;
-                let px = match bpp {
+                let i = (row * c.w + col) * self.bpp;
+                let px = match self.bpp {
                     4 => [c.pixels[i], c.pixels[i + 1], c.pixels[i + 2], c.pixels[i + 3]],
                     2 => [c.pixels[i], c.pixels[i], c.pixels[i], c.pixels[i + 1]],
                     // The transparent index is see-through everywhere but on the background layer.
-                    _ if c.pixels[i] == transparent && !layer.background => continue,
-                    _ => palette[usize::from(c.pixels[i])],
+                    _ if c.pixels[i] == self.transparent && !background => continue,
+                    _ => self.palette[usize::from(c.pixels[i])],
                 };
                 over(
                     &mut canvas.get_pixel_mut(x as u32, y as u32).0,
@@ -186,7 +265,6 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
             }
         }
     }
-    Some(Ok(canvas))
 }
 
 /// Draws `s` with alpha `a` over `d` (straight, not premultiplied, alpha).
@@ -387,5 +465,54 @@ pub mod tests {
         let mut deep = file(2, 2, 32, 0, &[]);
         deep[12] = 24;
         assert!(first_frame(&deep).is_err());
+        let nested: Vec<Vec<u8>> = (0..=MAX_DEPTH as u16).map(|level| layer(1, 1, level, 255)).collect();
+        assert!(first_frame(&file(1, 1, 32, 0, &nested)).is_err());
+    }
+
+    /// An old-style palette chunk of (entries skipped, colours) packets.
+    fn old_palette(packets: &[(u8, &[[u8; 3]])]) -> Vec<u8> {
+        let mut d = (packets.len() as u16).to_le_bytes().to_vec();
+        for (skip, colors) in packets {
+            d.extend_from_slice(&[*skip, colors.len() as u8]);
+            d.extend(colors.concat());
+        }
+        chunk(0x0004, &d)
+    }
+
+    #[test]
+    fn reads_the_old_palette_chunk() {
+        let old = old_palette(&[(0, &[[0, 0, 0], [255, 0, 0]]), (1, &[[0, 0, 255]])]);
+        let art = [layer(1, 0, 0, 255), cel(0, 0, 0, 3, 1, &[0, 1, 3], false)];
+        let img = first_frame(&file(3, 1, 8, 0, &[&[old.clone()][..], &art].concat())).unwrap();
+        assert_eq!((img.get_pixel(1, 0).0, img.get_pixel(2, 0).0), (RED, BLUE));
+
+        // A new palette chunk wins, before or after it.
+        let green = [0, 255, 0, 255];
+        let new = palette(&[[0; 4], green, [0; 4], green]);
+        for both in [[old.clone(), new.clone()], [new, old]] {
+            let img = first_frame(&file(3, 1, 8, 0, &[&both[..], &art].concat())).unwrap();
+            assert_eq!((img.get_pixel(1, 0).0, img.get_pixel(2, 0).0), (green, green));
+        }
+    }
+
+    #[test]
+    fn composites_translucent_groups_on_their_own() {
+        let mut f = file(
+            1,
+            1,
+            32,
+            0,
+            &[
+                layer(1, 1, 0, 128), // half-opacity group of two opaque layers
+                layer(1, 0, 1, 255),
+                layer(1, 0, 1, 255),
+                cel(1, 0, 0, 1, 1, &RED, false),
+                cel(2, 0, 0, 1, 1, &BLUE, false),
+            ],
+        );
+        f[14] = 3; // group opacity is valid
+        assert_eq!(first_frame(&f).unwrap().get_pixel(0, 0).0, [0, 0, 255, 128]);
+        f[14] = 1;
+        assert_eq!(first_frame(&f).unwrap().get_pixel(0, 0).0, BLUE);
     }
 }

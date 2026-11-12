@@ -232,8 +232,8 @@ identical. "Copy to folder…" only ever creates new files.
 ## Known limits
 
 - PSD previews use the flattened composite. Some layered or 16-bit files fall back to an icon.
-- Aseprite files show their first frame only, and every layer is drawn in Normal mode: layers with other blend modes,
-  tilemap layers and indexed files from Aseprite before 1.2 can look different than in Aseprite.
+- Aseprite files show their first frame only, and every layer is drawn in Normal mode: layers with other blend modes
+  and tilemap layers can look different than in Aseprite.
 - Blender files have no 3D view, only the 128×128 preview Blender saves in them. Files saved without one (Blender's
   **File Preview Type** set to None) show a plain card.
 - AIFF sounds longer than about 25 minutes (in stereo) don't play.
