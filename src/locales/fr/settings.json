@@ -24,6 +24,8 @@
     "startViewHint": "La vue affichée au lancement de Mimikit.",
     "startViewHome": "Accueil",
     "startViewLibrary": "Bibliothèque",
+    "hoverSound": "Lire les sons au survol",
+    "hoverSoundHint": "Les cartes et lignes audio jouent tant que le pointeur reste dessus. Jamais si le système réduit les animations.",
     "thumbSize": "Taille des miniatures",
     "thumbSizeHint": "Taille des cartes dans la grille. Le curseur au-dessus de la grille la modifie aussi.",
     "thumbSizeValue": "{{size}} px",

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { Asset } from "../types";
 import { groupByFolder, noFilters, visibleAssets, type Scope } from "./filter.ts";
 import { ancestorKeys, buildTree, parentOf, pathTo } from "./folders.ts";
-import { rootLabel } from "./format.ts";
+import { differingParts, rootLabel } from "./format.ts";
 
 const asset = (id: number, relPath: string, size = 10, rootId = 1): Asset => ({
   id,
@@ -75,6 +75,10 @@ const twins = [
 ];
 assert.deepEqual(twins.map((r) => rootLabel(twins, r.id)), ["files · assets", "files · audio", "files · me", "files · you", "sprites"]);
 assert.equal(rootLabel(twins, 99), "");
+// Duplicate groups show where copies differ: shared leading folders go, each keeps at least its last part.
+assert.deepEqual(differingParts(["library/models/3ds/", "library/models/collada/tex maps/crate.png"]), ["3ds/", "collada/tex maps/crate.png"]);
+assert.deepEqual(differingParts(["lib/sprites/", "lib/sprites/b.png", "lib/sprites/"]), ["sprites/", "sprites/b.png", "sprites/"]);
+assert.deepEqual(differingParts(["audio/", "art/x/"]), ["audio/", "art/x/"]);
 const twinGroups = groupByFolder([asset(1, "a.png", 1, 1), asset(2, "art/b.png", 1, 1), asset(3, "c.png", 1, 2)], twins.slice(0, 2));
 assert.deepEqual(twinGroups.map((g) => g.label), ["files · assets", "files · assets/art", "files · audio"]);
 console.log("folder tests passed");

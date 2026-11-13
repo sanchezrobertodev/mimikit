@@ -24,6 +24,8 @@
     "startViewHint": "Die Ansicht, mit der Mimikit startet.",
     "startViewHome": "Start",
     "startViewLibrary": "Bibliothek",
+    "hoverSound": "Töne beim Überfahren abspielen",
+    "hoverSoundHint": "Audio-Karten und -Zeilen spielen, solange der Mauszeiger darauf ruht. Nie, wenn das System Bewegung reduziert.",
     "thumbSize": "Vorschaubildgröße",
     "thumbSizeHint": "Kartengröße im Raster. Der Regler über dem Raster ändert sie ebenfalls.",
     "thumbSizeValue": "{{size}}px",

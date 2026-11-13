@@ -25,7 +25,7 @@ const titles = {
 };
 
 export function Header() {
-  const { view, query, folder, setPalette, importFolder, fullscreen, setFullscreen } = useStore();
+  const { view, query, folder, roots, setPalette, importFolder, fullscreen, setFullscreen } = useStore();
   return (
     <div className="flex h-[60px] flex-none items-center gap-3.5 border-b border-line-soft px-7">
       {(view === "library" || view === "favorites") && folder ? (
@@ -59,7 +59,8 @@ export function Header() {
           </span>
         </button>
       )}
-      <Button variant="accent" className={clsx("h-9 px-4", view === "home" && "ml-auto")} onClick={() => void importFolder()}>
+      {/* Secondary until there's a library: the welcome screen's own Import button is the one to press. */}
+      <Button variant={roots.length ? "accent" : "outline"} className={clsx("h-9 px-4", view === "home" && "ml-auto")} onClick={() => void importFolder()}>
         {t("header.import")}
       </Button>
       {/* The app window, not the asset viewer: top right, where people look to leave full screen. */}

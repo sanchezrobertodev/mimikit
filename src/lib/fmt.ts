@@ -4,6 +4,8 @@ import { KINDS, type Kind } from "../types";
 import { formatLocale, t } from "./i18n";
 
 export const kindLabel = Object.fromEntries(KINDS.map((k) => [k, t(`fmt.kinds.${k}`)])) as Record<Kind, string>;
+/** The type of one asset ("Image"), where kindLabel names the group ("Images"). */
+export const kindOne = Object.fromEntries(KINDS.map((k) => [k, t(`fmt.kindOne.${k}`)])) as Record<Kind, string>;
 
 const nf = new Intl.NumberFormat(formatLocale());
 const nf1 = new Intl.NumberFormat(formatLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
