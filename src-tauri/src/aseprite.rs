@@ -1,14 +1,16 @@
-//! The first frame of an Aseprite file (.ase, .aseprite) with its visible layers flattened, for thumbnails and
-//! previews. Format: https://github.com/aseprite/aseprite/blob/main/docs/ase-file-specs.md
+//! Aseprite files (.ase, .aseprite) with their visible layers flattened: the first frame for thumbnails and previews,
+//! every frame side by side for Animate. Format: https://github.com/aseprite/aseprite/blob/main/docs/ase-file-specs.md
 //!
 //! shortcut: every layer is drawn in Normal mode, tilemap layers are skipped and 6-bit palettes (chunk 0x0011, from
 //! very old files) aren't read, so other blend modes and tilemaps look wrong; upgrade if users report it.
 
 use std::io::Read;
+use std::rc::Rc;
 
 use image::RgbaImage;
 
-/// Largest canvas or cel decoded, in pixels (8192×8192); also caps the canvases groups are composited on.
+/// Largest canvas or cel decoded, in pixels (8192×8192); also caps the canvases groups are composited on and the strip
+/// of frames Animate plays.
 const MAX_PIXELS: usize = 1 << 26;
 /// Deepest group nesting drawn, so drawing can't run out of stack.
 const MAX_DEPTH: usize = 64;
@@ -25,6 +27,25 @@ fn u32_at(b: &[u8], i: usize) -> Option<u32> {
 /// Width and height from the start of the file's 128-byte header.
 pub fn size(header: &[u8]) -> Option<(u32, u32)> {
     (u16_at(header, 4)? == 0xA5E0).then_some((u16_at(header, 8)?.into(), u16_at(header, 10)?.into()))
+}
+
+/// Each frame's bytes and duration in ms, in order; stops at the first frame that is cut short.
+fn frames_of(b: &[u8]) -> impl Iterator<Item = (&[u8], u16)> {
+    let mut at = 128;
+    (0..u16_at(b, 6).unwrap_or(0)).map_while(move |_| {
+        let len = u32_at(b, at)? as usize;
+        let f = b.get(at..at.checked_add(len)?).filter(|f| f.len() >= 16)?;
+        at += len;
+        (u16_at(f, 4)? == 0xF1FA).then_some((f, u16_at(f, 8)?))
+    })
+}
+
+/// How long each frame shows, in ms. Empty for a file that isn't Aseprite.
+pub fn durations(b: &[u8]) -> Vec<u16> {
+    if size(b).is_none() {
+        return Vec::new();
+    }
+    frames_of(b).map(|(_, d)| d).collect()
 }
 
 struct Layer {
@@ -45,10 +66,11 @@ struct Cel {
     z: i32,
     w: usize,
     h: usize,
-    pixels: Vec<u8>,
+    /// Shared with the cels linked to it in later frames.
+    pixels: Rc<Vec<u8>>,
 }
 
-/// The first frame's layers and cels, and what drawing them needs.
+/// The layers, the cels of the frame being drawn, and what drawing them needs.
 struct Sprite {
     layers: Vec<Layer>,
     cels: Vec<Cel>,
@@ -58,11 +80,47 @@ struct Sprite {
 }
 
 pub fn first_frame(b: &[u8]) -> Result<RgbaImage, String> {
-    parse(b).unwrap_or_else(|| Err(NOT_ASE.into()))
+    let mut first = None;
+    parse(b, 1, |img| first = Some(img)).unwrap_or_else(|| Err(NOT_ASE.into()))?;
+    first.ok_or_else(|| NOT_ASE.into())
 }
 
-/// None for a file that isn't Aseprite or is cut short; an error for one this can't draw.
-fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
+/// The size each of `n` frames is drawn at in a strip: the canvas's own, scaled down when the strip would be over
+/// MAX_PIXELS. None when even 1-pixel-high frames wouldn't fit.
+fn strip_frame(w: u32, h: u32, n: u32) -> Option<(u32, u32)> {
+    let fit = (MAX_PIXELS as f64 / (f64::from(w) * f64::from(h) * f64::from(n)))
+        .sqrt()
+        .min(1.0);
+    let (fw, fh) = (
+        ((f64::from(w) * fit) as u32).max(1),
+        ((f64::from(h) * fit) as u32).max(1),
+    );
+    (fw as usize * fh as usize * n as usize <= MAX_PIXELS).then_some((fw, fh))
+}
+
+/// Every frame side by side, left to right, at the size `strip_frame` gives.
+pub fn strip(b: &[u8]) -> Result<RgbaImage, String> {
+    let (w, h) = size(b).ok_or(NOT_ASE)?;
+    let n = durations(b).len().max(1) as u32;
+    let (fw, fh) = strip_frame(w, h, n).ok_or_else(|| format!("{n} frames of {w}×{h} are too many to animate"))?;
+    let mut out = RgbaImage::new(fw * n, fh);
+    let mut x = 0;
+    parse(b, n as usize, |img| {
+        let img = if fw < w {
+            image::imageops::thumbnail(&img, fw, fh)
+        } else {
+            img
+        };
+        image::imageops::replace(&mut out, &img, x, 0);
+        x += i64::from(fw);
+    })
+    .unwrap_or_else(|| Err(NOT_ASE.into()))?;
+    Ok(out)
+}
+
+/// Flattens each of the first `limit` frames, in order, and hands it to `each`. None for a file that isn't Aseprite or
+/// is cut short; an error for one this can't draw.
+fn parse(b: &[u8], limit: usize, mut each: impl FnMut(RgbaImage)) -> Option<Result<(), String>> {
     let (w, h) = size(b)?;
     let bpp = match u16_at(b, 12)? {
         32 => 4,
@@ -74,16 +132,6 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
         return Some(Err(format!("A {w}×{h} Aseprite canvas is too large to draw")));
     }
     let flags = u32_at(b, 14)?;
-    let frame = b.get(128..)?;
-    if u16_at(frame, 4)? != 0xF1FA {
-        return None;
-    }
-    let frame = frame.get(..(u32_at(frame, 0)? as usize).min(frame.len()))?;
-    let chunks = match u32_at(frame, 12)? {
-        0 => u32::from(u16_at(frame, 6)?),
-        n => n,
-    };
-
     let mut s = Sprite {
         layers: Vec::new(),
         cels: Vec::new(),
@@ -94,110 +142,132 @@ fn parse(b: &[u8]) -> Option<Result<RgbaImage, String>> {
     // The open groups, by child level.
     let mut open: Vec<usize> = Vec::new();
     let mut new_palette = false;
-    let mut at = 16;
-    for _ in 0..chunks {
-        let len = u32_at(frame, at)? as usize;
-        let kind = u16_at(frame, at + 4)?;
-        let d = frame.get(at + 6..at + len.max(6))?;
-        at += len.max(6);
-        match kind {
-            0x2004 => {
-                let lflags = u16_at(d, 0)?;
-                let group = u16_at(d, 2)? == 1;
-                // Layer opacity is only valid when the header says so; group opacity only with its own flag too.
-                let valid = if group { 3 } else { 1 };
-                let opacity = if flags & valid == valid {
-                    u32::from(*d.get(12)?)
-                } else {
-                    255
-                };
-                open.truncate(usize::from(u16_at(d, 4)?));
-                s.layers.push(Layer {
-                    shown: lflags & 1 != 0 && lflags & 64 == 0,
-                    group,
-                    parent: open.last().copied(),
-                    opacity,
-                    background: lflags & 8 != 0,
-                });
-                if group {
-                    if open.len() == MAX_DEPTH {
-                        return Some(Err("Aseprite groups are nested too deeply to draw".into()));
-                    }
-                    open.push(s.layers.len() - 1);
-                }
-            }
-            0x2005 => {
-                let (cw, ch) = (usize::from(u16_at(d, 16)?), usize::from(u16_at(d, 18)?));
-                if cw * ch > MAX_PIXELS {
-                    return Some(Err("An Aseprite cel is too large to draw".into()));
-                }
-                let want = cw * ch * bpp;
-                let pixels = match u16_at(d, 7)? {
-                    0 => d.get(20..20 + want)?.to_vec(),
-                    2 => {
-                        let mut out = Vec::with_capacity(want);
-                        flate2::read::ZlibDecoder::new(d.get(20..)?)
-                            .take(want as u64)
-                            .read_to_end(&mut out)
-                            .ok()?;
-                        out
-                    }
-                    // Linked cels point at earlier frames, and there are none; tilemaps aren't drawn.
-                    _ => continue,
-                };
-                if pixels.len() != want {
-                    return None;
-                }
-                s.cels.push(Cel {
-                    layer: usize::from(u16_at(d, 0)?),
-                    x: i32::from(u16_at(d, 2)? as i16),
-                    y: i32::from(u16_at(d, 4)? as i16),
-                    opacity: u32::from(*d.get(6)?),
-                    z: i32::from(u16_at(d, 9)? as i16),
-                    w: cw,
-                    h: ch,
-                    pixels,
-                });
-            }
-            0x2019 => {
-                new_palette = true;
-                let (first, last) = (u32_at(d, 4)? as usize, u32_at(d, 8)? as usize);
-                let mut p = 20;
-                for slot in s.palette.iter_mut().take(last.saturating_add(1)).skip(first) {
-                    let e = d.get(p..p + 6)?;
-                    *slot = [e[2], e[3], e[4], e[5]];
-                    p += 6;
-                    if u16_at(e, 0)? & 1 != 0 {
-                        p += 2 + usize::from(u16_at(d, p)?); // the entry's name
-                    }
-                }
-            }
-            // The old palette chunk: Aseprite 1.3.5+ writes only this one for opaque palettes of up to 256 colours.
-            0x0004 if !new_palette => {
-                let (mut p, mut slot) = (2, 0);
-                for _ in 0..u16_at(d, 0)? {
-                    slot += usize::from(*d.get(p)?); // entries skipped since the last packet
-                    let n = match *d.get(p + 1)? {
-                        0 => 256,
-                        n => usize::from(n),
+    // Every earlier frame's cels, for linked cels to point back at.
+    let mut frames: Vec<Vec<Cel>> = Vec::new();
+    for (frame, _) in frames_of(b).take(limit) {
+        let chunks = match u32_at(frame, 12)? {
+            0 => u32::from(u16_at(frame, 6)?),
+            n => n,
+        };
+        let mut at = 16;
+        for _ in 0..chunks {
+            let len = u32_at(frame, at)? as usize;
+            let kind = u16_at(frame, at + 4)?;
+            let d = frame.get(at + 6..at + len.max(6))?;
+            at += len.max(6);
+            match kind {
+                0x2004 => {
+                    let lflags = u16_at(d, 0)?;
+                    let group = u16_at(d, 2)? == 1;
+                    // Layer opacity is only valid when the header says so; group opacity only with its own flag too.
+                    let valid = if group { 3 } else { 1 };
+                    let opacity = if flags & valid == valid {
+                        u32::from(*d.get(12)?)
+                    } else {
+                        255
                     };
-                    p += 2;
-                    for _ in 0..n {
-                        let e = d.get(p..p + 3)?;
-                        if let Some(c) = s.palette.get_mut(slot) {
-                            *c = [e[0], e[1], e[2], 255];
+                    open.truncate(usize::from(u16_at(d, 4)?));
+                    s.layers.push(Layer {
+                        shown: lflags & 1 != 0 && lflags & 64 == 0,
+                        group,
+                        parent: open.last().copied(),
+                        opacity,
+                        background: lflags & 8 != 0,
+                    });
+                    if group {
+                        if open.len() == MAX_DEPTH {
+                            return Some(Err("Aseprite groups are nested too deeply to draw".into()));
                         }
-                        (p, slot) = (p + 3, slot + 1);
+                        open.push(s.layers.len() - 1);
                     }
                 }
+                0x2005 => {
+                    let layer = usize::from(u16_at(d, 0)?);
+                    let (cw, ch, pixels) = match u16_at(d, 7)? {
+                        kind @ (0 | 2) => {
+                            let (cw, ch) = (usize::from(u16_at(d, 16)?), usize::from(u16_at(d, 18)?));
+                            if cw * ch > MAX_PIXELS {
+                                return Some(Err("An Aseprite cel is too large to draw".into()));
+                            }
+                            let want = cw * ch * bpp;
+                            let pixels = if kind == 0 {
+                                d.get(20..20 + want)?.to_vec()
+                            } else {
+                                let mut out = Vec::with_capacity(want);
+                                flate2::read::ZlibDecoder::new(d.get(20..)?)
+                                    .take(want as u64)
+                                    .read_to_end(&mut out)
+                                    .ok()?;
+                                out
+                            };
+                            if pixels.len() != want {
+                                return None;
+                            }
+                            (cw, ch, Rc::new(pixels))
+                        }
+                        // A linked cel shows the same layer's cel from an earlier frame, at its own place and opacity.
+                        1 => {
+                            let linked = frames
+                                .get(usize::from(u16_at(d, 16)?))
+                                .and_then(|f| f.iter().find(|c| c.layer == layer));
+                            let Some(c) = linked else { continue };
+                            (c.w, c.h, c.pixels.clone())
+                        }
+                        // Tilemaps aren't drawn.
+                        _ => continue,
+                    };
+                    s.cels.push(Cel {
+                        layer,
+                        x: i32::from(u16_at(d, 2)? as i16),
+                        y: i32::from(u16_at(d, 4)? as i16),
+                        opacity: u32::from(*d.get(6)?),
+                        z: i32::from(u16_at(d, 9)? as i16),
+                        w: cw,
+                        h: ch,
+                        pixels,
+                    });
+                }
+                0x2019 => {
+                    new_palette = true;
+                    let (first, last) = (u32_at(d, 4)? as usize, u32_at(d, 8)? as usize);
+                    let mut p = 20;
+                    for slot in s.palette.iter_mut().take(last.saturating_add(1)).skip(first) {
+                        let e = d.get(p..p + 6)?;
+                        *slot = [e[2], e[3], e[4], e[5]];
+                        p += 6;
+                        if u16_at(e, 0)? & 1 != 0 {
+                            p += 2 + usize::from(u16_at(d, p)?); // the entry's name
+                        }
+                    }
+                }
+                // The old palette chunk: Aseprite 1.3.5+ writes only this one for opaque palettes of up to 256 colours.
+                0x0004 if !new_palette => {
+                    let (mut p, mut slot) = (2, 0);
+                    for _ in 0..u16_at(d, 0)? {
+                        slot += usize::from(*d.get(p)?); // entries skipped since the last packet
+                        let n = match *d.get(p + 1)? {
+                            0 => 256,
+                            n => usize::from(n),
+                        };
+                        p += 2;
+                        for _ in 0..n {
+                            let e = d.get(p..p + 3)?;
+                            if let Some(c) = s.palette.get_mut(slot) {
+                                *c = [e[0], e[1], e[2], 255];
+                            }
+                            (p, slot) = (p + 3, slot + 1);
+                        }
+                    }
+                }
+                _ => {}
             }
-            _ => {}
         }
+        let mut canvas = RgbaImage::new(w, h);
+        s.draw(&mut canvas, None, 255, 1);
+        each(canvas);
+        frames.push(std::mem::take(&mut s.cels));
     }
-
-    let mut canvas = RgbaImage::new(w, h);
-    s.draw(&mut canvas, None, 255, 1);
-    Some(Ok(canvas))
+    (!frames.is_empty()).then_some(Ok(()))
 }
 
 impl Sprite {
@@ -304,15 +374,28 @@ pub mod tests {
         chunk(0x2004, &d)
     }
 
-    /// An opaque cel chunk with `pixels` (w×h, in the file's colour depth), zlib-compressed when `zip`.
-    pub fn cel(layer: u16, x: i16, y: i16, w: u16, h: u16, pixels: &[u8], zip: bool) -> Vec<u8> {
+    /// The start of a cel chunk: layer, position, full opacity, cel type, then z-index 0 and reserved bytes.
+    fn cel_head(layer: u16, x: i16, y: i16, kind: u16) -> Vec<u8> {
         let mut d = Vec::new();
         d.extend_from_slice(&layer.to_le_bytes());
         d.extend_from_slice(&x.to_le_bytes());
         d.extend_from_slice(&y.to_le_bytes());
         d.push(255);
-        d.extend_from_slice(&(if zip { 2u16 } else { 0 }).to_le_bytes());
-        d.extend_from_slice(&[0; 7]); // z-index and reserved
+        d.extend_from_slice(&kind.to_le_bytes());
+        d.extend_from_slice(&[0; 7]);
+        d
+    }
+
+    /// A cel chunk that shows `layer`'s cel from frame `frame` at (x, y).
+    pub fn linked(layer: u16, x: i16, y: i16, frame: u16) -> Vec<u8> {
+        let mut d = cel_head(layer, x, y, 1);
+        d.extend_from_slice(&frame.to_le_bytes());
+        chunk(0x2005, &d)
+    }
+
+    /// An opaque cel chunk with `pixels` (w×h, in the file's colour depth), zlib-compressed when `zip`.
+    pub fn cel(layer: u16, x: i16, y: i16, w: u16, h: u16, pixels: &[u8], zip: bool) -> Vec<u8> {
+        let mut d = cel_head(layer, x, y, if zip { 2 } else { 0 });
         d.extend_from_slice(&w.to_le_bytes());
         d.extend_from_slice(&h.to_le_bytes());
         if zip {
@@ -342,29 +425,34 @@ pub mod tests {
         chunk(0x2019, &d)
     }
 
-    /// A whole file: header, then one frame of `chunks` and a second, empty frame.
-    pub fn file(w: u16, h: u16, depth: u16, transparent: u8, chunks: &[Vec<u8>]) -> Vec<u8> {
-        let body: Vec<u8> = chunks.concat();
+    /// A whole file: header, then each frame's chunks with its duration in ms.
+    pub fn animation(w: u16, h: u16, depth: u16, transparent: u8, frames: &[(&[Vec<u8>], u16)]) -> Vec<u8> {
         let mut f = vec![0u8; 128];
         f[4..6].copy_from_slice(&0xA5E0u16.to_le_bytes());
-        f[6..8].copy_from_slice(&2u16.to_le_bytes());
+        f[6..8].copy_from_slice(&(frames.len() as u16).to_le_bytes());
         f[8..10].copy_from_slice(&w.to_le_bytes());
         f[10..12].copy_from_slice(&h.to_le_bytes());
         f[12..14].copy_from_slice(&depth.to_le_bytes());
         f[14..18].copy_from_slice(&1u32.to_le_bytes()); // layer opacity is valid
         f[28] = transparent;
-        for (n, body) in [(chunks.len(), &body[..]), (0, &[][..])] {
+        for (chunks, duration) in frames {
+            let body = chunks.concat();
             f.extend_from_slice(&((16 + body.len()) as u32).to_le_bytes());
             f.extend_from_slice(&0xF1FAu16.to_le_bytes());
-            f.extend_from_slice(&(n as u16).to_le_bytes());
-            f.extend_from_slice(&100u16.to_le_bytes());
+            f.extend_from_slice(&(chunks.len() as u16).to_le_bytes());
+            f.extend_from_slice(&duration.to_le_bytes());
             f.extend_from_slice(&[0, 0]);
-            f.extend_from_slice(&(n as u32).to_le_bytes());
-            f.extend_from_slice(body);
+            f.extend_from_slice(&(chunks.len() as u32).to_le_bytes());
+            f.extend_from_slice(&body);
         }
         let len = f.len() as u32;
         f[..4].copy_from_slice(&len.to_le_bytes());
         f
+    }
+
+    /// One frame of `chunks` and a second, empty frame.
+    pub fn file(w: u16, h: u16, depth: u16, transparent: u8, chunks: &[Vec<u8>]) -> Vec<u8> {
+        animation(w, h, depth, transparent, &[(chunks, 100), (&[], 100)])
     }
 
     const RED: [u8; 4] = [255, 0, 0, 255];
@@ -449,8 +537,43 @@ pub mod tests {
     }
 
     #[test]
+    fn strips_every_frame_with_linked_cels() {
+        let f = animation(
+            2,
+            1,
+            32,
+            0,
+            &[
+                (
+                    &[layer(1, 0, 0, 255), layer(1, 0, 0, 255), cel(0, 0, 0, 1, 1, &RED, true)],
+                    100,
+                ),
+                (&[linked(0, 1, 0, 0), cel(1, 0, 0, 1, 1, &BLUE, false)], 250),
+                // A link to a link, and one to a frame that doesn't exist.
+                (&[linked(0, 0, 0, 1), linked(1, 1, 0, 1), linked(1, 0, 0, 7)], 50),
+            ],
+        );
+        assert_eq!(durations(&f), [100, 250, 50]);
+        let s = strip(&f).unwrap();
+        assert_eq!(s.dimensions(), (6, 1));
+        let row: Vec<[u8; 4]> = (0..6).map(|x| s.get_pixel(x, 0).0).collect();
+        let none = [0, 0, 0, 0];
+        assert_eq!(row, [RED, none, BLUE, RED, RED, BLUE]);
+        assert_eq!(first_frame(&f).unwrap().get_pixel(1, 0).0, none);
+        assert!(durations(b"short").is_empty());
+    }
+
+    #[test]
+    fn scales_frames_down_only_when_the_strip_is_too_large() {
+        assert_eq!(strip_frame(64, 32, 100), Some((64, 32)));
+        assert_eq!(strip_frame(4096, 4096, 16), Some((2048, 2048)));
+        assert_eq!(strip_frame(65535, 1, 65535), None);
+    }
+
+    #[test]
     fn rejects_other_and_broken_files() {
         assert!(first_frame(b"\x89PNG\r\n\x1a\n").is_err());
+        assert!(strip(b"\x89PNG\r\n\x1a\n").is_err());
         assert_eq!(size(b"short"), None);
         let mut f = file(
             2,

@@ -413,6 +413,40 @@ async fn preview(state: State<'_, AppState>, id: i64) -> Result<String, String> 
     Ok(made.display().to_string())
 }
 
+#[derive(Serialize)]
+struct AsepriteFrames {
+    /// How long each frame shows, in ms.
+    durations: Vec<u16>,
+    /// A PNG of every frame side by side, cached with the previews; None for a single frame.
+    strip: Option<String>,
+}
+
+/// The frames of an Aseprite file, for Animate.
+#[tauri::command]
+async fn aseprite_frames(state: State<'_, AppState>, id: i64) -> Result<AsepriteFrames, String> {
+    let a = asset(&state, id)?;
+    if !matches!(a.ext.as_str(), "ase" | "aseprite") {
+        return Err("Not an Aseprite file".into());
+    }
+    let out = state
+        .previews_dir
+        .join(thumbs::cache_name(&a.path, a.size, a.mtime))
+        .with_extension("strip.png");
+    let _permit = state.thumb_permits.acquire().await.map_err(err)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let bytes = std::fs::read(&a.path).map_err(err)?;
+        let durations = aseprite::durations(&bytes);
+        let strip = match durations.len() {
+            0 => return Err("Not an Aseprite file".into()),
+            1 => None,
+            _ => Some(thumbs::aseprite_strip(&bytes, &out)?.display().to_string()),
+        };
+        Ok(AsepriteFrames { durations, strip })
+    })
+    .await
+    .map_err(err)?
+}
+
 /// A WAV copy of a sound the webview can't play (AIFF), converted on first request and cached with the previews.
 #[tauri::command]
 async fn playable_audio(state: State<'_, AppState>, id: i64) -> Result<String, String> {
@@ -1068,6 +1102,7 @@ pub fn run() {
             save_font_sample,
             preview,
             playable_audio,
+            aseprite_frames,
             read_text,
             set_favorite,
             set_rating,

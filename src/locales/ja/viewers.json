@@ -2,6 +2,7 @@
   "image": {
     "decoding": "デコードしています…",
     "animateTitle": "画像をスプライトシートとして再生",
+    "animateFramesTitle": "ファイルに保存されたフレームを再生",
     "animate": "アニメーション",
     "cantDisplay": "WebViewではこの画像を表示できません。",
     "zoom": "{{percent}}%",
