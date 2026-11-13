@@ -84,9 +84,12 @@ export function copyPath(a: Asset) {
 }
 
 /** "lib/sprites/" the way the design shows a file's location. */
+export const locationOf = (roots: { id: number; path: string }[], a: Asset) =>
+  [rootLabel(roots, a.rootId), folderOf(a.relPath)].filter(Boolean).join("/") + "/";
+
 export function useLocation(a: Asset) {
   const roots = useStore((s) => s.roots);
-  return [rootLabel(roots, a.rootId), folderOf(a.relPath)].filter(Boolean).join("/") + "/";
+  return locationOf(roots, a);
 }
 
 /** The other copies of `a`, if it's part of a duplicate group, plus that group's position. */

@@ -46,6 +46,8 @@ export interface Prefs {
   checkUpdates: boolean;
   /** Audio previews start again when they end. */
   audioLoop: boolean;
+  /** Audio cards play while the pointer rests on them (never with reduced motion). */
+  hoverSound: boolean;
   sidebar: SidebarMode;
   /** The model and effort for Ask (and later AI features), in Settings › AI. */
   ai: AiPrefs;
@@ -66,6 +68,7 @@ const defaults: Prefs = {
   subfolders: true,
   checkUpdates: true,
   audioLoop: false,
+  hoverSound: true,
   sidebar: "expanded",
   ai: { on: false, model: "claude-haiku-5-5", effort: "low", tagModel: "claude-haiku-5-5" },
 };

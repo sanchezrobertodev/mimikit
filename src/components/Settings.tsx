@@ -349,6 +349,9 @@ function General() {
           ]}
         />
       </Row>
+      <Row label={t("settings.appearance.hoverSound")} hint={t("settings.appearance.hoverSoundHint")}>
+        <Switch label={t("settings.appearance.hoverSound")} on={s.hoverSound} onChange={s.setHoverSound} />
+      </Row>
       {updatesSupported && (
         <Row label={t("settings.updates.checkOnLaunch")} hint={t("settings.updates.checkOnLaunchHint")}>
           <Switch label={t("settings.updates.checkOnLaunch")} on={s.checkUpdates} onChange={s.setCheckUpdates} />

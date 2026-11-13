@@ -24,6 +24,8 @@
     "startViewHint": "Mimikit 打开时显示的视图。",
     "startViewHome": "主页",
     "startViewLibrary": "资源库",
+    "hoverSound": "悬停时播放声音",
+    "hoverSoundHint": "指针停留在音频卡片或行上时播放。系统开启“减少动态效果”时不播放。",
     "thumbSize": "缩略图大小",
     "thumbSizeHint": "网格中卡片的大小。网格上方的滑块也可以调整。",
     "thumbSizeValue": "{{size}}px",

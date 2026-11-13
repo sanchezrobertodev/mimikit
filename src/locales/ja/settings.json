@@ -24,6 +24,8 @@
     "startViewHint": "Mimikit を開いたときに表示する画面です。",
     "startViewHome": "ホーム",
     "startViewLibrary": "ライブラリ",
+    "hoverSound": "ホバーでサウンドを再生",
+    "hoverSoundHint": "ポインターを乗せている間、オーディオのカードや行を再生します。システムで動きを減らす設定にしているときは再生しません。",
     "thumbSize": "サムネイルのサイズ",
     "thumbSizeHint": "グリッドのカードの大きさです。グリッド上部のスライダーでも変更できます。",
     "thumbSizeValue": "{{size}}px",

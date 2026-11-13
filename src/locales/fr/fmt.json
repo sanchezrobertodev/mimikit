@@ -8,6 +8,15 @@
     "text": "Texte et données",
     "other": "Autres"
   },
+  "kindOne": {
+    "image": "Image",
+    "audio": "Audio",
+    "model": "Modèle 3D",
+    "font": "Police",
+    "video": "Vidéo",
+    "text": "Texte et données",
+    "other": "Autre"
+  },
   "units": {
     "b": "o",
     "kb": "Ko",

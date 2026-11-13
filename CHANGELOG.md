@@ -26,12 +26,23 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
   channels. The webview can't play AIFF, so Mimikit makes a WAV copy the first time one plays and keeps the copies
   with the image previews, up to 1 GB, deleting the oldest first. **Clear thumbnail cache** clears them too.
 - Files of all these types already in your library show as their new type from the next launch, without a rescan.
+- **Play sounds on hover** (Settings › General) turns off the preview that audio cards and rows play when the
+  pointer rests on them. It's on by default, and reduced motion still turns it off too.
+- **The list's column headers sort it**: click Name, Type, Size, Folder or Modified to sort by that column, and click
+  it again to flip the direction. The sorted column shows an arrow, and screen readers hear the order.
 
 ### Changed
 
 - **The welcome tip says to drop into Unity's Project window.** Unity's Hierarchy and Scene view only take assets
   that are already in the project, so a card dropped there failed with "Invalid AssetDatabase path". The README says
   the same under **Drag out**.
+- **The welcome screen has one main button.** The header's Import stays a plain button until you've added a folder.
+- **Duplicate groups show the file name once**, with the folders that tell the copies apart underneath (and a copy's
+  name, if it differs). Hover for the full paths.
+- **A type label on one asset is singular**: "Image" or "3D model" rather than "Images" or "3D models".
+- **List-row thumbnails drop their tiny file-extension label**, which was too small to read and repeats the Type
+  column.
+- **A new collection's name is selected**, so typing names it.
 
 ## [0.14.0] - 2026-11-11
 

@@ -29,6 +29,15 @@ export function CollectionsView({ items, groups, scopeAssets }: { items: Asset[]
   // Deleting a collection that holds assets asks first.
   const [confirmDelete, setConfirmDelete] = useState(false);
   useEffect(() => setName(current?.name ?? ""), [current?.id, current?.name]);
+  // A new collection's default name is selected, so typing replaces it. Waits until the field shows that name.
+  const nameField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = nameField.current;
+    if (!current || current.id !== s.colNaming || el?.value !== current.name) return;
+    el.focus();
+    el.select();
+    useStore.setState({ colNaming: null });
+  }, [current, name, s.colNaming]);
 
   // Esc reverts: the blur that follows must not save the typed name it still sees.
   const reverting = useRef(false);
@@ -58,7 +67,7 @@ export function CollectionsView({ items, groups, scopeAssets }: { items: Asset[]
               <div className="grid h-[104px] grid-cols-[2fr_1fr] grid-rows-2 gap-1">
                 {[0, 1, 2].map((i) =>
                   members[i] ? (
-                    <Thumb key={i} asset={members[i]} size="row" className={clsx("h-full w-full rounded-[7px]", i === 0 && "row-span-2")} />
+                    <Thumb key={i} asset={members[i]} size="strip" className={clsx("h-full w-full rounded-[7px]", i === 0 && "row-span-2")} />
                   ) : (
                     <div key={i} className={clsx("rounded-[7px] bg-field", i === 0 && "row-span-2")} />
                   ),
@@ -91,6 +100,7 @@ export function CollectionsView({ items, groups, scopeAssets }: { items: Asset[]
           <div className="flex flex-wrap items-end gap-3.5">
             <div className="flex min-w-[200px] flex-1 flex-col gap-1">
               <input
+                ref={nameField}
                 aria-label={t("collectionsView.nameLabel")}
                 value={name}
                 maxLength={80}

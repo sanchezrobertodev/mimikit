@@ -24,6 +24,8 @@
     "startViewHint": "A tela em que o Mimikit abre.",
     "startViewHome": "Início",
     "startViewLibrary": "Biblioteca",
+    "hoverSound": "Tocar sons ao passar o cursor",
+    "hoverSoundHint": "Cartões e linhas de áudio tocam enquanto o ponteiro está sobre eles. Nunca quando o sistema reduz o movimento.",
     "thumbSize": "Tamanho das miniaturas",
     "thumbSizeHint": "Tamanho dos cards na grade. O controle deslizante acima da grade também o altera.",
     "thumbSizeValue": "{{size}}px",
