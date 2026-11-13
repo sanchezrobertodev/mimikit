@@ -5,7 +5,6 @@
 //! very old files) aren't read, so other blend modes and tilemaps look wrong; upgrade if users report it.
 
 use std::io::Read;
-use std::rc::Rc;
 
 use image::RgbaImage;
 
@@ -66,8 +65,36 @@ struct Cel {
     z: i32,
     w: usize,
     h: usize,
-    /// Shared with the cels linked to it in later frames.
-    pixels: Rc<Vec<u8>>,
+    pixels: Vec<u8>,
+}
+
+/// Where a cel's pixels are in the file. Linked cels decode them again from here, so earlier frames' pixels aren't
+/// kept in memory.
+#[derive(Clone, Copy)]
+struct Source<'a> {
+    layer: usize,
+    w: usize,
+    h: usize,
+    zlib: bool,
+    data: &'a [u8],
+}
+
+impl Source<'_> {
+    /// None when the data is cut short.
+    fn decode(&self, bpp: usize) -> Option<Vec<u8>> {
+        let want = self.w * self.h * bpp;
+        let pixels = if self.zlib {
+            let mut out = Vec::with_capacity(want);
+            flate2::read::ZlibDecoder::new(self.data)
+                .take(want as u64)
+                .read_to_end(&mut out)
+                .ok()?;
+            out
+        } else {
+            self.data.get(..want)?.to_vec()
+        };
+        (pixels.len() == want).then_some(pixels)
+    }
 }
 
 /// The layers, the cels of the frame being drawn, and what drawing them needs.
@@ -142,9 +169,10 @@ fn parse(b: &[u8], limit: usize, mut each: impl FnMut(RgbaImage)) -> Option<Resu
     // The open groups, by child level.
     let mut open: Vec<usize> = Vec::new();
     let mut new_palette = false;
-    // Every earlier frame's cels, for linked cels to point back at.
-    let mut frames: Vec<Vec<Cel>> = Vec::new();
+    // Where every earlier frame's cels are, for linked cels to point back at.
+    let mut frames: Vec<Vec<Source>> = Vec::new();
     for (frame, _) in frames_of(b).take(limit) {
+        let mut sources = Vec::new();
         let chunks = match u32_at(frame, 12)? {
             0 => u32::from(u16_at(frame, 6)?),
             n => n,
@@ -183,47 +211,41 @@ fn parse(b: &[u8], limit: usize, mut each: impl FnMut(RgbaImage)) -> Option<Resu
                 }
                 0x2005 => {
                     let layer = usize::from(u16_at(d, 0)?);
-                    let (cw, ch, pixels) = match u16_at(d, 7)? {
+                    let src = match u16_at(d, 7)? {
                         kind @ (0 | 2) => {
                             let (cw, ch) = (usize::from(u16_at(d, 16)?), usize::from(u16_at(d, 18)?));
                             if cw * ch > MAX_PIXELS {
                                 return Some(Err("An Aseprite cel is too large to draw".into()));
                             }
-                            let want = cw * ch * bpp;
-                            let pixels = if kind == 0 {
-                                d.get(20..20 + want)?.to_vec()
-                            } else {
-                                let mut out = Vec::with_capacity(want);
-                                flate2::read::ZlibDecoder::new(d.get(20..)?)
-                                    .take(want as u64)
-                                    .read_to_end(&mut out)
-                                    .ok()?;
-                                out
-                            };
-                            if pixels.len() != want {
-                                return None;
+                            Source {
+                                layer,
+                                w: cw,
+                                h: ch,
+                                zlib: kind == 2,
+                                data: d.get(20..)?,
                             }
-                            (cw, ch, Rc::new(pixels))
                         }
                         // A linked cel shows the same layer's cel from an earlier frame, at its own place and opacity.
                         1 => {
                             let linked = frames
                                 .get(usize::from(u16_at(d, 16)?))
                                 .and_then(|f| f.iter().find(|c| c.layer == layer));
-                            let Some(c) = linked else { continue };
-                            (c.w, c.h, c.pixels.clone())
+                            let Some(&c) = linked else { continue };
+                            c
                         }
                         // Tilemaps aren't drawn.
                         _ => continue,
                     };
+                    let pixels = src.decode(bpp)?;
+                    sources.push(src);
                     s.cels.push(Cel {
                         layer,
                         x: i32::from(u16_at(d, 2)? as i16),
                         y: i32::from(u16_at(d, 4)? as i16),
                         opacity: u32::from(*d.get(6)?),
                         z: i32::from(u16_at(d, 9)? as i16),
-                        w: cw,
-                        h: ch,
+                        w: src.w,
+                        h: src.h,
                         pixels,
                     });
                 }
@@ -265,7 +287,8 @@ fn parse(b: &[u8], limit: usize, mut each: impl FnMut(RgbaImage)) -> Option<Resu
         let mut canvas = RgbaImage::new(w, h);
         s.draw(&mut canvas, None, 255, 1);
         each(canvas);
-        frames.push(std::mem::take(&mut s.cels));
+        s.cels.clear();
+        frames.push(sources);
     }
     (!frames.is_empty()).then_some(Ok(()))
 }
