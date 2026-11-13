@@ -43,6 +43,8 @@ export const api = {
   preview: (id: number) => invoke<string>("preview", { id }),
   /** A WAV copy of a sound the webview can't play (AIFF), converted by the backend on first request. */
   playableAudio: (id: number) => invoke<string>("playable_audio", { id }),
+  /** An Aseprite file's frame durations in ms, and a PNG of its frames side by side (null for a single frame). */
+  asepriteFrames: (id: number) => invoke<{ durations: number[]; strip: string | null }>("aseprite_frames", { id }),
   readText: (id: number) => invoke<TextPreview>("read_text", { id }),
   setFavorite: (ids: number[], favorite: boolean) => invoke<void>("set_favorite", { ids, favorite }),
   setRating: (ids: number[], rating: number) => invoke<void>("set_rating", { ids, rating }),

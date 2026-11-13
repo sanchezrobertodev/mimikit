@@ -2,6 +2,7 @@
   "image": {
     "decoding": "Décodage…",
     "animateTitle": "Lire l'image comme une sprite sheet",
+    "animateFramesTitle": "Lire les frames enregistrées dans le fichier",
     "animate": "Animer",
     "cantDisplay": "La webview ne peut pas afficher cette image.",
     "zoom": "{{percent}} %",

@@ -59,7 +59,7 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
 - **Previews in place**, in the side panel (<kbd>Space</kbd>) or full screen (<kbd>Enter</kbd>):
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
     TGA/PSD/TIFF/DDS/EXR/HDR/QOI/Aseprite via a decoded preview, with EXR and HDR tone mapped), and **Animate** to
-    play a sprite sheet with a remembered grid and fps
+    play a sprite sheet with a remembered grid and fps, or an Aseprite file's own frames with their own timing
   - audio: waveform and playback, plus play-on-hover in the grid (WAV, OGG, MP3, FLAC, M4A/AAC, Opus, and AIFF via a
     WAV copy)
   - 3D models: orbit, wireframe, triangle counts and the first animation (GLB/glTF, including Draco and KTX2
@@ -236,8 +236,9 @@ identical. "Copy to folder…" only ever creates new files.
 ## Known limits
 
 - PSD previews use the flattened composite. Some layered or 16-bit files fall back to an icon.
-- Aseprite files show their first frame only, and every layer is drawn in Normal mode: layers with other blend modes
-  and tilemap layers can look different than in Aseprite.
+- Aseprite thumbnails and previews show the first frame; **Animate** plays them all but can't export them. Every layer
+  is drawn in Normal mode: layers with other blend modes and tilemap layers can look different than in Aseprite.
+  Animations over 64 megapixels in all play scaled down.
 - Blender files have no 3D view, only the 128×128 preview Blender saves in them. Files saved without one (Blender's
   **File Preview Type** set to None) show a plain card.
 - AIFF sounds longer than about 25 minutes (in stereo) don't play.

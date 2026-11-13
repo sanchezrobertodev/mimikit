@@ -2,6 +2,7 @@
   "image": {
     "decoding": "正在解码…",
     "animateTitle": "将图片作为 sprite sheet 播放",
+    "animateFramesTitle": "播放文件中保存的帧",
     "animate": "播放动画",
     "cantDisplay": "WebView 无法显示此图片。",
     "zoom": "{{percent}}%",

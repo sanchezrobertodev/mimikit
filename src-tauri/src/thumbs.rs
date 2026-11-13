@@ -97,12 +97,24 @@ fn render(src: &Path, ext: &str, out: &Path, max: u32) -> Result<PathBuf, String
     } else {
         img
     };
-    // Write to a temp name first so a half-written file is never served.
+    save(&img, out)
+}
+
+/// Writes `img` as a PNG to `out`, through a temp name so a half-written file is never served.
+fn save(img: &DynamicImage, out: &Path) -> Result<PathBuf, String> {
     let tmp = out.with_extension("tmp");
     img.save_with_format(&tmp, image::ImageFormat::Png)
         .map_err(|e| e.to_string())?;
     std::fs::rename(&tmp, out).map_err(|e| e.to_string())?;
     Ok(out.to_path_buf())
+}
+
+/// Writes every frame of an Aseprite file (its bytes) side by side to `out`, unless it's already cached.
+pub fn aseprite_strip(bytes: &[u8], out: &Path) -> Result<PathBuf, String> {
+    if out.exists() {
+        return Ok(out.to_path_buf());
+    }
+    save(&DynamicImage::ImageRgba8(crate::aseprite::strip(bytes)?), out)
 }
 
 pub fn thumbnail(src: &Path, ext: &str, out: &Path) -> Result<PathBuf, String> {
