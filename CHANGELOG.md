@@ -5,6 +5,8 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-15
+
 ### Added
 
 - **Previews for more game formats**, with thumbnails, in the side panel and full screen:
@@ -25,10 +27,10 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 - **AIFF sounds** (`.aif`, `.aiff`) play, with their waveform and play-on-hover, and show their length, sample rate and
   channels. The webview can't play AIFF, so Mimikit makes a WAV copy the first time one plays and keeps the copies
   with the image previews, up to 1 GB, deleting the oldest first. **Clear thumbnail cache** clears them too.
-- **Animate plays Aseprite animations**: a file with more than one frame plays its own frames, each for as long as it
-  lasts in Aseprite, with no grid or fps to set. **Export frames** isn't offered for them yet. A single-frame file
-  animates as a sprite sheet, like a PNG.
 - Files of all these types already in your library show as their new type from the next launch, without a rescan.
+- **Animate plays Aseprite animations**: a file with more than one frame plays its own frames, each for as long as it
+  lasts in Aseprite, with no grid or fps to set. **Export frames** isn't offered for these files yet. A single-frame
+  file animates as a sprite sheet, like a PNG.
 - **Play sounds on hover** (Settings › General) turns off the preview that audio cards and rows play when the
   pointer rests on them. It's on by default, and reduced motion still turns it off too.
 - **The list's column headers sort it**: click Name, Type, Size, Folder or Modified to sort by that column, and click
