@@ -2,6 +2,7 @@
   "image": {
     "decoding": "Decodificando…",
     "animateTitle": "Reproduzir a imagem como sprite sheet",
+    "animateFramesTitle": "Reproduzir os quadros salvos no arquivo",
     "animate": "Animar",
     "cantDisplay": "A webview não consegue exibir esta imagem.",
     "zoom": "{{percent}}%",

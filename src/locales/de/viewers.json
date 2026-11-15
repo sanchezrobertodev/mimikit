@@ -2,6 +2,7 @@
   "image": {
     "decoding": "Wird dekodiert…",
     "animateTitle": "Bild als Sprite-Sheet abspielen",
+    "animateFramesTitle": "Die in der Datei gespeicherten Frames abspielen",
     "animate": "Animieren",
     "cantDisplay": "Die Webansicht kann dieses Bild nicht anzeigen.",
     "zoom": "{{percent}} %",

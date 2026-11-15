@@ -25,6 +25,9 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 - **AIFF sounds** (`.aif`, `.aiff`) play, with their waveform and play-on-hover, and show their length, sample rate and
   channels. The webview can't play AIFF, so Mimikit makes a WAV copy the first time one plays and keeps the copies
   with the image previews, up to 1 GB, deleting the oldest first. **Clear thumbnail cache** clears them too.
+- **Animate plays Aseprite animations**: a file with more than one frame plays its own frames, each for as long as it
+  lasts in Aseprite, with no grid or fps to set. **Export frames** isn't offered for them yet. A single-frame file
+  animates as a sprite sheet, like a PNG.
 - Files of all these types already in your library show as their new type from the next launch, without a rescan.
 
 ### Changed

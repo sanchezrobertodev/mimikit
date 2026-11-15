@@ -14,6 +14,7 @@ import { isTiny } from "./Thumb";
 
 /** Formats the webview shows natively; the rest get a PNG preview from the backend. */
 const NATIVE_IMAGE = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico"]);
+const ASEPRITE = new Set(["ase", "aseprite"]);
 
 export function Note({ children, busy }: { children: ReactNode; busy?: boolean }) {
   return (
@@ -81,6 +82,22 @@ function ImageView({ asset, pixelated, full }: { asset: Asset; pixelated: boolea
   const animating = animate ?? !!sheet;
   // The toggle moves between the still and the sprite controls; keep keyboard focus on it when it does.
   const refocus = useRef(false);
+  // An Aseprite file's own frames, which Animate plays instead of a grid: undefined while they load, null for other
+  // images and single frames.
+  const ase = ASEPRITE.has(asset.ext);
+  const [frames, setFrames] = useState<{ src: string; durations: number[]; sheet: SpriteSheet } | null | undefined>(ase ? undefined : null);
+
+  useEffect(() => {
+    if (!ase) return;
+    let live = true;
+    api.asepriteFrames(asset.id).then(
+      (f) => live && setFrames(f.strip ? { src: convertFileSrc(f.strip), durations: f.durations, sheet: { cols: f.durations.length, rows: 1, fps: DEFAULT_FPS } } : null),
+      () => live && setFrames(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [ase, asset.id, asset.mtime]);
 
   useEffect(() => {
     if (useStore.getState().sheets[asset.id] === undefined) void loadSheet(asset.id);
@@ -140,17 +157,21 @@ function ImageView({ asset, pixelated, full }: { asset: Asset; pixelated: boolea
         el.focus();
       }}
       aria-pressed={animating}
-      disabled={sheet === undefined}
+      disabled={sheet === undefined || frames === undefined}
       onClick={() => {
         refocus.current = true;
         setAnimate(!animating);
       }}
-      title={t("viewers.image.animateTitle")}
+      title={t(frames ? "viewers.image.animateFramesTitle" : "viewers.image.animateTitle")}
       className={clsx(toggleChip(animating), "disabled:opacity-50")}
     >
       {t("viewers.image.animate")}
     </button>
   );
+  if (animating && frames)
+    return (
+      <SpriteView asset={asset} src={frames.src} sheet={frames.sheet} durations={frames.durations} onSheet={() => {}} pixelated={pixelated} full={full} toggle={toggle} />
+    );
   if (animating && sheet !== undefined)
     return (
       <SpriteView asset={asset} src={src} sheet={sheet} onSheet={(v) => void saveSheet(asset.id, v)} pixelated={pixelated} full={full} toggle={toggle} />
@@ -272,11 +293,15 @@ function ExportFrames({ asset, sheet }: { asset: Asset; sheet: SpriteSheet }) {
   );
 }
 
-/** Plays an image as a grid of frames drawn on a canvas. The slicing is saved per asset through `onSheet`. */
+/**
+ * Plays an image as a grid of frames drawn on a canvas. The slicing is saved per asset through `onSheet`. With
+ * `durations` it's a file's own frames in one row, each shown that many ms, and there's no slicing to set.
+ */
 function SpriteView({
   asset,
   src,
   sheet,
+  durations,
   onSheet,
   pixelated,
   full,
@@ -285,6 +310,7 @@ function SpriteView({
   asset: Asset;
   src: string;
   sheet: SpriteSheet | null;
+  durations?: number[];
   onSheet: (s: SpriteSheet) => void;
   pixelated: boolean;
   full: boolean;
@@ -332,9 +358,9 @@ function SpriteView({
 
   useEffect(() => {
     if (!playing || count < 2) return;
-    const timer = setInterval(() => setFrame((f) => (loop ? (f % count) + 1 : Math.min((f % count) + 1, count - 1))), 1000 / fps);
-    return () => clearInterval(timer);
-  }, [playing, loop, count, fps]);
+    const timer = setTimeout(() => setFrame((f) => (loop ? (f % count) + 1 : Math.min((f % count) + 1, count - 1))), durations?.[at] ?? 1000 / fps);
+    return () => clearTimeout(timer);
+  }, [playing, loop, count, fps, at, durations]);
   useEffect(() => {
     if (!loop && at === count - 1) setPlaying(false);
   }, [loop, at, count]);
@@ -389,10 +415,14 @@ function SpriteView({
         <span className={clsx(chip, "tabular-nums")}>
           {at + 1} / {count}
         </span>
-        <NumField label={t("viewers.sprite.columns")} value={sheet.cols} min={1} max={MAX_CELLS} onChange={(cols) => update({ cols })} />
-        <span aria-hidden>×</span>
-        <NumField label={t("viewers.sprite.rows")} value={sheet.rows} min={1} max={MAX_CELLS} onChange={(rows) => update({ rows })} />
-        {full && (
+        {!durations && (
+          <>
+            <NumField label={t("viewers.sprite.columns")} value={sheet.cols} min={1} max={MAX_CELLS} onChange={(cols) => update({ cols })} />
+            <span aria-hidden>×</span>
+            <NumField label={t("viewers.sprite.rows")} value={sheet.rows} min={1} max={MAX_CELLS} onChange={(rows) => update({ rows })} />
+          </>
+        )}
+        {full && !durations && (
           <>
             <span className="ml-2">{t("viewers.sprite.frame")}</span>
             <NumField label={t("viewers.sprite.frameWidth")} value={size.w} min={1} max={w} onChange={(fw) => update(gridFor(w, h, fw, size.h))} />
@@ -400,13 +430,17 @@ function SpriteView({
             <NumField label={t("viewers.sprite.frameHeight")} value={size.h} min={1} max={h} onChange={(fh) => update(gridFor(w, h, size.w, fh))} />
             <span className="ml-2">{t("viewers.sprite.fps")}</span>
             <NumField label={t("viewers.sprite.framesPerSecond")} value={fps} min={1} max={60} onChange={(v) => update({ fps: v })} />
+          </>
+        )}
+        {full && (
+          <>
             <button type="button" aria-pressed={loop} onClick={() => setLoop(!loop)} className={clsx(pill(loop), "ml-2")}>
               <Repeat aria-hidden className="size-3" /> {t("viewers.sprite.loop")}
             </button>
             <button type="button" aria-pressed={pixelated} title={t("viewers.sprite.pixelTitle")} onClick={() => setPixelated(!pixelated)} className={pill(pixelated)}>
               <Grid3x3 aria-hidden className="size-3" /> {t("viewers.sprite.pixel")}
             </button>
-            <ExportFrames asset={asset} sheet={sheet} />
+            {!durations && <ExportFrames asset={asset} sheet={sheet} />}
           </>
         )}
       </div>

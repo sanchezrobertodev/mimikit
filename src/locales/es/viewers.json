@@ -2,6 +2,7 @@
   "image": {
     "decoding": "Decodificando…",
     "animateTitle": "Reproducir la imagen como sprite sheet",
+    "animateFramesTitle": "Reproducir los fotogramas guardados en el archivo",
     "animate": "Animar",
     "cantDisplay": "La vista web no puede mostrar esta imagen.",
     "zoom": "{{percent}}%",

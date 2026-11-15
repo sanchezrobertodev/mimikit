@@ -2,6 +2,7 @@
   "image": {
     "decoding": "Decoding…",
     "animateTitle": "Play the image as a sprite sheet",
+    "animateFramesTitle": "Play the frames saved in the file",
     "animate": "Animate",
     "cantDisplay": "The webview can't display this image.",
     "zoom": "{{percent}}%",
