@@ -55,6 +55,8 @@ interface State extends Prefs {
   toast: Toast | null;
   /** Open collection in the Collections view. */
   colSel: number | null;
+  /** A collection just made: its name field opens focused and selected, so typing names it. */
+  colNaming: number | null;
   dups: DupGroup[] | null;
   /** The open duplicate group, by hash. */
   dupSel: string | null;
@@ -124,6 +126,7 @@ interface State extends Prefs {
   setStartView: (v: StartView) => void;
   setCheckUpdates: (on: boolean) => void;
   setAudioLoop: (on: boolean) => void;
+  setHoverSound: (on: boolean) => void;
   setAi: (ai: Partial<AiPrefs>) => void;
   /** Collapses or expands the sidebar; in a narrow window only until it widens again. */
   toggleSidebar: () => void;
@@ -241,8 +244,8 @@ const noSimilar = () => {
 
 export const useStore = create<State>((set, get, store) => {
   const persist = () => {
-    const { theme, accent, language, sort, layout, thumbSize, pixelated, kindLabels, startView, recentFolders, grouped, subfolders, checkUpdates, audioLoop, sidebar, ai } = get();
-    savePrefs({ theme, accent, language, sort, layout, thumbSize, pixelated, kindLabels, startView, recentFolders, grouped, subfolders, checkUpdates, audioLoop, sidebar, ai });
+    const { theme, accent, language, sort, layout, thumbSize, pixelated, kindLabels, startView, recentFolders, grouped, subfolders, checkUpdates, audioLoop, hoverSound, sidebar, ai } = get();
+    savePrefs({ theme, accent, language, sort, layout, thumbSize, pixelated, kindLabels, startView, recentFolders, grouped, subfolders, checkUpdates, audioLoop, hoverSound, sidebar, ai });
   };
   narrowQuery?.addEventListener("change", (e) => set({ narrow: e.matches, narrowOpen: false }));
   // Every way of opening a folder updates the recent list, so it is saved here rather than by each one.
@@ -401,6 +404,7 @@ export const useStore = create<State>((set, get, store) => {
     looks: new Map(),
     shown: null,
     colSel: null,
+    colNaming: null,
     dups: null,
     dupSel: null,
     expanded: new Set(),
@@ -647,6 +651,10 @@ export const useStore = create<State>((set, get, store) => {
       set({ audioLoop });
       persist();
     },
+    setHoverSound: (hoverSound) => {
+      set({ hoverSound });
+      persist();
+    },
     setAi: (ai) => {
       set((s) => ({ ai: { ...s.ai, ...ai } }));
       persist();
@@ -888,7 +896,7 @@ export const useStore = create<State>((set, get, store) => {
       for (let i = 2; names.has(name); i++) name = t("store.newCollectionNumbered", { number: i });
       try {
         const id = await api.createCollection(name);
-        set({ collections: await api.listCollections() });
+        set({ collections: await api.listCollections(), colNaming: id });
         get().go("collections", { colSel: id });
       } catch (e) {
         get().setError(e);

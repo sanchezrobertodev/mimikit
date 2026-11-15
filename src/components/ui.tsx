@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { AudioLines, Box, Clapperboard, FileIcon, FileText, Heart, ImageIcon, Star, Type, X, type LucideIcon } from "lucide-react";
 import { cloneElement, useEffect, useId, useRef, type ButtonHTMLAttributes, type ComponentProps, type ReactElement, type ReactNode } from "react";
-import { kindLabel } from "../lib/fmt";
+import { kindLabel, kindOne } from "../lib/fmt";
 import { t, tNodes, type TagNode, type TKey, type Vars } from "../lib/i18n";
 import { useStore } from "../store";
 import type { Asset, Kind } from "../types";
@@ -72,28 +72,32 @@ export const KIND_ICONS: Record<Kind, LucideIcon> = {
   other: FileIcon,
 };
 
-/** A type's name, icon or both, as Settings → Appearance → Type labels says. Icon only keeps the name for screen readers. */
-export function KindName({ kind, icon }: { kind: Kind; icon: string }) {
+/**
+ * A type's name, icon or both, as Settings → Appearance → Type labels says. Icon only keeps the name for screen readers.
+ * The name is the group's ("Images"), or with `one` a single asset's ("Image").
+ */
+export function KindName({ kind, icon, one }: { kind: Kind; icon: string; one?: boolean }) {
   const show = useStore((s) => s.kindLabels);
   const Icon = KIND_ICONS[kind];
+  const label = (one ? kindOne : kindLabel)[kind];
   return (
     <>
       {show !== "name" && <Icon aria-hidden className={clsx("flex-none", icon)} />}
-      {show === "icon" ? <span className="sr-only">{kindLabel[kind]}</span> : kindLabel[kind]}
+      {show === "icon" ? <span className="sr-only">{label}</span> : label}
     </>
   );
 }
 
-/** The design's colored type label ("Images", "Audio"…). */
+/** The design's colored type label on one asset ("Image", "Audio"…). */
 export function KindPill({ kind, className }: { kind: Kind; className?: string }) {
   const iconOnly = useStore((s) => s.kindLabels === "icon");
   return (
     <span
       data-kind={kind}
-      title={iconOnly ? kindLabel[kind] : undefined}
+      title={iconOnly ? kindOne[kind] : undefined}
       className={clsx("k-pill inline-flex items-center gap-1 rounded-md px-2 py-[3px] text-[11.5px] font-medium whitespace-nowrap", className)}
     >
-      <KindName kind={kind} icon="size-3" />
+      <KindName kind={kind} icon="size-3" one />
     </span>
   );
 }

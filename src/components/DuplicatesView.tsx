@@ -3,12 +3,13 @@ import clsx from "clsx";
 import { Maximize2 } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { compare } from "../lib/filter";
+import { differingParts } from "../lib/format";
 import { ago, bytes } from "../lib/fmt";
 import { t } from "../lib/i18n";
 import { useStore } from "../store";
 import type { Asset, Collection } from "../types";
 import { ScopeChips } from "./Header";
-import { useLocation } from "./Peek";
+import { locationOf, useLocation } from "./Peek";
 import { Thumb } from "./Thumb";
 import { Button, IconButton, Modal, T } from "./ui";
 
@@ -100,6 +101,9 @@ function CopyCard({ a, keep, collections, onKeep }: { a: Asset; keep: boolean; c
 }
 
 const GroupRow = memo(function GroupRow({ g, i, current }: { g: Group; i: number; current: boolean }) {
+  const roots = useStore((s) => s.roots);
+  const first = g.items[0];
+  const where = g.items.map((a) => locationOf(roots, a) + (a.name === first.name ? "" : a.name));
   return (
     <div
       id={`dup-${i}`}
@@ -116,8 +120,11 @@ const GroupRow = memo(function GroupRow({ g, i, current }: { g: Group; i: number
         <Thumb asset={g.items[1]} size="row" className="-ml-3 size-[34px] rounded-[7px] border-2 border-bg" />
       </div>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate font-medium">{g.items[0].name}</span>
-        <span className="truncate text-muted">{g.items.slice(1).map((a) => a.name).join(", ")}</span>
+        <span className="truncate font-medium">{first.name}</span>
+        {/* Where each copy is, so the name isn't repeated; a copy named differently adds its name. */}
+        <span className="truncate text-muted" title={where.join("\n")}>
+          {differingParts(where).join(", ")}
+        </span>
       </div>
       <span className="ml-auto flex flex-none flex-col items-end gap-0.5 font-mono text-[11px] text-faint">
         <span>{bytes(g.items[0].size)}</span>

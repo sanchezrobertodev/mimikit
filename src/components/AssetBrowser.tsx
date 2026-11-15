@@ -6,7 +6,7 @@ import type { Group } from "../lib/filter";
 import { folderOf } from "../lib/format";
 import { ago, bytes, duration } from "../lib/fmt";
 import { t } from "../lib/i18n";
-import { reducedMotion } from "../lib/prefs";
+import { reducedMotion, type SortKey } from "../lib/prefs";
 import { thumbnailFor } from "../lib/thumbs";
 import { useStore } from "../store";
 import type { Asset } from "../types";
@@ -50,7 +50,7 @@ function hoverPlay(a: Asset | null) {
   if (!hoverAudio) return;
   hoverAudio.pause();
   // Reduced motion also means no media that starts by itself.
-  if (!a || reducedMotion()) return;
+  if (!a || reducedMotion() || !useStore.getState().hoverSound) return;
   hoverTimer = setTimeout(() => {
     audioUrl(a)
       .then((url) => {
@@ -306,6 +306,25 @@ function Grid({ assets, groups }: { assets: Asset[]; groups: Group[] | null }) {
 
 const COLS = "48px minmax(0,1.6fr) 120px 90px 80px minmax(0,1fr) 96px";
 
+/** A list column header that sorts by its column; clicking the sorted one flips the direction, like the Sort menu. */
+function SortHead({ col, by }: { col: "name" | "type" | "size" | "folder" | "modified"; by: SortKey }) {
+  const sort = useStore((s) => s.sort);
+  const setSort = useStore((s) => s.setSort);
+  const on = sort.key === by;
+  return (
+    <span role="columnheader" aria-sort={on ? (sort.desc ? "descending" : "ascending") : undefined} className="min-w-0">
+      <button type="button" onClick={() => setSort(by)} className={clsx("flex max-w-full items-center gap-1 hover:text-fg", on && "text-fg")}>
+        <span className="truncate">{t(`assetBrowser.columns.${col}`)}</span>
+        {on && (
+          <span aria-hidden className="font-mono">
+            {sort.desc ? "↓" : "↑"}
+          </span>
+        )}
+      </button>
+    </span>
+  );
+}
+
 function List({ assets, groups }: { assets: Asset[]; groups: Group[] | null }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { selected, activeId, peek, pixelated } = useStore();
@@ -333,17 +352,21 @@ function List({ assets, groups }: { assets: Asset[]; groups: Group[] | null }) {
 
   return (
     <div className="flex h-full flex-col px-7">
-      <div
-        className="grid h-[34px] flex-none items-center rounded-t-xl border border-line bg-panel px-2.5 text-[11.5px] font-medium text-faint"
-        style={{ gridTemplateColumns: COLS }}
-      >
-        <span />
-        <span>{t("assetBrowser.columns.name")}</span>
-        <span>{t("assetBrowser.columns.type")}</span>
-        <span>{t("assetBrowser.columns.dims")}</span>
-        <span>{t("assetBrowser.columns.size")}</span>
-        <span>{t("assetBrowser.columns.folder")}</span>
-        <span>{t("assetBrowser.columns.modified")}</span>
+      {/* A one-row table, so the column headers can say how the list is sorted (aria-sort needs a columnheader). */}
+      <div role="table" aria-label={t("header.sort.label")} className="flex-none">
+        <div
+          role="row"
+          className="grid h-[34px] flex-none items-center rounded-t-xl border border-line bg-panel px-2.5 text-[11.5px] font-medium text-faint"
+          style={{ gridTemplateColumns: COLS }}
+        >
+          <span aria-hidden />
+          <SortHead col="name" by="name" />
+          <SortHead col="type" by="kind" />
+          <span role="columnheader">{t("assetBrowser.columns.dims")}</span>
+          <SortHead col="size" by="size" />
+          <SortHead col="folder" by="folder" />
+          <SortHead col="modified" by="mtime" />
+        </div>
       </div>
       <div ref={scrollRef} {...lb} className={clsx("min-h-0 flex-1 overflow-y-auto", lb.className)}>
         <div style={{ height: v.getTotalSize(), position: "relative" }}>

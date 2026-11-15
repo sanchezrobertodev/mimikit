@@ -24,6 +24,8 @@
     "startViewHint": "La vista con la que se abre Mimikit.",
     "startViewHome": "Inicio",
     "startViewLibrary": "Biblioteca",
+    "hoverSound": "Reproducir sonidos al pasar el cursor",
+    "hoverSoundHint": "Las tarjetas y filas de audio suenan mientras el puntero está sobre ellas. Nunca si el sistema reduce el movimiento.",
     "thumbSize": "Tamaño de las miniaturas",
     "thumbSizeHint": "Tamaño de las tarjetas en la cuadrícula. El control deslizante sobre la cuadrícula también lo cambia.",
     "thumbSizeValue": "{{size}}px",

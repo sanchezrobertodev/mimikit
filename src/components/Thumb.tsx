@@ -11,10 +11,10 @@ import type { Asset } from "../types";
 /** Sprites this small are pixel art: scale them up crisp instead of blurry. */
 export const isTiny = (a: Asset) => !!a.width && !!a.height && a.width <= 64 && a.height <= 64;
 
-/** Label sizes for the design's placeholder tiles: card, list row, filmstrip. */
-const sizes = {
+/** Label sizes for the design's placeholder tiles: card, list row, filmstrip. A row has no extension: it'd be too small to read. */
+const sizes: Record<"card" | "row" | "strip", { font: string; ext?: string }> = {
   card: { font: "text-[38px]", ext: "text-[11px]" },
-  row: { font: "text-[15px]", ext: "text-[8px]" },
+  row: { font: "text-[15px]" },
   strip: { font: "text-[22px]", ext: "text-[10px]" },
 };
 
@@ -91,7 +91,9 @@ export function Thumb({
           {t("thumb.fontSample")}
         </span>
       ) : (
-        <span className={clsx("k-text font-mono tracking-[.04em] uppercase", sizes[size].ext)}>{asset.ext || t("thumb.noExt")}</span>
+        sizes[size].ext && (
+          <span className={clsx("k-text font-mono tracking-[.04em] uppercase", sizes[size].ext)}>{asset.ext || t("thumb.noExt")}</span>
+        )
       )}
     </div>
   );

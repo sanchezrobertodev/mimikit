@@ -24,6 +24,8 @@
     "startViewHint": "The view Mimikit opens on.",
     "startViewHome": "Home",
     "startViewLibrary": "Library",
+    "hoverSound": "Play sounds on hover",
+    "hoverSoundHint": "Audio cards and rows play while the pointer rests on them. Never when the system reduces motion.",
     "thumbSize": "Thumbnail size",
     "thumbSizeHint": "Card size in the grid. The slider above the grid changes it too.",
     "thumbSizeValue": "{{size}}px",

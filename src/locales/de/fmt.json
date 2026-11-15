@@ -8,6 +8,15 @@
     "text": "Text & Daten",
     "other": "Sonstige"
   },
+  "kindOne": {
+    "image": "Bild",
+    "audio": "Audio",
+    "model": "3D-Modell",
+    "font": "Schrift",
+    "video": "Video",
+    "text": "Text & Daten",
+    "other": "Sonstiges"
+  },
   "units": {
     "b": "B",
     "kb": "KB",
