@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest something Mimikit should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task or problem, in your own words. For example "I can't tell which sprite sheets I've already used in my game."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: How you picture it working, if you have an idea. A sketch or a screenshot from another tool is welcome.
+  - type: input
+    id: tools
+    attributes:
+      label: Engine and tools you use
+      placeholder: Unity, Godot, Aseprite, Blender…
