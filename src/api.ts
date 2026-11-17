@@ -63,7 +63,7 @@ export const api = {
     invoke<void>("set_in_collection", { collection, ids, member }),
   renameCollection: (id: number, name: string) => invoke<string>("rename_collection", { id, name }),
   copyCollection: (ids: number[], dest: string) => invoke<{ copied: number; failed: string[] }>("copy_collection", { ids, dest }),
-  /** Cuts a sprite sheet's frames into PNGs in `dest`; existing files are never replaced. */
+  /** Cuts a sprite sheet's frames into PNGs in `dest` (a multi-frame Aseprite file's own frames, ignoring the grid); existing files are never replaced. */
   exportFrames: (id: number, cols: number, rows: number, skipEmpty: boolean, dest: string) =>
     invoke<{ written: number; failed: string[]; first: string | null }>("export_frames", { id, cols, rows, skipEmpty, dest }),
   findDuplicates: () => invoke<DupGroup[]>("find_duplicates"),

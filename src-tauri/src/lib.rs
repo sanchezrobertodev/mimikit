@@ -752,48 +752,82 @@ async fn copy_collection(state: State<'_, AppState>, ids: Vec<i64>, dest: String
     Ok(CopyResult { copied, failed })
 }
 
-/// Writes each cell of a `cols`×`rows` grid over `img` to `dest` as `<stem>_000.png`, `<stem>_001.png`… in reading
-/// order. Frames are floor(width / cols) × floor(height / rows), as in the sprite view, so a remainder is dropped.
-/// With `skip_empty`, fully transparent frames are left out (the others keep their numbers). Never replaces a file.
-/// Returns the files written and the frames that failed.
-fn write_frames(
-    img: &image::DynamicImage,
+/// The files an export wrote and the frames that failed.
+type Saved = (Vec<PathBuf>, Vec<String>);
+
+/// Saves frame `i` of `count` to `dest` as `<stem>_000.png`, `<stem>_001.png`… (wider numbers past 1000 frames, so
+/// names sort) and records it in `out`. With `skip_empty`, a fully transparent frame is left out (the others keep their
+/// numbers). Never replaces a file.
+fn save_frame(
+    frame: &image::DynamicImage,
+    i: u32,
+    count: u32,
     stem: &str,
-    cols: u32,
-    rows: u32,
     skip_empty: bool,
     dest: &Path,
-) -> (Vec<PathBuf>, Vec<String>) {
+    out: &mut Saved,
+) {
+    use image::GenericImageView;
+    if skip_empty && frame.pixels().all(|(.., p)| p[3] == 0) {
+        return;
+    }
+    let digits = (count - 1).max(1).ilog10() as usize + 1;
+    let name = format!("{stem}_{i:0w$}.png", w = digits.max(3));
+    let target = free_path(dest, &name);
+    let r = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&target)
+        .map_err(err)
+        .and_then(|f| {
+            frame
+                .write_to(&mut std::io::BufWriter::new(f), image::ImageFormat::Png)
+                .map_err(|e| {
+                    let _ = std::fs::remove_file(&target); // our own half-written file
+                    err(e)
+                })
+        });
+    match r {
+        Ok(()) => out.0.push(target),
+        Err(e) => out.1.push(format!("{name}: {e}")),
+    }
+}
+
+/// Saves each cell of a `cols`×`rows` grid over `img` with `save_frame`, in reading order. Frames are
+/// floor(width / cols) × floor(height / rows), as in the sprite view, so a remainder is dropped.
+fn write_frames(img: &image::DynamicImage, stem: &str, cols: u32, rows: u32, skip_empty: bool, dest: &Path) -> Saved {
     let (fw, fh) = (img.width() / cols, img.height() / rows);
-    let digits = (cols * rows - 1).max(1).ilog10() as usize + 1;
-    let mut failed = Vec::new();
-    let mut written = Vec::new();
+    let mut out = Saved::default();
     for i in 0..cols * rows {
         let frame = img.crop_imm((i % cols) * fw, (i / cols) * fh, fw, fh);
-        if skip_empty && frame.to_rgba8().pixels().all(|p| p[3] == 0) {
-            continue;
-        }
-        let name = format!("{stem}_{i:0w$}.png", w = digits.max(3));
-        let target = free_path(dest, &name);
-        let r = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&target)
-            .map_err(err)
-            .and_then(|f| {
-                frame
-                    .write_to(&mut std::io::BufWriter::new(f), image::ImageFormat::Png)
-                    .map_err(|e| {
-                        let _ = std::fs::remove_file(&target); // our own half-written file
-                        err(e)
-                    })
-            });
-        match r {
-            Ok(()) => written.push(target),
-            Err(e) => failed.push(format!("{name}: {e}")),
-        }
+        save_frame(&frame, i, cols * rows, stem, skip_empty, dest, &mut out);
     }
-    (written, failed)
+    out
+}
+
+/// Saves each of the `count` frames of an Aseprite file (its bytes), flattened at full size, with `save_frame`. Frames
+/// are drawn and saved one at a time. An error before the first frame is returned; a later one joins the failures.
+fn write_aseprite_frames(bytes: &[u8], count: u32, stem: &str, skip_empty: bool, dest: &Path) -> Result<Saved, String> {
+    let mut out = Saved::default();
+    let mut i = 0;
+    if let Err(e) = aseprite::each_frame(bytes, |frame| {
+        save_frame(
+            &image::DynamicImage::ImageRgba8(frame),
+            i,
+            count,
+            stem,
+            skip_empty,
+            dest,
+            &mut out,
+        );
+        i += 1;
+    }) {
+        if i == 0 {
+            return Err(e);
+        }
+        out.1.push(e);
+    }
+    Ok(out)
 }
 
 #[derive(Serialize)]
@@ -806,7 +840,8 @@ struct ExportResult {
 }
 
 /// Saves each frame of a sprite sheet as its own PNG in `dest`, cut from the original file (not the size-capped
-/// preview). The original is only read.
+/// preview). A multi-frame Aseprite file saves its own frames instead, and `cols` and `rows` are ignored. The original
+/// is only read.
 #[tauri::command]
 async fn export_frames(
     state: State<'_, AppState>,
@@ -826,6 +861,16 @@ async fn export_frames(
     }
     let _permit = state.thumb_permits.acquire().await.map_err(err)?;
     let (written, failed) = tauri::async_runtime::spawn_blocking(move || {
+        let stem = Path::new(&a.name)
+            .file_stem()
+            .map_or("frame".into(), |s| s.to_string_lossy().into_owned());
+        if matches!(a.ext.as_str(), "ase" | "aseprite") {
+            let bytes = std::fs::read(&a.path).map_err(err)?;
+            let count = aseprite::durations(&bytes).len() as u32;
+            if count > 1 {
+                return write_aseprite_frames(&bytes, count, &stem, skip_empty, &dest);
+            }
+        }
         let img = thumbs::decode(Path::new(&a.path), &a.ext)?;
         if cols == 0 || rows == 0 || cols > img.width() || rows > img.height() {
             return Err(format!(
@@ -834,9 +879,6 @@ async fn export_frames(
                 img.height()
             ));
         }
-        let stem = Path::new(&a.name)
-            .file_stem()
-            .map_or("frame".into(), |s| s.to_string_lossy().into_owned());
         Ok(write_frames(&img, &stem, cols, rows, skip_empty, &dest))
     })
     .await
@@ -1247,6 +1289,48 @@ mod tests {
         let (written, _) = super::write_frames(&DynamicImage::new_rgba8(100, 20), "wide", 100, 20, false, dir.path());
         assert_eq!(written.len(), 2000);
         assert!(dir.path().join("wide_1999.png").exists() && dir.path().join("wide_0000.png").exists());
+    }
+
+    #[test]
+    fn aseprite_frames_are_exported_whole() {
+        use crate::aseprite::tests::{animation, cel, layer, linked};
+        let dir = tempfile::tempdir().unwrap();
+        let red = [255, 0, 0, 255];
+        let f = animation(
+            3,
+            2,
+            32,
+            0,
+            &[
+                (&[layer(1, 0, 0, 255), cel(0, 0, 0, 1, 1, &red, true)], 100),
+                (&[], 100), // empty
+                (&[linked(0, 2, 1, 0)], 100),
+                (&[cel(0, 0, 0, 2, 2, &red, false)], 100), // 1 of its 4 pixels: broken
+            ],
+        );
+        let (written, failed) = super::write_aseprite_frames(&f, 4, "walk", false, dir.path()).unwrap();
+        assert_eq!(
+            (written.len(), failed.len()),
+            (3, 1),
+            "frames before the broken one are kept"
+        );
+        let last = image::open(dir.path().join("walk_002.png")).unwrap().to_rgba8();
+        assert_eq!(last.dimensions(), (3, 2));
+        assert_eq!((last.get_pixel(0, 0).0, last.get_pixel(2, 1).0), ([0; 4], red));
+
+        let (written, _) = super::write_aseprite_frames(&f, 4, "walk", true, dir.path()).unwrap();
+        assert_eq!(written.len(), 2);
+        assert!(dir.path().join("walk_002 (2).png").exists() && !dir.path().join("walk_001 (2).png").exists());
+        assert!(super::write_aseprite_frames(b"\x89PNG\r\n\x1a\n", 2, "x", false, dir.path()).is_err());
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 5);
+
+        // Cut inside the last frame: the three whole frames are kept, and the missing one is a failure.
+        let cut = &f[..f.len() - 10];
+        assert_eq!(crate::aseprite::durations(cut).len(), 3);
+        let cut_dir = tempfile::tempdir().unwrap();
+        let (written, failed) = super::write_aseprite_frames(cut, 3, "cut", false, cut_dir.path()).unwrap();
+        assert_eq!((written.len(), failed.len()), (3, 1), "{failed:?}");
+        assert!(failed[0].contains("after frame 3 of 4"), "{failed:?}");
     }
 
     #[test]
