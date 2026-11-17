@@ -13,6 +13,7 @@ import { FullView } from "./components/FullView";
 import { BrowseBar, Header } from "./components/Header";
 import { HomeView } from "./components/HomeView";
 import { InsightsView } from "./components/InsightsView";
+import { TagsView } from "./components/TagsView";
 import { Palette } from "./components/Palette";
 import { SuggestTags } from "./components/SuggestTags";
 import { Peek } from "./components/Peek";
@@ -167,17 +168,17 @@ export default function App() {
     st.resolveLooks("window", JSON.parse(looksKey)).catch(st.setError);
   }, [looksKey, meaningOn]);
   const looks = looksKey !== "[]" ? s.looks : null;
-  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, related, palettes, looks };
+  const scope = { view: s.view, kinds: s.kinds, folder: s.folder, subfolders: s.subfolders, query: s.query, filters: s.filters, collection, notes: s.notes, similar, meaning, related, palettes, looks, groups: s.tagGroups };
   const visible = useMemo(
     () => visibleAssets(s.assets, scope, s.sort),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, related, palettes, looks],
+    [s.assets, s.view, s.kinds, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, s.sort, similar, meaning, related, palettes, looks, s.tagGroups],
   );
   // Same scope without the type chips, so each chip can show its count. Only counted, so not sorted.
   const scopeAssets = useMemo(
     () => visibleAssets(s.assets, { ...scope, kinds: [] }, null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, related, palettes, looks],
+    [s.assets, s.view, s.folder, s.subfolders, s.query, s.filters, collection, s.notes, similar, meaning, related, palettes, looks, s.tagGroups],
   );
   useEffect(() => {
     if (wantsColors) void useStore.getState().loadPalettes();
@@ -355,7 +356,7 @@ export default function App() {
       <div className="grid min-h-0 min-w-0" style={{ gridTemplateColumns: `minmax(0,1fr) ${peekOn ? "clamp(300px,30vw,400px)" : "0px"}` }}>
         <main tabIndex={-1} className="flex min-h-0 min-w-0 flex-col focus-visible:outline-none">
           <Header />
-          {(browse || s.view === "home" || s.view === "insights" || s.view === "ai" || s.view === "duplicates") && !s.roots.length && (
+          {(browse || s.view === "home" || s.view === "insights" || s.view === "tags" || s.view === "ai" || s.view === "duplicates") && !s.roots.length && (
             <div className="min-h-0 flex-1">
               <Welcome />
             </div>
@@ -396,6 +397,7 @@ export default function App() {
           {s.view === "duplicates" && s.roots.length > 0 && <DuplicatesView visible={visible} scopeAssets={scopeAssets} />}
           {s.view === "home" && s.roots.length > 0 && <HomeView />}
           {s.view === "insights" && s.roots.length > 0 && <InsightsView />}
+          {s.view === "tags" && s.roots.length > 0 && <TagsView />}
           {s.view === "ai" && s.ai.on && s.roots.length > 0 && <AiView />}
           {navigable && !peekOn && !s.palette && !s.full && order.length > 0 && (
             // One line: hints that don't fit drop out whole, and the way to the full list comes first so it never does.

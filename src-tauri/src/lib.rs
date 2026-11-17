@@ -528,6 +528,73 @@ fn remove_tag(state: State<'_, AppState>, ids: Vec<i64>, tag: String) -> Result<
 }
 
 #[tauri::command]
+fn tag_groups(state: State<'_, AppState>) -> Result<Vec<db::TagGroup>, String> {
+    with_db(&state, db::tag_groups)
+}
+
+#[tauri::command]
+fn create_tag_group(state: State<'_, AppState>, name: String) -> Result<i64, String> {
+    db::create_tag_group(&state.db.lock().unwrap(), &name)
+}
+
+#[tauri::command]
+fn rename_tag_group(state: State<'_, AppState>, id: i64, name: String) -> Result<String, String> {
+    db::rename_tag_group(&state.db.lock().unwrap(), id, &name)
+}
+
+/// Its tags become ungrouped. Returns the snapshot for Undo (restore_tags).
+#[tauri::command]
+fn delete_tag_group(state: State<'_, AppState>, id: i64) -> Result<db::TagSnapshot, String> {
+    with_db(&state, |c| db::delete_tag_group(c, id))
+}
+
+#[tauri::command]
+fn move_tag_group(state: State<'_, AppState>, id: i64, position: usize) -> Result<(), String> {
+    with_db(&state, |c| db::move_tag_group(c, id, position))
+}
+
+/// Puts tags in a group (null: ungrouped). Returns the snapshot for Undo.
+#[tauri::command]
+fn set_tag_group(state: State<'_, AppState>, tags: Vec<String>, group: Option<i64>) -> Result<db::TagSnapshot, String> {
+    db::set_tag_group(&state.db.lock().unwrap(), &tags, group)
+}
+
+/// Renames tags across the library, or merges them into `to` when it exists. Returns the snapshot for Undo.
+#[tauri::command]
+fn rename_tags(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    from: Vec<String>,
+    to: String,
+) -> Result<db::TagSnapshot, String> {
+    let conn = state.db.lock().unwrap();
+    let (snap, touched) = db::rename_tags(&conn, &from, &to)?;
+    emit_delta(&app, &conn, &touched);
+    Ok(snap)
+}
+
+/// Deletes tags from every asset. Returns the snapshot for Undo and how many smart collections still name them.
+#[tauri::command]
+fn delete_tags(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    tags: Vec<String>,
+) -> Result<(db::TagSnapshot, usize), String> {
+    let conn = state.db.lock().unwrap();
+    let (snap, rules, touched) = db::delete_tags(&conn, &tags)?;
+    emit_delta(&app, &conn, &touched);
+    Ok((snap, rules))
+}
+
+#[tauri::command]
+fn restore_tags(app: AppHandle, state: State<'_, AppState>, snapshot: db::TagSnapshot) -> Result<(), String> {
+    let conn = state.db.lock().unwrap();
+    let touched = db::restore_tags(&conn, &snapshot).map_err(err)?;
+    emit_delta(&app, &conn, &touched);
+    Ok(())
+}
+
+#[tauri::command]
 fn get_sprite_sheet(state: State<'_, AppState>, id: i64) -> Result<Option<db::SpriteSheet>, String> {
     with_db(&state, |c| db::sprite_sheet(c, id))
 }
@@ -1152,6 +1219,15 @@ pub fn run() {
             set_note,
             add_tag,
             remove_tag,
+            tag_groups,
+            create_tag_group,
+            rename_tag_group,
+            delete_tag_group,
+            move_tag_group,
+            set_tag_group,
+            rename_tags,
+            delete_tags,
+            restore_tags,
             get_sprite_sheet,
             set_sprite_sheet,
             list_collections,

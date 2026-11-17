@@ -1,0 +1,56 @@
+{
+  "find": "タグを検索",
+  "sort": "タグの並べ替え",
+  "sorts": {
+    "count": "使用数順",
+    "name": "A–Z"
+  },
+  "groupHint": "グループは {{example}} で検索できます",
+  "newGroup": "新しいグループ",
+  "selection": "選択したタグ",
+  "selected_other": "{{count}}個を選択中",
+  "mergeSelected": "統合…",
+  "moveSelected": "グループに移動…",
+  "deleteSelected": "削除…",
+  "clearSelection": "選択を解除",
+  "same": {
+    "title": "同じタグのようです",
+    "merge": "{{tag}} に統合"
+  },
+  "noMatch": "「{{query}}」に一致するタグはありません。",
+  "ungrouped": "グループなし",
+  "allTags": "すべてのタグ",
+  "groupName": "グループ名",
+  "tagCount_other": "{{count}}個のタグ",
+  "showGroup": "{{name}} のタグが付いたアセットを表示",
+  "moveUp": "{{name}} を上へ移動",
+  "moveDown": "{{name}} を下へ移動",
+  "deleteGroup": "グループ {{name}} を削除",
+  "emptyGroup": "まだタグがありません。タグのグループメニューでこのグループを選んでください。",
+  "select": "{{tag}} を選択",
+  "rename": "{{tag}} の名前を変更",
+  "assets_other": "{{count}}個のアセット",
+  "showAssets": "{{tag}} が付いたアセットを表示",
+  "groupOf": "{{tag}} のグループ",
+  "noGroup": "グループなし",
+  "delete": "{{tag}} を削除",
+  "empty": {
+    "title": "まだタグがありません",
+    "body": "アセットを選択し、サイドパネルでタグを追加してください。ここで名前の変更、統合、グループ分けができます。",
+    "bodyAi": "アセットを選択してサイドパネルでタグを追加するか、Claude に提案させてください。ここで名前の変更、統合、グループ分けができます。",
+    "suggest": "タグを提案"
+  },
+  "ask": {
+    "merge": "{{from}} を {{tag}} に統合しますか？",
+    "mergeMany_other": "{{count}}個のタグを {{tag}} に統合しますか？",
+    "into": "統合先",
+    "mergeBody_other": "{{count}}個のアセットに {{tag}} が付きます。統合したタグを検索するスマートコレクションも追従します。",
+    "mergeConfirm": "統合",
+    "delete": "{{tag}} を削除しますか？",
+    "deleteMany_other": "{{count}}個のタグを削除しますか？",
+    "deleteBody_other": "{{count}}個のアセットに影響します。ファイルは変更されません。",
+    "deleteRules_other": "{{count}}個のスマートコレクションが削除したタグを検索しています。その検索はそのまま残ります。",
+    "deleteConfirm": "削除",
+    "cancel": "キャンセル"
+  }
+}

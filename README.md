@@ -80,6 +80,9 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
 ### Organize
 
 - **Tags, favorites, 1–5 star ratings and notes.** Most changes show a toast with **Undo**.
+- **Tags** in the sidebar manages them all: rename a tag everywhere, merge tags that mean the same thing (it points
+  out likely ones, such as `coin` and `coins`), delete one from every asset, and sort tags into groups such as Biome
+  or Style, which the **More filters** tag list follows. Smart collections that search for a renamed tag follow it.
 - **Collections** group assets for a level, a pack or a handoff. Rename one in place, or copy its files into a folder
   for a build. **Save as smart collection** turns the current search and filters into a collection that keeps itself
   up to date. An open collection has the same type chips, search, filters, sort and layouts as the library.
@@ -96,8 +99,8 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
 ### Find
 
 - **Search** (<kbd>Ctrl/⌘ K</kbd> or <kbd>/</kbd>): one box for assets, folders and actions, with `type:audio`,
-  `in:sprites`, `#player`, `size:>1mb`, `rating:>=4` (or `rating:3`, `rating:<2`) and `note:redo`. Its first result
-  applies the search to the grid.
+  `in:sprites`, `#player`, `#biome:` (any tag in the Biome group), `size:>1mb`, `rating:>=4` (or `rating:3`,
+  `rating:<2`) and `note:redo`. Its first result applies the search to the grid.
 - **Find similar** and **search by colour**: the side panel finds images that look like the open one (resized,
   recoloured or lightly cropped copies included), and the Colour filter or `color:red` / `color:#ff8800` finds images
   by their main colours. Both need images analysed: the ones you browse are done as you go, **Analyse images** in
@@ -252,6 +255,7 @@ identical. "Copy to folder…" only ever creates new files.
 - Which audio and video formats play, and which videos get a frame thumbnail, depends on the OS webview. Windows
   (WebView2) plays the most; on Linux, install the GStreamer plugins for MP4/H.264.
 - A file renamed while the app is closed shows up as a new file on the next scan, so its tags don't follow it.
+- Renaming a tag group doesn't change smart collections that search for it with `#group:`; edit their search.
 - Find similar and search by colour only cover analysed images. A full analysis reads every image once (from its
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's

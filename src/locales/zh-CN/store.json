@@ -26,5 +26,18 @@
   "copyFailed_other": "{{copied}}{{count}} 个失败：{{errors}}",
   "notDuplicates": "已标记为不是重复项",
   "trashed": "已将 {{name}} 移到回收站，可从那里恢复。",
-  "trashedCount_other": "已将 {{count}} 个副本移到回收站，可从那里恢复。"
+  "trashedCount_other": "已将 {{count}} 个副本移到回收站，可从那里恢复。",
+  "tagRenamed": "已将 {{from}} 重命名为 {{tag}}",
+  "tagMerged": "已将 {{from}} 合并到 {{tag}}",
+  "tagsMerged_other": "已将 {{count}} 个标签合并到 {{tag}}",
+  "tagDeleted_other": "已从 {{count}} 个资源中删除 {{tag}}。",
+  "tagsDeleted_other": "已删除 {{count}} 个标签。",
+  "rulesKept_other": "{{count}} 个智能合集的搜索保持不变。",
+  "newGroup": "新分组",
+  "newGroupNumbered": "新分组 {{number}}",
+  "groupDeleted": "已删除分组 {{name}}，其中的标签已变为未分组。",
+  "tagMoved": "已将 {{tag}} 移到 {{group}}",
+  "tagsMoved_other": "已将 {{count}} 个标签移到 {{group}}",
+  "tagUngrouped": "已将 {{tag}} 移出分组",
+  "tagsUngrouped_other": "已将 {{count}} 个标签移出分组"
 }

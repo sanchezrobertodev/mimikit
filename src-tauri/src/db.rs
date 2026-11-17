@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, OptionalExtension, Result, params};
@@ -64,6 +64,17 @@ CREATE TABLE IF NOT EXISTS collection_rules (
   filters TEXT NOT NULL /* JSON */
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+/* Tag groups (Style, Biome…), in `position` order; a tag is in at most one, and a tag without a row is ungrouped. A
+   membership outlives the tag's last asset. AUTOINCREMENT so a deleted group's id is never reused: Undo brings it back. */
+CREATE TABLE IF NOT EXISTS tag_groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  position INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS tag_group_members (
+  tag TEXT PRIMARY KEY,
+  group_id INTEGER NOT NULL REFERENCES tag_groups(id) ON DELETE CASCADE
+);
 /* Suggest tags (tagging.rs): Claude's suggestions waiting for review, the tags accepted from them (for Remove all AI
    tags), the version of each asset already asked about, and the batches sent. */
 CREATE TABLE IF NOT EXISTS tag_suggestions (
@@ -480,6 +491,445 @@ pub fn set_in_collection(conn: &Connection, collection: i64, ids: &[i64], member
     Ok(())
 }
 
+fn json<T: Serialize + ?Sized>(v: &T) -> String {
+    serde_json::to_string(v).unwrap_or_default()
+}
+
+/// A tag group and its tags, A–Z. A tag with no assets left stays in its group.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct TagGroup {
+    pub id: i64,
+    pub name: String,
+    pub tags: Vec<String>,
+}
+
+const GROUP_GONE: &str = "That tag group no longer exists.";
+
+pub fn tag_groups(conn: &Connection) -> Result<Vec<TagGroup>> {
+    let mut stmt = conn.prepare(
+        "SELECT g.id, g.name, (SELECT group_concat(tag, char(31)) FROM tag_group_members m WHERE m.group_id = g.id)
+         FROM tag_groups g ORDER BY g.position, g.id",
+    )?;
+    stmt.query_map([], |r| {
+        let mut tags: Vec<String> = r
+            .get::<_, Option<String>>(2)?
+            .map(|s| s.split(TAG_SEP).map(String::from).collect())
+            .unwrap_or_default();
+        tags.sort_unstable();
+        Ok(TagGroup {
+            id: r.get(0)?,
+            name: r.get(1)?,
+            tags,
+        })
+    })?
+    .collect()
+}
+
+/// A trimmed group name: 1 to 64 characters without control characters or `:` (`#style:` searches a group), and no
+/// other group's name in any case.
+fn group_name(conn: &Connection, name: &str, except: Option<i64>) -> std::result::Result<String, String> {
+    let name = name.trim();
+    if name.is_empty() || name.chars().count() > 64 || name.chars().any(|c| c.is_control() || c == ':') {
+        return Err("Group names must be 1 to 64 characters, without control characters or colons.".into());
+    }
+    // Compared here: COLLATE NOCASE only folds ASCII letters.
+    let lower = name.to_lowercase();
+    let names = conn
+        .prepare("SELECT id, name FROM tag_groups")
+        .and_then(|mut s| {
+            s.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?
+                .collect::<Result<Vec<_>>>()
+        })
+        .map_err(|e| e.to_string())?;
+    if names
+        .iter()
+        .any(|(id, n)| Some(*id) != except && n.to_lowercase() == lower)
+    {
+        return Err(format!("A tag group named \"{name}\" already exists."));
+    }
+    Ok(name.to_string())
+}
+
+/// A new group at the end of the list.
+pub fn create_tag_group(conn: &Connection, name: &str) -> std::result::Result<i64, String> {
+    let name = group_name(conn, name, None)?;
+    conn.execute(
+        "INSERT INTO tag_groups (name, position) SELECT ?1, coalesce(max(position) + 1, 0) FROM tag_groups",
+        [&name],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(conn.last_insert_rowid())
+}
+
+pub fn rename_tag_group(conn: &Connection, id: i64, name: &str) -> std::result::Result<String, String> {
+    let name = group_name(conn, name, Some(id))?;
+    let n = conn
+        .execute("UPDATE tag_groups SET name = ?2 WHERE id = ?1", params![id, name])
+        .map_err(|e| e.to_string())?;
+    if n == 0 {
+        return Err(GROUP_GONE.into());
+    }
+    Ok(name)
+}
+
+/// Deletes a group; its tags become ungrouped. Returns what Undo needs to bring it back.
+pub fn delete_tag_group(conn: &Connection, id: i64) -> Result<TagSnapshot> {
+    let tags: Vec<String> = conn
+        .prepare("SELECT tag FROM tag_group_members WHERE group_id = ?1")?
+        .query_map([id], |r| r.get(0))?
+        .collect::<Result<_>>()?;
+    let snap = snapshot(conn, &tags, true, &[id])?;
+    // ON DELETE CASCADE takes its members.
+    conn.execute("DELETE FROM tag_groups WHERE id = ?1", [id])?;
+    Ok(snap)
+}
+
+/// Moves a group to `position` in the list (0 is first, past the end is last).
+pub fn move_tag_group(conn: &Connection, id: i64, position: usize) -> Result<()> {
+    let mut ids: Vec<i64> = conn
+        .prepare("SELECT id FROM tag_groups ORDER BY position, id")?
+        .query_map([], |r| r.get(0))?
+        .collect::<Result<_>>()?;
+    let Some(at) = ids.iter().position(|&g| g == id) else {
+        return Ok(());
+    };
+    ids.remove(at);
+    ids.insert(position.min(ids.len()), id);
+    let tx = conn.unchecked_transaction()?;
+    for (i, g) in ids.iter().enumerate() {
+        tx.execute(
+            "UPDATE tag_groups SET position = ?2 WHERE id = ?1",
+            params![g, i as i64],
+        )?;
+    }
+    tx.commit()
+}
+
+/// Puts `tags` in a group, or with None makes them ungrouped. Returns what Undo needs.
+pub fn set_tag_group(
+    conn: &Connection,
+    tags: &[String],
+    group: Option<i64>,
+) -> std::result::Result<TagSnapshot, String> {
+    let tags = tags
+        .iter()
+        .map(|t| clean_tag(t))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    let run = || -> Result<Option<TagSnapshot>> {
+        if let Some(g) = group
+            && conn
+                .query_row("SELECT 1 FROM tag_groups WHERE id = ?1", [g], |_| Ok(()))
+                .optional()?
+                .is_none()
+        {
+            return Ok(None);
+        }
+        let snap = snapshot(conn, &tags, true, &[])?;
+        let list = json(&tags);
+        let tx = conn.unchecked_transaction()?;
+        tx.execute(
+            "DELETE FROM tag_group_members WHERE tag IN (SELECT value FROM json_each(?1))",
+            [&list],
+        )?;
+        if let Some(g) = group {
+            tx.execute(
+                "INSERT OR IGNORE INTO tag_group_members (tag, group_id) SELECT value, ?2 FROM json_each(?1)",
+                params![list, g],
+            )?;
+        }
+        tx.commit()?;
+        Ok(Some(snap))
+    };
+    run().map_err(|e| e.to_string())?.ok_or_else(|| GROUP_GONE.into())
+}
+
+/// What a tag change replaces, for its Undo ([`restore_tags`]). Only the window's Undo keeps it.
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TagSnapshot {
+    /// Restoring replaces every row of these tags with the ones below.
+    tags: Vec<String>,
+    /// Only the tags' groups were saved: their asset, AI and suggestion rows are left as they are.
+    groups_only: bool,
+    asset_tags: Vec<(i64, String)>,
+    ai_tags: Vec<(i64, String)>,
+    suggestions: Vec<(i64, String)>,
+    members: Vec<(String, i64)>,
+    /// Groups as they were (id, name, position), brought back if deleted since.
+    groups: Vec<(i64, String, i64)>,
+    /// The smart collections' rules that name the tags: collection id, query, filters (JSON).
+    rules: Vec<(i64, String, String)>,
+}
+
+fn snapshot(conn: &Connection, tags: &[String], groups_only: bool, groups: &[i64]) -> Result<TagSnapshot> {
+    let list = json(tags);
+    let rows = |table: &str| -> Result<Vec<(i64, String)>> {
+        if groups_only {
+            return Ok(vec![]);
+        }
+        conn.prepare(&format!(
+            "SELECT asset_id, tag FROM {table} WHERE tag IN (SELECT value FROM json_each(?1))"
+        ))?
+        .query_map([&list], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect()
+    };
+    let members = conn
+        .prepare("SELECT tag, group_id FROM tag_group_members WHERE tag IN (SELECT value FROM json_each(?1))")?
+        .query_map([&list], |r| Ok((r.get(0)?, r.get(1)?)))?
+        .collect::<Result<_>>()?;
+    let groups = conn
+        .prepare("SELECT id, name, position FROM tag_groups WHERE id IN (SELECT value FROM json_each(?1))")?
+        .query_map([json(groups)], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect::<Result<_>>()?;
+    let rules = if groups_only {
+        vec![]
+    } else {
+        rules(conn)?
+            .into_iter()
+            .filter(|(_, q, f)| tags.iter().any(|t| mentions(q, f, t)))
+            .collect()
+    };
+    Ok(TagSnapshot {
+        tags: tags.to_vec(),
+        groups_only,
+        asset_tags: rows("asset_tags")?,
+        ai_tags: rows("ai_tags")?,
+        suggestions: rows("tag_suggestions")?,
+        members,
+        groups,
+        rules,
+    })
+}
+
+fn rules(conn: &Connection) -> Result<Vec<(i64, String, String)>> {
+    conn.prepare("SELECT collection_id, query, filters FROM collection_rules")?
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect()
+}
+
+/// A `#tag` word of a saved search, also with the full-width ＃ that Japanese and Chinese input methods type.
+fn is_tag_word(word: &str, tag: &str) -> bool {
+    word.strip_prefix(['#', '＃']).is_some_and(|w| w.to_lowercase() == tag)
+}
+
+fn any_tags(filters: &serde_json::Value) -> impl Iterator<Item = &str> {
+    filters
+        .get("anyTags")
+        .and_then(|v| v.as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(|v| v.as_str())
+}
+
+/// Whether a smart collection's rule names `tag` exactly: a `#tag` word, or the tag in the Filters panel's tags.
+fn mentions(query: &str, filters: &str, tag: &str) -> bool {
+    let f: serde_json::Value = serde_json::from_str(filters).unwrap_or_default();
+    query.split_whitespace().any(|w| is_tag_word(w, tag)) || any_tags(&f).any(|t| t == tag)
+}
+
+/// A rule with the `from` tags renamed to `to`, or None if it names none of them. Only exact `#from` words change, and
+/// `#ui` matches by prefix: after renaming `ui` to `hud`, the rule's `#hud` no longer catches `ui-button` as `#ui` did.
+fn renamed_rule(query: &str, filters: &str, from: &[String], to: &str) -> Option<(String, String)> {
+    let named = |t: &str| from.iter().any(|f| f == t);
+    let mut changed = false;
+    let words: Vec<String> = query
+        .split_whitespace()
+        .map(|w| {
+            if from.iter().any(|f| is_tag_word(w, f)) {
+                changed = true;
+                format!("#{to}")
+            } else {
+                w.to_string()
+            }
+        })
+        .collect();
+    let mut f: serde_json::Value = serde_json::from_str(filters).unwrap_or_else(|_| serde_json::json!({}));
+    if any_tags(&f).any(named) {
+        changed = true;
+        let mut seen = HashSet::new();
+        let list: Vec<serde_json::Value> = any_tags(&f)
+            .map(|t| if named(t) { to } else { t })
+            .filter(|t| seen.insert(t.to_string()))
+            .map(Into::into)
+            .collect();
+        f["anyTags"] = list.into();
+    }
+    changed.then(|| (words.join(" "), f.to_string()))
+}
+
+/// Assets that have one of the tags (a JSON list), or a suggestion of one.
+fn touched_by(conn: &Connection, list: &str) -> Result<Vec<i64>> {
+    conn.prepare(
+        "SELECT asset_id FROM asset_tags WHERE tag IN (SELECT value FROM json_each(?1))
+         UNION SELECT asset_id FROM tag_suggestions WHERE tag IN (SELECT value FROM json_each(?1)) ORDER BY 1",
+    )?
+    .query_map([list], |r| r.get(0))?
+    .collect()
+}
+
+/// Renames the `from` tags to `to` everywhere, in one transaction; when `to` exists already, that's a merge. Returns
+/// the Undo snapshot and the assets whose tags or suggestions changed.
+pub fn rename_tags(
+    conn: &Connection,
+    from: &[String],
+    to: &str,
+) -> std::result::Result<(TagSnapshot, Vec<i64>), String> {
+    let to = clean_tag(to)?;
+    let mut list = Vec::new();
+    for f in from {
+        let f = clean_tag(f)?;
+        if f != to && !list.contains(&f) {
+            list.push(f);
+        }
+    }
+    let from = list;
+    let run = || -> Result<(TagSnapshot, Vec<i64>)> {
+        let all: Vec<String> = from.iter().cloned().chain([to.clone()]).collect();
+        let snap = snapshot(conn, &all, false, &[])?;
+        let list = json(&from);
+        let tx = conn.unchecked_transaction()?;
+        let touched = touched_by(&tx, &list)?;
+        // `to` is Claude's on an asset that didn't have it and whose `from` tags were all Claude's.
+        tx.execute(
+            "INSERT OR IGNORE INTO ai_tags (asset_id, tag)
+             SELECT t.asset_id, ?2 FROM asset_tags t
+             WHERE t.tag IN (SELECT value FROM json_each(?1))
+               AND t.asset_id NOT IN (SELECT asset_id FROM asset_tags WHERE tag = ?2)
+             GROUP BY t.asset_id
+             HAVING count(*) = (SELECT count(*) FROM ai_tags a
+                                WHERE a.asset_id = t.asset_id AND a.tag IN (SELECT value FROM json_each(?1)))",
+            params![list, to],
+        )?;
+        // A pending suggestion follows, unless the asset has `to`; one that gets `to` below drops it (suggestion_taken).
+        tx.execute(
+            "INSERT OR IGNORE INTO tag_suggestions (asset_id, tag)
+             SELECT asset_id, ?2 FROM tag_suggestions
+             WHERE tag IN (SELECT value FROM json_each(?1))
+               AND asset_id NOT IN (SELECT asset_id FROM asset_tags WHERE tag = ?2)",
+            params![list, to],
+        )?;
+        tx.execute(
+            "DELETE FROM tag_suggestions WHERE tag IN (SELECT value FROM json_each(?1))",
+            [&list],
+        )?;
+        tx.execute(
+            "INSERT OR IGNORE INTO asset_tags (asset_id, tag)
+             SELECT asset_id, ?2 FROM asset_tags WHERE tag IN (SELECT value FROM json_each(?1))",
+            params![list, to],
+        )?;
+        // The ai_tag_removed trigger clears the `from` tags' AI marks.
+        tx.execute(
+            "DELETE FROM asset_tags WHERE tag IN (SELECT value FROM json_each(?1))",
+            [&list],
+        )?;
+        // `to` keeps its own group, or takes the first grouped `from` tag's.
+        tx.execute(
+            "INSERT OR IGNORE INTO tag_group_members (tag, group_id)
+             SELECT ?2, m.group_id FROM json_each(?1) j JOIN tag_group_members m ON m.tag = j.value
+             ORDER BY j.key LIMIT 1",
+            params![list, to],
+        )?;
+        tx.execute(
+            "DELETE FROM tag_group_members WHERE tag IN (SELECT value FROM json_each(?1))",
+            [&list],
+        )?;
+        for (id, q, f) in rules(&tx)? {
+            if let Some((q, f)) = renamed_rule(&q, &f, &from, &to) {
+                tx.execute(
+                    "UPDATE collection_rules SET query = ?2, filters = ?3 WHERE collection_id = ?1",
+                    params![id, q, f],
+                )?;
+            }
+        }
+        tx.commit()?;
+        Ok((snap, touched))
+    };
+    run().map_err(|e| e.to_string())
+}
+
+/// Deletes tags from every asset, with their suggestions and groups, in one transaction. Smart collections' rules are
+/// left as they are. Returns the Undo snapshot, how many rules name one of the tags, and the assets that changed.
+pub fn delete_tags(conn: &Connection, tags: &[String]) -> std::result::Result<(TagSnapshot, usize, Vec<i64>), String> {
+    let tags = tags
+        .iter()
+        .map(|t| clean_tag(t))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    let run = || -> Result<(TagSnapshot, usize, Vec<i64>)> {
+        let snap = snapshot(conn, &tags, false, &[])?;
+        let list = json(&tags);
+        let tx = conn.unchecked_transaction()?;
+        let touched = touched_by(&tx, &list)?;
+        // The ai_tag_removed trigger clears their AI marks.
+        for table in ["asset_tags", "tag_suggestions", "tag_group_members"] {
+            tx.execute(
+                &format!("DELETE FROM {table} WHERE tag IN (SELECT value FROM json_each(?1))"),
+                [&list],
+            )?;
+        }
+        tx.commit()?;
+        let rules = snap.rules.len();
+        Ok((snap, rules, touched))
+    };
+    run().map_err(|e| e.to_string())
+}
+
+/// Puts a snapshot's rows back in one transaction, skipping assets, groups and collections deleted since. Returns the
+/// assets whose tags or suggestions changed.
+pub fn restore_tags(conn: &Connection, s: &TagSnapshot) -> Result<Vec<i64>> {
+    let list = json(&s.tags);
+    let ours = |t: &String| s.tags.contains(t);
+    let tx = conn.unchecked_transaction()?;
+    let mut touched = if s.groups_only { vec![] } else { touched_by(&tx, &list)? };
+    for (id, name, position) in &s.groups {
+        tx.execute(
+            "INSERT OR IGNORE INTO tag_groups (id, name, position) VALUES (?1, ?2, ?3)",
+            params![id, name, position],
+        )?;
+    }
+    if !s.groups_only {
+        // Deleting tags fires ai_tag_removed and inserting them suggestion_taken, so the AI marks and suggestions go last.
+        for table in ["asset_tags", "ai_tags", "tag_suggestions"] {
+            tx.execute(
+                &format!("DELETE FROM {table} WHERE tag IN (SELECT value FROM json_each(?1))"),
+                [&list],
+            )?;
+        }
+        for (table, rows) in [
+            ("asset_tags", &s.asset_tags),
+            ("ai_tags", &s.ai_tags),
+            ("tag_suggestions", &s.suggestions),
+        ] {
+            let mut stmt = tx.prepare(&format!(
+                "INSERT OR IGNORE INTO {table} (asset_id, tag) SELECT ?1, ?2 WHERE ?1 IN (SELECT id FROM assets)"
+            ))?;
+            for (id, tag) in rows.iter().filter(|(_, t)| ours(t)) {
+                stmt.execute(params![id, tag])?;
+            }
+        }
+        touched.extend(s.asset_tags.iter().chain(&s.suggestions).map(|(id, _)| *id));
+    }
+    tx.execute(
+        "DELETE FROM tag_group_members WHERE tag IN (SELECT value FROM json_each(?1))",
+        [&list],
+    )?;
+    for (tag, group) in s.members.iter().filter(|(t, _)| ours(t)) {
+        tx.execute(
+            "INSERT INTO tag_group_members (tag, group_id) SELECT ?1, ?2 WHERE ?2 IN (SELECT id FROM tag_groups)",
+            params![tag, group],
+        )?;
+    }
+    for (id, query, filters) in &s.rules {
+        tx.execute(
+            "UPDATE collection_rules SET query = ?2, filters = ?3 WHERE collection_id = ?1",
+            params![id, query, filters],
+        )?;
+    }
+    tx.commit()?;
+    touched.sort_unstable();
+    touched.dedup();
+    Ok(touched)
+}
+
 /// How an image is sliced into animation frames. Keyed by asset id like tags, so it survives rescans and renames.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub struct SpriteSheet {
@@ -663,5 +1113,279 @@ mod tests {
             .query_row("SELECT count(*) FROM collection_rules", [], |r| r.get(0))
             .unwrap();
         assert_eq!(left, 0);
+    }
+
+    fn tag(conn: &Connection, id: i64, t: &str) {
+        add_tag(conn, &[id], t).unwrap();
+    }
+    /// A tag accepted from Claude's suggestions.
+    fn ai(conn: &Connection, id: i64, t: &str) {
+        tag(conn, id, t);
+        conn.execute("INSERT INTO ai_tags (asset_id, tag) VALUES (?1, ?2)", params![id, t])
+            .unwrap();
+    }
+    fn suggest(conn: &Connection, id: i64, t: &str) {
+        conn.execute(
+            "INSERT INTO tag_suggestions (asset_id, tag) VALUES (?1, ?2)",
+            params![id, t],
+        )
+        .unwrap();
+    }
+    fn rows(conn: &Connection, table: &str) -> Vec<(i64, String)> {
+        conn.prepare(&format!("SELECT asset_id, tag FROM {table} ORDER BY 1, 2"))
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect()
+    }
+    fn pairs(v: &[(i64, &str)]) -> Vec<(i64, String)> {
+        v.iter().map(|(i, t)| (*i, t.to_string())).collect()
+    }
+    fn strings(v: &[&str]) -> Vec<String> {
+        v.iter().map(|t| t.to_string()).collect()
+    }
+    fn group_list(conn: &Connection) -> Vec<(String, Vec<String>)> {
+        tag_groups(conn)
+            .unwrap()
+            .into_iter()
+            .map(|g| (g.name, g.tags))
+            .collect()
+    }
+    /// Every row a tag change can touch.
+    fn dump(conn: &Connection) -> Vec<String> {
+        let mut out = vec![];
+        for sql in [
+            "SELECT 'tag', asset_id, tag FROM asset_tags",
+            "SELECT 'ai', asset_id, tag FROM ai_tags",
+            "SELECT 'suggested', asset_id, tag FROM tag_suggestions",
+            "SELECT 'member', tag, group_id FROM tag_group_members",
+            "SELECT 'group', id, name || ' @' || position FROM tag_groups",
+            "SELECT 'rule', collection_id, query || ' ' || filters FROM collection_rules",
+        ] {
+            let mut stmt = conn.prepare(sql).unwrap();
+            let found = stmt.query_map([], |r| {
+                Ok(format!(
+                    "{} {:?} {:?}",
+                    r.get::<_, String>(0)?,
+                    r.get::<_, rusqlite::types::Value>(1)?,
+                    r.get::<_, rusqlite::types::Value>(2)?
+                ))
+            });
+            out.extend(found.unwrap().map(Result::unwrap));
+        }
+        out.sort();
+        out
+    }
+
+    #[test]
+    fn rename_and_merge_tags() {
+        let conn = with_assets(3);
+        tag(&conn, 1, "coin");
+        tag(&conn, 2, "coin");
+        tag(&conn, 2, "coins");
+        tag(&conn, 3, "coins");
+        let (_, touched) = rename_tags(&conn, &strings(&["coin"]), " Gold ").unwrap();
+        assert_eq!(touched, [1, 2]);
+        assert_eq!(
+            rows(&conn, "asset_tags"),
+            pairs(&[(1, "gold"), (2, "coins"), (2, "gold"), (3, "coins")])
+        );
+        // Asset 2 has both: it ends up with one.
+        rename_tags(&conn, &strings(&["coins"]), "gold").unwrap();
+        assert_eq!(
+            rows(&conn, "asset_tags"),
+            pairs(&[(1, "gold"), (2, "gold"), (3, "gold")])
+        );
+        assert!(rename_tags(&conn, &strings(&["gold"]), " ").is_err());
+        assert!(rename_tags(&conn, &strings(&["gold"]), "GOLD").unwrap().1.is_empty());
+    }
+
+    #[test]
+    fn renamed_tags_stay_claudes_or_the_users() {
+        let conn = with_assets(4);
+        ai(&conn, 1, "coin");
+        tag(&conn, 1, "gold"); // the user's gold stays the user's
+        ai(&conn, 2, "coin"); // Claude's alone stays Claude's
+        tag(&conn, 3, "coin");
+        ai(&conn, 4, "gold"); // Claude's gold stays Claude's
+        tag(&conn, 4, "coin");
+        rename_tags(&conn, &strings(&["coin"]), "gold").unwrap();
+        assert_eq!(rows(&conn, "ai_tags"), pairs(&[(2, "gold"), (4, "gold")]));
+
+        // Merging Claude's tag with the user's gives the user's.
+        let conn = with_assets(1);
+        ai(&conn, 1, "coin");
+        tag(&conn, 1, "coins");
+        rename_tags(&conn, &strings(&["coin", "coins"]), "loot").unwrap();
+        assert_eq!(rows(&conn, "asset_tags"), pairs(&[(1, "loot")]));
+        assert!(rows(&conn, "ai_tags").is_empty());
+    }
+
+    #[test]
+    fn renamed_suggestions_follow() {
+        let conn = with_assets(3);
+        suggest(&conn, 1, "coin");
+        suggest(&conn, 2, "coin");
+        tag(&conn, 2, "gold"); // has gold already: dropped
+        suggest(&conn, 3, "coins");
+        tag(&conn, 3, "coin"); // gets gold from the merge: dropped
+        rename_tags(&conn, &strings(&["coin", "coins"]), "gold").unwrap();
+        assert_eq!(rows(&conn, "tag_suggestions"), pairs(&[(1, "gold")]));
+        assert_eq!(rows(&conn, "asset_tags"), pairs(&[(2, "gold"), (3, "gold")]));
+    }
+
+    #[test]
+    fn renamed_tags_keep_their_group() {
+        let conn = with_assets(0);
+        let loot = create_tag_group(&conn, "Loot").unwrap();
+        let style = create_tag_group(&conn, "Style").unwrap();
+        // A tag without assets keeps its group, and its new name takes it.
+        set_tag_group(&conn, &strings(&["coin"]), Some(loot)).unwrap();
+        rename_tags(&conn, &strings(&["coin"]), "gold").unwrap();
+        assert_eq!(group_list(&conn)[0], ("Loot".into(), strings(&["gold"])));
+        // A merge keeps the target's own group.
+        set_tag_group(&conn, &strings(&["shiny"]), Some(style)).unwrap();
+        rename_tags(&conn, &strings(&["gold"]), "shiny").unwrap();
+        assert_eq!(
+            group_list(&conn),
+            [("Loot".into(), vec![]), ("Style".into(), strings(&["shiny"]))]
+        );
+    }
+
+    #[test]
+    fn renamed_tags_update_smart_collections() {
+        let conn = with_assets(0);
+        let rule = Rule {
+            query: "type:image #Coin \u{ff03}coin #coinx #coin:".into(),
+            filters: serde_json::json!({ "anyTags": ["coin", "gold", "coins"], "minRating": 3 }),
+        };
+        create_collection(&conn, "Loot", Some(&rule)).unwrap();
+        let other = Rule {
+            query: "#gem".into(),
+            filters: serde_json::json!({}),
+        };
+        create_collection(&conn, "Gems", Some(&other)).unwrap();
+        rename_tags(&conn, &strings(&["coin", "coins"]), "gold").unwrap();
+        let rules: Vec<Option<Rule>> = collections(&conn).unwrap().into_iter().map(|c| c.rule).collect();
+        assert_eq!(
+            rules,
+            [
+                Some(other),
+                Some(Rule {
+                    query: "type:image #gold #gold #coinx #coin:".into(),
+                    filters: serde_json::json!({ "anyTags": ["gold"], "minRating": 3 }),
+                })
+            ]
+        );
+    }
+
+    #[test]
+    fn deleting_a_tag_leaves_rules_alone() {
+        let conn = with_assets(2);
+        ai(&conn, 1, "coin");
+        suggest(&conn, 2, "coin");
+        tag(&conn, 2, "gold");
+        let loot = create_tag_group(&conn, "Loot").unwrap();
+        set_tag_group(&conn, &strings(&["coin"]), Some(loot)).unwrap();
+        let rule = Rule {
+            query: "#coin".into(),
+            filters: serde_json::json!({}),
+        };
+        create_collection(&conn, "Loot", Some(&rule)).unwrap();
+        let any = Rule {
+            query: "#coins".into(),
+            filters: serde_json::json!({ "anyTags": ["coin"] }),
+        };
+        create_collection(&conn, "Any", Some(&any)).unwrap();
+        let (_, rules, touched) = delete_tags(&conn, &strings(&["coin"])).unwrap();
+        assert_eq!((rules, touched), (2, vec![1, 2]));
+        assert_eq!(rows(&conn, "asset_tags"), pairs(&[(2, "gold")]));
+        assert!(rows(&conn, "ai_tags").is_empty() && rows(&conn, "tag_suggestions").is_empty());
+        assert!(tag_groups(&conn).unwrap()[0].tags.is_empty());
+        let kept: Vec<Option<Rule>> = collections(&conn).unwrap().into_iter().map(|c| c.rule).collect();
+        assert_eq!(kept, [Some(any), Some(rule)]);
+    }
+
+    #[test]
+    fn undo_puts_back_the_exact_rows() {
+        let conn = with_assets(4);
+        ai(&conn, 1, "coin");
+        tag(&conn, 1, "gold");
+        tag(&conn, 2, "coin");
+        tag(&conn, 2, "coins");
+        ai(&conn, 3, "coins");
+        suggest(&conn, 3, "gold");
+        suggest(&conn, 4, "coin");
+        let loot = create_tag_group(&conn, "Loot").unwrap();
+        let style = create_tag_group(&conn, "Style").unwrap();
+        set_tag_group(&conn, &strings(&["coin", "gem"]), Some(loot)).unwrap();
+        set_tag_group(&conn, &strings(&["gold"]), Some(style)).unwrap();
+        let rule = Rule {
+            query: "#coin #coins".into(),
+            filters: serde_json::json!({ "anyTags": ["coins", "gold"] }),
+        };
+        create_collection(&conn, "Coins", Some(&rule)).unwrap();
+        let start = dump(&conn);
+        let undo = |snap: TagSnapshot| {
+            assert_ne!(dump(&conn), start);
+            restore_tags(&conn, &snap).unwrap();
+            assert_eq!(dump(&conn), start);
+        };
+        undo(rename_tags(&conn, &strings(&["coin"]), "treasure").unwrap().0);
+        undo(rename_tags(&conn, &strings(&["coin", "coins"]), "gold").unwrap().0);
+        undo(delete_tags(&conn, &strings(&["coin"])).unwrap().0);
+        undo(set_tag_group(&conn, &strings(&["coin", "gold"]), None).unwrap());
+        undo(delete_tag_group(&conn, loot).unwrap());
+
+        // Assets deleted since are skipped.
+        let (snap, _, _) = delete_tags(&conn, &strings(&["coin"])).unwrap();
+        conn.execute("DELETE FROM assets WHERE id = 2", []).unwrap();
+        assert_eq!(restore_tags(&conn, &snap).unwrap(), [1, 2, 4]);
+        assert_eq!(rows(&conn, "ai_tags"), pairs(&[(1, "coin"), (3, "coins")]));
+        assert_eq!(rows(&conn, "tag_suggestions"), pairs(&[(3, "gold"), (4, "coin")]));
+    }
+
+    #[test]
+    fn tag_group_names_and_order() {
+        let conn = with_assets(0);
+        let style = create_tag_group(&conn, " Style ").unwrap();
+        let biome = create_tag_group(&conn, "Biome").unwrap();
+        let ete = create_tag_group(&conn, "\u{c9}t\u{e9}").unwrap();
+        let long = "x".repeat(65);
+        for bad in [
+            "style",
+            "STYLE",
+            "\u{e9}t\u{e9}",
+            "",
+            "  ",
+            "a:b",
+            "tab\there",
+            long.as_str(),
+        ] {
+            assert!(create_tag_group(&conn, bad).is_err(), "{bad}");
+        }
+        assert!(rename_tag_group(&conn, biome, "style").is_err());
+        assert_eq!(rename_tag_group(&conn, style, "STYLE").unwrap(), "STYLE");
+        assert!(rename_tag_group(&conn, 99, "Use").is_err());
+        assert!(set_tag_group(&conn, &strings(&["x"]), Some(99)).is_err());
+        move_tag_group(&conn, ete, 0).unwrap();
+        move_tag_group(&conn, style, 9).unwrap();
+        set_tag_group(&conn, &strings(&["pixel-art", "Low-Poly"]), Some(style)).unwrap();
+        assert_eq!(
+            group_list(&conn),
+            [
+                ("\u{c9}t\u{e9}".into(), vec![]),
+                ("Biome".into(), vec![]),
+                ("STYLE".into(), strings(&["low-poly", "pixel-art"]))
+            ]
+        );
+        // Deleting a group ungroups its tags; a deleted group's id isn't reused.
+        delete_tag_group(&conn, style).unwrap();
+        let members: i64 = conn
+            .query_row("SELECT count(*) FROM tag_group_members", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!((members, group_list(&conn).len()), (0, 2));
+        assert!(create_tag_group(&conn, "Use").unwrap() > style);
     }
 }

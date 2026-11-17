@@ -1,4 +1,4 @@
-import type { Asset, Collection, CollectionRule, FolderFilter, Kind, Notes, Root, ViewName } from "../types";
+import type { Asset, Collection, CollectionRule, FolderFilter, Kind, Notes, Root, TagGroup, ViewName } from "../types";
 import { hasColor, parseColor, type LabSwatch } from "./colors.ts";
 import { folderOf, rootLabel } from "./format.ts";
 import type { SortKey } from "./prefs";
@@ -97,6 +97,8 @@ export interface Query {
   types: Kind[] | null;
   folder: string | null;
   tags: string[];
+  /** From `#style:` words naming a tag group: the asset needs one tag of each list. */
+  anyOf: string[][];
   minBytes: number;
   maxBytes: number;
   minRating: number;
@@ -121,8 +123,12 @@ const FULL_WIDTH = /[：＃＞＜＝]/g;
 export const UNITS: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 ** 3 };
 export const TIME_UNITS: Record<string, number> = { ms: 1, s: 1000, m: 60_000 };
 
-export function parseQuery(q: string): Query {
-  const out: Query = { types: null, folder: null, tags: [], minBytes: 0, maxBytes: Infinity, minMs: null, maxMs: null, minRating: 0, maxRating: 5, notes: [], colors: [], looks: [], text: [] };
+/** How a tag group is written in search: `#sound-fx:` for "Sound FX". */
+export const groupWord = (name: string) => name.toLowerCase().trim().replace(/\s+/g, "-");
+
+/** `groups` turns `#style:` into the Style group's tags; without them (or naming no group) it's a tag prefix like any. */
+export function parseQuery(q: string, groups?: TagGroup[]): Query {
+  const out: Query = { types: null, folder: null, tags: [], anyOf: [], minBytes: 0, maxBytes: Infinity, minMs: null, maxMs: null, minRating: 0, maxRating: 5, notes: [], colors: [], looks: [], text: [] };
   for (const t of q.replace(FULL_WIDTH, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).toLowerCase().split(/\s+/).filter(Boolean)) {
     if (t.startsWith("type:")) {
       const s = t.slice(5);
@@ -132,7 +138,9 @@ export function parseQuery(q: string): Query {
     } else if (t.startsWith("in:")) {
       if (t.length > 3) out.folder = t.slice(3);
     } else if (t.startsWith("#")) {
-      if (t.length > 1) out.tags.push(t.slice(1));
+      const group = t.endsWith(":") ? groups?.find((g) => groupWord(g.name) === t.slice(1, -1)) : undefined;
+      if (group) out.anyOf.push(group.tags);
+      else if (t.length > 1) out.tags.push(t.slice(1));
     } else if (t.startsWith("size:")) {
       const m = t.slice(5).match(/^([<>])?(\d+(?:\.\d+)?)(b|kb|mb|gb)?$/);
       if (!m) continue;
@@ -175,6 +183,7 @@ export function matchesQuery(a: Asset, q: Query, notes: Notes = {}, palettes?: P
   if (q.types && !q.types.includes(a.kind)) return false;
   if (q.folder && !folderOf(a.relPath).toLowerCase().split("/").some((seg) => seg.startsWith(q.folder!))) return false;
   if (!q.tags.every((t) => a.tags.some((g) => g.startsWith(t)))) return false;
+  if (!q.anyOf.every((set) => a.tags.some((g) => set.includes(g)))) return false;
   if (a.size < q.minBytes || a.size > q.maxBytes) return false;
   if (!inRange(a.durationMs, q.minMs, q.maxMs)) return false;
   if (a.rating < q.minRating || a.rating > q.maxRating) return false;
@@ -223,6 +232,8 @@ export interface Scope {
   looks?: Looks | null;
   /** More narrowing (an agent's folder, or favorites inside a collection), before `looks:` takes its closest matches. */
   within?: (a: Asset) => boolean;
+  /** For `#group:` words. */
+  groups?: TagGroup[];
 }
 
 /** Search by meaning keeps at most this many results, all within `MEANING_SPREAD` of the best score (phase 0 eval). */
@@ -250,8 +261,16 @@ export function closeLooks(list: Asset[], phrases: string[], looks?: Looks | nul
 }
 
 /** A smart collection's members: the assets its saved search matches now, best first for a `looks:` one. */
-export function ruleMembers(rule: CollectionRule, assets: Asset[], notes: Notes, now = Date.now(), palettes?: Palettes | null, looks?: Looks | null): Asset[] {
-  const q = parseQuery(rule.query);
+export function ruleMembers(
+  rule: CollectionRule,
+  assets: Asset[],
+  notes: Notes,
+  now = Date.now(),
+  palettes?: Palettes | null,
+  looks?: Looks | null,
+  groups?: TagGroup[],
+): Asset[] {
+  const q = parseQuery(rule.query, groups);
   const f = { ...noFilters, ...rule.filters };
   return closeLooks(assets.filter((a) => matchesFilters(a, f, now, palettes) && matchesQuery(a, q, notes, palettes, looks)), q.looks, looks);
 }
@@ -264,21 +283,28 @@ export const rulesWantColors = (collections: Collection[]) =>
 export const ruleLooks = (collections: Collection[]) => collections.flatMap((c) => (c.rule ? parseQuery(c.rule.query).looks : []));
 
 /** Each smart collection's current members, by collection id. */
-export function smartMembers(collections: Collection[], assets: Asset[], notes: Notes, palettes?: Palettes | null, looks?: Looks | null): Map<number, Asset[]> {
+export function smartMembers(
+  collections: Collection[],
+  assets: Asset[],
+  notes: Notes,
+  palettes?: Palettes | null,
+  looks?: Looks | null,
+  groups?: TagGroup[],
+): Map<number, Asset[]> {
   const now = Date.now();
-  return new Map(collections.flatMap((c) => (c.rule ? [[c.id, ruleMembers(c.rule, assets, notes, now, palettes, looks)] as const] : [])));
+  return new Map(collections.flatMap((c) => (c.rule ? [[c.id, ruleMembers(c.rule, assets, notes, now, palettes, looks, groups)] as const] : [])));
 }
 
 /** Assets the current view shows, after type chips, folder, search and Filters panel, sorted (unless `sort` is null). */
 export function visibleAssets(assets: Asset[], s: Scope, sort: { key: SortKey; desc: boolean } | null): Asset[] {
   const now = Date.now();
   const rule = s.view === "collections" && s.collection?.rule ? s.collection.rule : null;
-  const smart = rule ? ruleMembers(rule, assets, s.notes, now, s.palettes, s.looks) : null;
+  const smart = rule ? ruleMembers(rule, assets, s.notes, now, s.palettes, s.looks, s.groups) : null;
   const members = s.view === "collections" ? new Set(smart?.map((a) => a.id) ?? s.collection?.assetIds ?? []) : null;
   // "Find similar" keeps its order, and so does a smart collection searching by meaning (best first).
   const order = s.similar ?? (rule && parseQuery(rule.query).looks.length ? smart!.map((a) => a.id) : null);
   const rank = order ? new Map(order.map((id, i) => [id, i])) : null;
-  const q = parseQuery(s.query);
+  const q = parseQuery(s.query, s.groups);
   const out = assets.filter((a) => {
     // A collection's members, narrowed by the type chips, search and Filters panel like any other view.
     if (members && !members.has(a.id)) return false;

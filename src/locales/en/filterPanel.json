@@ -47,6 +47,8 @@
   "modifiedIn": "Modified in the last",
   "untaggedOnly": "Untagged only",
   "tagsNote": "Matches assets with any of the selected tags.",
+  "ungrouped": "Ungrouped",
+  "manageTags": "Manage tags",
   "stars_one": "{{count}} star",
   "stars_other": "{{count}} stars",
   "starsAtLeast_one": "{{count}} or more stars",

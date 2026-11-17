@@ -31,6 +31,7 @@ import type shortcuts from "../locales/en/shortcuts.json";
 import type sidebar from "../locales/en/sidebar.json";
 import type store from "../locales/en/store.json";
 import type tagging from "../locales/en/tagging.json";
+import type tagsView from "../locales/en/tagsView.json";
 import type themes from "../locales/en/themes.json";
 import type thumb from "../locales/en/thumb.json";
 import type ui from "../locales/en/ui.json";
@@ -65,6 +66,7 @@ interface Resources {
   sidebar: typeof sidebar;
   store: typeof store;
   tagging: typeof tagging;
+  tagsView: typeof tagsView;
   themes: typeof themes;
   thumb: typeof thumb;
   ui: typeof ui;

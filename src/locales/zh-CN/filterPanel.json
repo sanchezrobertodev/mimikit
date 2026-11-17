@@ -42,6 +42,8 @@
   "modifiedIn": "修改于过去",
   "untaggedOnly": "仅限无标签",
   "tagsNote": "匹配带有任一所选标签的资源。",
+  "ungrouped": "未分组",
+  "manageTags": "管理标签",
   "stars_other": "{{count}} 星",
   "starsAtLeast_other": "{{count}} 星及以上",
   "customColour": "自定义颜色",

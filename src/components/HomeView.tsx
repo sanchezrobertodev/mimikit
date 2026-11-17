@@ -118,7 +118,7 @@ export function HomeView() {
   const shown = useMemo(() => s.collections.slice(0, 4), [s.collections]);
   const palettes = rulesWantColors(shown) ? s.palettes : null;
   const looks = ruleLooks(shown).length ? s.looks : null;
-  const smart = useMemo(() => smartMembers(shown, s.assets, s.notes, palettes, looks), [shown, s.assets, s.notes, palettes, looks]);
+  const smart = useMemo(() => smartMembers(shown, s.assets, s.notes, palettes, looks, s.tagGroups), [shown, s.assets, s.notes, palettes, looks, s.tagGroups]);
   const byId = useMemo(() => new Map(s.assets.map((a) => [a.id, a])), [s.assets]);
   // A folder emptied or deleted since it was opened isn't worth going back to.
   const folders = s.recentFolders

@@ -21,6 +21,7 @@ ui:
 ## ui-test: frontend logic tests (plain Node, no test framework)
 ui-test:
 	node --experimental-strip-types src/lib/filter.test.ts
+	node --experimental-strip-types src/lib/tags.test.ts
 	node --experimental-strip-types src/lib/ask.test.ts
 	node --experimental-strip-types src/lib/tagging.test.ts
 	node --experimental-strip-types src/lib/folders.test.ts

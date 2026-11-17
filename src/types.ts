@@ -60,6 +60,16 @@ export interface Collection {
   rule: CollectionRule | null;
 }
 
+/** A tag group (Style, Biome…) and its tags, A–Z. Each tag is in at most one group. */
+export interface TagGroup {
+  id: number;
+  name: string;
+  tags: string[];
+}
+
+/** What a tag change replaced, kept only for its Undo (api.restoreTags); the window never reads it. */
+export type TagSnapshot = { readonly snapshot: unique symbol };
+
 /** Asset notes by asset id; only assets that have one. */
 export type Notes = Record<number, string>;
 
@@ -120,7 +130,7 @@ export interface TextPreview {
   truncated: boolean;
 }
 
-export type ViewName = "home" | "library" | "favorites" | "collections" | "duplicates" | "insights" | "ai";
+export type ViewName = "home" | "library" | "favorites" | "collections" | "duplicates" | "insights" | "tags" | "ai";
 
 /** Limits the library to one folder: a whole root (path "") or a folder inside it. */
 export interface FolderFilter {

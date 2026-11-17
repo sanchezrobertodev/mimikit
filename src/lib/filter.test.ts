@@ -135,6 +135,25 @@ const members = (c: ReturnType<typeof smart>, o: Partial<Scope> = {}) =>
   visibleAssets(all, scope({ view: "collections", collection: c, ...o }), null).map((a) => a.id);
 assert.deepEqual(members(smart("rating:>=3"), { kinds: ["audio"] }), []);
 assert.deepEqual(members(smart("rating:>=3"), { query: "type:image" }), [1, 2]);
+
+// Tag groups: `#name:` needs one tag of the group; a word naming no group stays a tag prefix.
+const groups = [
+  { id: 1, name: "Use", tags: ["player", "env"] },
+  { id: 2, name: "Sound FX", tags: ["sfx"] },
+  { id: 3, name: "Empty", tags: [] },
+];
+const qg = (s: string) => all.filter((a) => matchesQuery(a, parseQuery(s, groups))).map((a) => a.id);
+assert.deepEqual(qg("#use:"), [1, 2]);
+assert.deepEqual(qg("＃USE："), [1, 2], "full-width, any case");
+assert.deepEqual(qg("#use: #sound-fx:"), [], "one tag of each group");
+assert.deepEqual(qg("#sound-fx: #ui"), [3]);
+assert.deepEqual(qg("#empty:"), []);
+assert.deepEqual(qg("#ui:"), [], "names no group: the tag prefix ui: matches nothing");
+assert.deepEqual(q("#use:"), [], "without groups too");
+assert.deepEqual(parseQuery("#use: #pla", groups).tags, ["pla"]);
+assert.deepEqual(members(smart("#use:"), { groups }), [1, 2]);
+assert.deepEqual(ruleMembers(smart("#use: type:image").rule, all, {}, now, null, null, groups).map((a) => a.id), [1, 2]);
+assert.deepEqual([...smartMembers([smart("#sound-fx:")], all, {}, null, null, groups).values()].map((l) => l.map((a) => a.id)), [[3]]);
 assert.deepEqual(members(smart("rating:>=3")), [1, 2]);
 assert.deepEqual(members(smart("", { minRating: 5 })), [1]);
 assert.deepEqual(members(smart("type:image", { exts: ["tga"] })), [2]);

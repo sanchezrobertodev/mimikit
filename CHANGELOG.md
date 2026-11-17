@@ -5,6 +5,17 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **Tags**, in the sidebar, the palette (**Manage tags**) and **More filters**: every tag with its asset count. Rename
+  a tag in place, and merge tags by renaming one to another's name, from the selection, or from **Look like the same
+  tag** (`coin` and `coins`, `sound-effect` and `sound_effect`). Delete a tag from every asset. Claude's tags stay
+  Claude's, suggestions waiting for review follow the new name, and smart collections that search for a renamed tag
+  follow it. Each change has **Undo**.
+- **Tag groups**: sort tags into groups such as Biome, Style or Character, and reorder them. **More filters** lists
+  tags under their groups, and `#biome:` in the search finds assets with any tag in the Biome group (`#sound-fx:` for
+  a group named Sound FX).
+
 ## [0.16.0] - 2026-11-17
 
 ### Added

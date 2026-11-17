@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NAMED_COLORS, colorName } from "../lib/colors";
 import { activeFilterCount, noFilters, type Filters } from "../lib/filter";
 import { t } from "../lib/i18n";
+import { groupedTags } from "../lib/tags";
 import { useStore } from "../store";
 import { AnalysisNote } from "./Analysis";
 import { IconButton } from "./ui";
@@ -93,7 +94,7 @@ function NumField({ label, value, onChange, scale = 1 }: { label: string; value:
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
 export function FilterButton() {
-  const { assets, filters: f, setFilters, ai } = useStore();
+  const { assets, filters: f, setFilters, ai, tagGroups, go } = useStore();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -127,6 +128,8 @@ export function FilterButton() {
     }
     return { exts: [...e.entries()].sort((a, b) => b[1] - a[1]), tags: [...tagSet].sort() };
   }, [assets]);
+  // With groups, the tags under small headings, the ungrouped ones last.
+  const tagSections = useMemo(() => groupedTags(tags, tagGroups).filter((sec) => sec.tags.length), [tags, tagGroups]);
 
   const dimsActive = f.minW !== null || f.maxW !== null || f.minH !== null || f.maxH !== null || f.square;
   const isPreset = (p: Partial<Filters>) => Object.entries(p).every(([k, v]) => f[k as keyof Filters] === v);
@@ -257,13 +260,36 @@ export function FilterButton() {
                     {t("tagging.filterChip")}
                   </Chip>
                 )}
-                {tags.map((tag) => (
-                  <Chip key={tag} on={f.anyTags.includes(tag)} onClick={() => setFilters({ anyTags: toggle(f.anyTags, tag), untagged: false })}>
-                    #{tag}
-                  </Chip>
-                ))}
               </div>
-              {tags.length > 0 && <p className="mt-1.5 text-[11px] text-muted">{t("filterPanel.tagsNote")}</p>}
+              {tagSections.map((sec) => (
+                <div key={sec.group?.id ?? "none"} role="group" aria-label={sec.group?.name ?? t("filterPanel.ungrouped")} className="mt-2">
+                  {tagGroups.length > 0 && (
+                    <div aria-hidden className="mb-1 text-[11px] text-faint">
+                      {sec.group?.name ?? t("filterPanel.ungrouped")}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {sec.tags.map((tag) => (
+                      <Chip key={tag} on={f.anyTags.includes(tag)} onClick={() => setFilters({ anyTags: toggle(f.anyTags, tag), untagged: false })}>
+                        #{tag}
+                      </Chip>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2 text-[11px] text-muted">
+                {tags.length > 0 && <span>{t("filterPanel.tagsNote")}</span>}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    go("tags");
+                  }}
+                  className="text-accent hover:underline"
+                >
+                  {t("filterPanel.manageTags")}
+                </button>
+              </p>
             </Group>
 
             <Group title={t("filterPanel.groups.rating")} active={f.minRating !== null} onClear={() => setFilters({ minRating: null })}>
