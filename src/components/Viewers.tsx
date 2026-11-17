@@ -248,7 +248,7 @@ function NumField({ label, value, min, max, onChange }: { label: string; value: 
   );
 }
 
-/** Saves each frame of the sheet as a PNG in a folder the user picks, cut from the original file. */
+/** Saves each frame of the sheet (or of a multi-frame Aseprite file) as a PNG in a folder the user picks, from the original file. */
 function ExportFrames({ asset, sheet }: { asset: Asset; sheet: SpriteSheet }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const [skipEmpty, setSkipEmpty] = useState(false);
@@ -440,7 +440,7 @@ function SpriteView({
             <button type="button" aria-pressed={pixelated} title={t("viewers.sprite.pixelTitle")} onClick={() => setPixelated(!pixelated)} className={pill(pixelated)}>
               <Grid3x3 aria-hidden className="size-3" /> {t("viewers.sprite.pixel")}
             </button>
-            {!durations && <ExportFrames asset={asset} sheet={sheet} />}
+            <ExportFrames asset={asset} sheet={sheet} />
           </>
         )}
       </div>

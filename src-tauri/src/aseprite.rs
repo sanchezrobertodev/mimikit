@@ -145,6 +145,22 @@ pub fn strip(b: &[u8]) -> Result<RgbaImage, String> {
     Ok(out)
 }
 
+/// Flattens every frame at full size and hands each to `each` in order, so only one is in memory at a time. An error
+/// after the frames it could draw when the file ends before all the frames its header counts.
+pub fn each_frame(b: &[u8], mut each: impl FnMut(RgbaImage)) -> Result<(), String> {
+    let mut n = 0;
+    parse(b, usize::MAX, |img| {
+        n += 1;
+        each(img);
+    })
+    .unwrap_or_else(|| Err(NOT_ASE.into()))?;
+    let declared = usize::from(u16_at(b, 6).unwrap_or(0));
+    if n < declared {
+        return Err(format!("The file is cut short after frame {n} of {declared}"));
+    }
+    Ok(())
+}
+
 /// Flattens each of the first `limit` frames, in order, and hands it to `each`. None for a file that isn't Aseprite or
 /// is cut short; an error for one this can't draw.
 fn parse(b: &[u8], limit: usize, mut each: impl FnMut(RgbaImage)) -> Option<Result<(), String>> {

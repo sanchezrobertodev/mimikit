@@ -237,9 +237,9 @@ identical. "Copy to folder…" only ever creates new files.
 ## Known limits
 
 - PSD previews use the flattened composite. Some layered or 16-bit files fall back to an icon.
-- Aseprite thumbnails and previews show the first frame; **Animate** plays them all but can't export them. Every layer
-  is drawn in Normal mode: layers with other blend modes and tilemap layers can look different than in Aseprite.
-  Animations over 64 megapixels in all play scaled down.
+- Aseprite thumbnails and previews show the first frame; **Animate** plays them all. Every layer is drawn in Normal
+  mode: layers with other blend modes and tilemap layers can look different than in Aseprite. Animations over 64
+  megapixels in all play scaled down.
 - Blender files have no 3D view, only the 128×128 preview Blender saves in them. Files saved without one (Blender's
   **File Preview Type** set to None) show a plain card.
 - AIFF sounds longer than about 25 minutes (in stereo) don't play.
