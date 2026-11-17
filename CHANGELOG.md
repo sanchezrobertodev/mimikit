@@ -5,6 +5,13 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **Export frames works on Aseprite animations**: in **Animate**, a file with more than one frame saves each of its
+  own frames as a PNG at full size, with the visible layers flattened, into the folder you pick. Files are named and
+  numbered like sprite-sheet frames, existing files are never replaced, and **Skip fully transparent frames** works
+  too. A single-frame file still exports as a sprite sheet.
+
 ## [0.15.0] - 2026-11-15
 
 ### Added

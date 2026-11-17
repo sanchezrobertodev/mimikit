@@ -145,6 +145,11 @@ pub fn strip(b: &[u8]) -> Result<RgbaImage, String> {
     Ok(out)
 }
 
+/// Flattens every frame at full size and hands each to `each` in order, so only one is in memory at a time.
+pub fn each_frame(b: &[u8], each: impl FnMut(RgbaImage)) -> Result<(), String> {
+    parse(b, usize::MAX, each).unwrap_or_else(|| Err(NOT_ASE.into()))
+}
+
 /// Flattens each of the first `limit` frames, in order, and hands it to `each`. None for a file that isn't Aseprite or
 /// is cut short; an error for one this can't draw.
 fn parse(b: &[u8], limit: usize, mut each: impl FnMut(RgbaImage)) -> Option<Result<(), String>> {
