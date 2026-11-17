@@ -25,7 +25,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.40", features = ["bundled", "backup"] }
 walkdir = "2"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tga", "tiff", "ico", "dds", "exr", "hdr", "qoi"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tga", "tiff", "ico", "exr", "hdr", "qoi"] }
+# DDS textures (thumbs.rs) in BC1–BC7 and uncompressed formats; the image crate's own DDS feature only reads BC1–BC3.
+# Decoding only, without the default features: no encoder and no C code.
+image_dds = { version = "0.7", default-features = false, features = ["ddsfile", "image"] }
 psd = "0.3"
 notify-debouncer-full = "0.7"
 blake3 = "1"

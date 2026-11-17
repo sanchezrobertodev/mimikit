@@ -58,8 +58,9 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
   `node_modules` are skipped, plus any folder names you add in **Settings → Library**.
 - **Previews in place**, in the side panel (<kbd>Space</kbd>) or full screen (<kbd>Enter</kbd>):
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
-    TGA/PSD/TIFF/DDS/EXR/HDR/QOI/Aseprite via a decoded preview, with EXR and HDR tone mapped), and **Animate** to
-    play a sprite sheet with a remembered grid and fps, or an Aseprite file's own frames with their own timing
+    TGA/PSD/TIFF/DDS/EXR/HDR/QOI/Aseprite via a decoded preview, with EXR, HDR and float DDS tone mapped), and
+    **Animate** to play a sprite sheet with a remembered grid and fps, or an Aseprite file's own frames with their own
+    timing
   - audio: waveform and playback, plus play-on-hover in the grid (WAV, OGG, MP3, FLAC, M4A/AAC, Opus, and AIFF via a
     WAV copy)
   - 3D models: orbit, wireframe, triangle counts and the first animation (GLB/glTF, including Draco and KTX2
@@ -242,8 +243,9 @@ identical. "Copy to folder…" only ever creates new files.
 - Blender files have no 3D view, only the 128×128 preview Blender saves in them. Files saved without one (Blender's
   **File Preview Type** set to None) show a plain card.
 - AIFF sounds longer than about 25 minutes (in stereo) don't play.
-- DDS previews cover DXT1, DXT3 and DXT5 (BC1–BC3) and show the top mip level. BC4–BC7 and uncompressed DDS files
-  show a plain card.
+- DDS previews show the top mip level of the first layer (a cube map's first face). They cover BC1–BC7 and
+  uncompressed RGBA, BGRA, R8, RG8 and float files; other formats, such as ASTC or 10-bit colour, show a plain card.
+  BC5 is drawn as a normal map, with blue rebuilt from red and green.
 - FBX, Collada and 3DS textures with absolute paths from another machine won't load.
 - Text previews show binary files with text extensions (binary Unity assets such as terrain data, binary plists or
   BMFont files) as unreadable characters.
