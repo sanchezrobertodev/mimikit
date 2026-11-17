@@ -525,15 +525,30 @@ pub fn tag_groups(conn: &Connection) -> Result<Vec<TagGroup>> {
     .collect()
 }
 
+/// How a group is written in search, as `groupWord` in filter.ts: `#sound-fx:` for "Sound FX".
+fn group_word(name: &str) -> String {
+    let half = |c: char| match c {
+        '：' | '＃' | '＞' | '＜' | '＝' => char::from_u32(c as u32 - 0xfee0).unwrap_or(c),
+        _ => c,
+    };
+    name.chars()
+        .map(half)
+        .collect::<String>()
+        .to_lowercase()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
 /// A trimmed group name: 1 to 64 characters without control characters or `:` (`#style:` searches a group), and no
-/// other group's name in any case.
+/// other group's search word (`Sound FX` and `sound-fx` would both be `#sound-fx:`).
 fn group_name(conn: &Connection, name: &str, except: Option<i64>) -> std::result::Result<String, String> {
     let name = name.trim();
     if name.is_empty() || name.chars().count() > 64 || name.chars().any(|c| c.is_control() || c == ':') {
         return Err("Group names must be 1 to 64 characters, without control characters or colons.".into());
     }
     // Compared here: COLLATE NOCASE only folds ASCII letters.
-    let lower = name.to_lowercase();
+    let word = group_word(name);
     let names = conn
         .prepare("SELECT id, name FROM tag_groups")
         .and_then(|mut s| {
@@ -541,11 +556,11 @@ fn group_name(conn: &Connection, name: &str, except: Option<i64>) -> std::result
                 .collect::<Result<Vec<_>>>()
         })
         .map_err(|e| e.to_string())?;
-    if names
+    if let Some((_, taken)) = names
         .iter()
-        .any(|(id, n)| Some(*id) != except && n.to_lowercase() == lower)
+        .find(|(id, n)| Some(*id) != except && group_word(n) == word)
     {
-        return Err(format!("A tag group named \"{name}\" already exists."));
+        return Err(format!("A tag group named \"{taken}\" already exists."));
     }
     Ok(name.to_string())
 }
@@ -1367,6 +1382,19 @@ mod tests {
         }
         assert!(rename_tag_group(&conn, biome, "style").is_err());
         assert_eq!(rename_tag_group(&conn, style, "STYLE").unwrap(), "STYLE");
+        // Names that search the same, as `#sound-fx:`, clash.
+        assert_eq!(group_word(" Sound\u{3000}FX ＝1 "), "sound-fx-=1");
+        let sound = create_tag_group(&conn, "Sound FX").unwrap();
+        for bad in ["sound-fx", "SOUND  FX", "Sound\u{3000}Fx"] {
+            assert_eq!(
+                create_tag_group(&conn, bad),
+                Err("A tag group named \"Sound FX\" already exists.".into()),
+                "{bad}"
+            );
+        }
+        assert!(rename_tag_group(&conn, biome, "Sound-FX").is_err());
+        assert_eq!(rename_tag_group(&conn, sound, "Sound-FX").unwrap(), "Sound-FX");
+        delete_tag_group(&conn, sound).unwrap();
         assert!(rename_tag_group(&conn, 99, "Use").is_err());
         assert!(set_tag_group(&conn, &strings(&["x"]), Some(99)).is_err());
         move_tag_group(&conn, ete, 0).unwrap();

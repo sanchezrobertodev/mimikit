@@ -274,8 +274,8 @@ export async function startAgents() {
 }
 
 const library = () => {
-  const { assets, roots, collections, notes, analysis, meaning } = useStore.getState();
-  return { assets, roots, collections, notes, analysis, meaning };
+  const { assets, roots, collections, notes, tagGroups, analysis, meaning } = useStore.getState();
+  return { assets, roots, collections, notes, tagGroups, analysis, meaning };
 };
 
 /** Patches the window's copy of the assets after a backend write, as the store's own actions do. */

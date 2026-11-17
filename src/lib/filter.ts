@@ -123,13 +123,15 @@ const FULL_WIDTH = /[：＃＞＜＝]/g;
 export const UNITS: Record<string, number> = { b: 1, kb: 1024, mb: 1024 * 1024, gb: 1024 ** 3 };
 export const TIME_UNITS: Record<string, number> = { ms: 1, s: 1000, m: 60_000 };
 
-/** How a tag group is written in search: `#sound-fx:` for "Sound FX". */
-export const groupWord = (name: string) => name.toLowerCase().trim().replace(/\s+/g, "-");
+const halfWidth = (s: string) => s.replace(FULL_WIDTH, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+
+/** How a tag group is written in search: `#sound-fx:` for "Sound FX". The backend's `group_word` keeps these unique. */
+export const groupWord = (name: string) => halfWidth(name).toLowerCase().trim().replace(/\s+/g, "-");
 
 /** `groups` turns `#style:` into the Style group's tags; without them (or naming no group) it's a tag prefix like any. */
 export function parseQuery(q: string, groups?: TagGroup[]): Query {
   const out: Query = { types: null, folder: null, tags: [], anyOf: [], minBytes: 0, maxBytes: Infinity, minMs: null, maxMs: null, minRating: 0, maxRating: 5, notes: [], colors: [], looks: [], text: [] };
-  for (const t of q.replace(FULL_WIDTH, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).toLowerCase().split(/\s+/).filter(Boolean)) {
+  for (const t of halfWidth(q).toLowerCase().split(/\s+/).filter(Boolean)) {
     if (t.startsWith("type:")) {
       const s = t.slice(5);
       if (!s) continue;

@@ -59,6 +59,7 @@ const library: Library = {
   ],
   collections,
   notes: { 1: "Used in level 1", 4: ESCAPE },
+  tagGroups: [],
   analysis: { done: 3, total: 4, running: false, paused: false, keep: false },
   meaning: { on: true, installed: true, done: 3, total: 4, model: "siglip2-b32-256", files: [{ name: "vision_model_fp16.onnx", size: 189374263, source: "huggingface" }] },
 };
@@ -229,6 +230,14 @@ assert.ok(dataBlock(tricky).endsWith("\n</mimikit-data>"));
     payload(await call("search", { filters: { color: "blue" } })).assets.map((a: { id: number }) => a.id),
     [2],
   );
+  // A tag group searches as `#name:`, in searches and smart collections, as in the window.
+  const cast = { id: 5, name: "Cast", assetIds: [], rule: { query: "#main-cast:", filters: {} } };
+  const grouped = { library: () => ({ ...library, tagGroups: [{ id: 1, name: "Main cast", tags: ["gold", "player"] }], collections: [...collections, cast] }) };
+  assert.deepEqual(payload(await call("search", { query: "#main-cast:" }, grouped)).assets.map((a: { id: number }) => a.id), [1, 2]);
+  assert.deepEqual(payload(await call("search", { collection: 5 }, grouped)).assets.map((a: { id: number }) => a.id), [1, 2]);
+  assert.equal(payload(await call("overview", {}, grouped)).collections[2].assets, 2);
+  assert.equal(payload(await call("list_collections", {}, grouped)).collections[2].assets, 2);
+  assert.deepEqual(payload(await call("get_assets", { ids: [2] }, grouped)).assets[0].collections.map((c: { id: number }) => c.id), [5]);
 }
 
 // ---------- search by meaning: looks: ----------

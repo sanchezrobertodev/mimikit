@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { api, errorText } from "./api";
 import { toLab, type LabSwatch, type Swatch } from "./lib/colors";
 import { applyDeltas, deltasAfter, type AssetsDelta } from "./lib/delta";
-import { noFilters, parseQuery, ruleMembers, type Filters, type Looks } from "./lib/filter";
+import { groupWord, noFilters, parseQuery, ruleMembers, type Filters, type Looks } from "./lib/filter";
 import { ancestorKeys } from "./lib/folders";
 import { t, type TKey, type Vars } from "./lib/i18n";
 import { latestRequest } from "./lib/latest";
@@ -900,9 +900,9 @@ export const useStore = create<State>((set, get, store) => {
       );
     },
     newTagGroup: async () => {
-      const names = new Set(get().tagGroups.map((g) => g.name.toLowerCase()));
+      const words = new Set(get().tagGroups.map((g) => groupWord(g.name)));
       let name = t("store.newGroup");
-      for (let i = 2; names.has(name.toLowerCase()); i++) name = t("store.newGroupNumbered", { number: i });
+      for (let i = 2; words.has(groupWord(name)); i++) name = t("store.newGroupNumbered", { number: i });
       try {
         const id = await api.createTagGroup(name);
         await refreshTags();

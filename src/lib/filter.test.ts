@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import type { Asset } from "../types";
 import { toLab } from "./colors.ts";
-import { activeFilterCount, groupByFolder, matchesFilters, matchesQuery, MEANING_TOP, noFilters, parseQuery, ruleLooks, ruleMembers, rulesWantColors, smartMembers, visibleAssets, type Scope } from "./filter.ts";
+import { activeFilterCount, groupByFolder, groupWord, matchesFilters, matchesQuery, MEANING_TOP, noFilters, parseQuery, ruleLooks, ruleMembers, rulesWantColors, smartMembers, visibleAssets, type Scope } from "./filter.ts";
 
 const now = Date.UTC(2026, 9, 19);
 const day = 86_400_000;
@@ -154,6 +154,7 @@ assert.deepEqual(parseQuery("#use: #pla", groups).tags, ["pla"]);
 assert.deepEqual(members(smart("#use:"), { groups }), [1, 2]);
 assert.deepEqual(ruleMembers(smart("#use: type:image").rule, all, {}, now, null, null, groups).map((a) => a.id), [1, 2]);
 assert.deepEqual([...smartMembers([smart("#sound-fx:")], all, {}, null, null, groups).values()].map((l) => l.map((a) => a.id)), [[3]]);
+assert.equal(groupWord(" Sound　FX ＝1 "), "sound-fx-=1", "as db.rs group_word, which keeps it unique");
 assert.deepEqual(members(smart("rating:>=3")), [1, 2]);
 assert.deepEqual(members(smart("", { minRating: 5 })), [1]);
 assert.deepEqual(members(smart("type:image", { exts: ["tga"] })), [2]);

@@ -9,7 +9,7 @@
 import { NAMED_COLORS } from "../lib/colors.ts";
 import { folderOf } from "../lib/format.ts";
 import { MEANING_TOP, noFilters, parseQuery, ruleLooks, rulesWantColors, smartMembers, visibleAssets, type Filters, type Looks, type Palettes } from "../lib/filter.ts";
-import type { AnalysisStatus, Asset, Collection, CollectionRule, MeaningStatus, Notes, Root, SpriteSheet, TextPreview } from "../types";
+import type { AnalysisStatus, Asset, Collection, CollectionRule, MeaningStatus, Notes, Root, SpriteSheet, TagGroup, TextPreview } from "../types";
 import { isChange, LIMITS, TOOLS, type Schema } from "./tools.ts";
 
 export type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
@@ -24,6 +24,8 @@ export interface Library {
   roots: Root[];
   collections: Collection[];
   notes: Notes;
+  /** For `#group:` in searches and smart collections. */
+  tagGroups: TagGroup[];
   analysis: AnalysisStatus;
   meaning: Pick<MeaningStatus, "on" | "installed" | "done" | "total" | "model" | "files">;
 }
@@ -470,7 +472,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     const lib = io.library();
     const byType: Record<string, number> = {};
     for (const a of lib.assets) byType[a.kind] = (byType[a.kind] ?? 0) + 1;
-    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null, await ruleScores(lib, io));
+    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null, await ruleScores(lib, io), lib.tagGroups);
     const tags = tagCounts(lib.assets);
     return data({
       assets: lib.assets.length,
@@ -502,7 +504,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     const sort = { key: (a.sort as "name") ?? "name", desc: a.desc === true };
     // The folder, and favorites inside a collection, narrow before looks: takes the closest matches, so a folder gets its own.
     const within = (x: Asset) => (a.folder === undefined || x.rootId === a.folder) && (!collection || !a.favorites || x.favorite);
-    const scope = { kinds: [], folder: null, subfolders: true, query, filters, collection, notes: lib.notes, palettes, looks, within };
+    const scope = { kinds: [], folder: null, subfolders: true, query, filters, collection, notes: lib.notes, palettes, looks, groups: lib.tagGroups, within };
     const list = visibleAssets(lib.assets, { ...scope, view: collection ? "collections" : a.favorites ? "favorites" : "library" }, sort);
     const offset = (a.offset as number | undefined) ?? 0;
     const limit = (a.limit as number | undefined) ?? 30;
@@ -524,7 +526,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
     const palettes = images.length ? await io.palettes() : null;
     const sheets = new Map(await Promise.all(images.map(async (x) => [x.id, await io.sheet(x.id).catch(() => null)] as const)));
     // Over the whole library: a `looks:` collection keeps the best matches among everything its search matches.
-    const smart = smartMembers(lib.collections, lib.assets, lib.notes, palettes, await ruleScores(lib, io));
+    const smart = smartMembers(lib.collections, lib.assets, lib.notes, palettes, await ruleScores(lib, io), lib.tagGroups);
     const names = rootNames(lib.roots);
     return data({
       assets: found.map((x) => {
@@ -617,7 +619,7 @@ const run: Record<string, (args: Args, io: Io) => ToolResult | Promise<ToolResul
 
   list_collections: async (_, io) => {
     const lib = io.library();
-    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null, await ruleScores(lib, io));
+    const members = smartMembers(lib.collections, lib.assets, lib.notes, rulesWantColors(lib.collections) ? await io.palettes() : null, await ruleScores(lib, io), lib.tagGroups);
     return data({
       collections: lib.collections.map((c) => ({
         id: c.id,
