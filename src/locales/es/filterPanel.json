@@ -47,6 +47,8 @@
   "modifiedIn": "Modificados hace menos de",
   "untaggedOnly": "Solo sin etiquetas",
   "tagsNote": "Coincide con los recursos que tengan cualquiera de las etiquetas elegidas.",
+  "ungrouped": "Sin grupo",
+  "manageTags": "Administrar etiquetas",
   "stars_one": "{{count}} estrella",
   "stars_other": "{{count}} estrellas",
   "starsAtLeast_one": "{{count}} estrella o más",

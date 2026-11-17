@@ -1,0 +1,56 @@
+{
+  "find": "查找标签",
+  "sort": "标签排序",
+  "sorts": {
+    "count": "最常用",
+    "name": "A–Z"
+  },
+  "groupHint": "用 {{example}} 搜索分组",
+  "newGroup": "新建分组",
+  "selection": "已选标签",
+  "selected_other": "已选 {{count}} 个",
+  "mergeSelected": "合并到…",
+  "moveSelected": "移到分组…",
+  "deleteSelected": "删除…",
+  "clearSelection": "取消选择",
+  "same": {
+    "title": "看起来是同一个标签",
+    "merge": "合并到 {{tag}}"
+  },
+  "noMatch": "没有与“{{query}}”匹配的标签。",
+  "ungrouped": "未分组",
+  "allTags": "全部标签",
+  "groupName": "分组名称",
+  "tagCount_other": "{{count}} 个标签",
+  "showGroup": "显示带有 {{name}} 中标签的资源",
+  "moveUp": "上移 {{name}}",
+  "moveDown": "下移 {{name}}",
+  "deleteGroup": "删除分组 {{name}}",
+  "emptyGroup": "还没有标签。在标签的分组菜单中选择此分组。",
+  "select": "选择 {{tag}}",
+  "rename": "重命名 {{tag}}",
+  "assets_other": "{{count}} 个资源",
+  "showAssets": "显示带有 {{tag}} 的资源",
+  "groupOf": "{{tag}} 的分组",
+  "noGroup": "无分组",
+  "delete": "删除 {{tag}}",
+  "empty": {
+    "title": "还没有标签",
+    "body": "选择资源，在侧边面板中添加标签。然后在这里重命名、合并和分组。",
+    "bodyAi": "选择资源，在侧边面板中添加标签，或让 Claude 建议一些。然后在这里重命名、合并和分组。",
+    "suggest": "建议标签"
+  },
+  "ask": {
+    "merge": "将 {{from}} 合并到 {{tag}}？",
+    "mergeMany_other": "将 {{count}} 个标签合并到 {{tag}}？",
+    "into": "合并到",
+    "mergeBody_other": "{{count}} 个资源将带有 {{tag}}。搜索被合并标签的智能合集会随之更新。",
+    "mergeConfirm": "合并",
+    "delete": "删除 {{tag}}？",
+    "deleteMany_other": "删除 {{count}} 个标签？",
+    "deleteBody_other": "影响 {{count}} 个资源。文件不会改动。",
+    "deleteRules_other": "{{count}} 个智能合集在搜索已删除的标签，其搜索保持不变。",
+    "deleteConfirm": "删除",
+    "cancel": "取消"
+  }
+}

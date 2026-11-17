@@ -26,5 +26,18 @@
   "copyFailed_other": "{{copied}}{{count}}個は失敗しました：{{errors}}",
   "notDuplicates": "重複ではないとマークしました",
   "trashed": "「{{name}}」をごみ箱に移動しました。ごみ箱から復元できます。",
-  "trashedCount_other": "{{count}}個のコピーをごみ箱に移動しました。ごみ箱から復元できます。"
+  "trashedCount_other": "{{count}}個のコピーをごみ箱に移動しました。ごみ箱から復元できます。",
+  "tagRenamed": "{{from}} を {{tag}} に名前変更しました",
+  "tagMerged": "{{from}} を {{tag}} に統合しました",
+  "tagsMerged_other": "{{count}}個のタグを {{tag}} に統合しました",
+  "tagDeleted_other": "{{count}}個のアセットから {{tag}} を削除しました。",
+  "tagsDeleted_other": "{{count}}個のタグを削除しました。",
+  "rulesKept_other": "{{count}}個のスマートコレクションの検索はそのままです。",
+  "newGroup": "新しいグループ",
+  "newGroupNumbered": "新しいグループ {{number}}",
+  "groupDeleted": "グループ {{name}} を削除しました。そのタグはグループなしになりました。",
+  "tagMoved": "{{tag}} を {{group}} に移動しました",
+  "tagsMoved_other": "{{count}}個のタグを {{group}} に移動しました",
+  "tagUngrouped": "{{tag}} をグループから外しました",
+  "tagsUngrouped_other": "{{count}}個のタグをグループから外しました"
 }

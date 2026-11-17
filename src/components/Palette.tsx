@@ -127,7 +127,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
 
   const sections = useMemo(() => {
     const out: { title: string; items: Item[] }[] = [];
-    const parsed = parseQuery(q);
+    const parsed = parseQuery(q, s.tagGroups);
     const hasQuery = q.trim().length > 0;
     const close = { palette: false };
     if (hasQuery) {
@@ -138,7 +138,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       const matches = closeLooks(found, parsed.looks, s.looks);
       // With a collection open, the first result searches inside it: its own closest looks: matches, in its type chips, as it will show.
       const col = s.view === "collections" ? (s.collections.find((c) => c.id === s.colSel) ?? null) : null;
-      const members = new Set(col?.rule ? ruleMembers(col.rule, s.assets, s.notes, now, s.palettes, s.looks).map((a) => a.id) : col?.assetIds);
+      const members = new Set(col?.rule ? ruleMembers(col.rule, s.assets, s.notes, now, s.palettes, s.looks, s.tagGroups).map((a) => a.id) : col?.assetIds);
       const inCol = col ? closeLooks(found.filter((a) => members.has(a.id) && (!s.kinds.length || s.kinds.includes(a.kind))), parsed.looks, s.looks) : [];
       // In Duplicates, it keeps the groups that have a matching copy.
       const hits = s.view === "duplicates" && s.dups ? new Set(matches.map((a) => a.id)) : null;
@@ -253,6 +253,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       [t("palette.actions.home"), () => s.go("home")],
       [t("palette.actions.duplicates"), () => s.go("duplicates")],
       [t("palette.actions.insights"), () => s.go("insights")],
+      [t("palette.actions.tags"), () => s.go("tags")],
       ...(s.ai.on ? [[t("palette.actions.ai"), () => s.go("ai")] as [string, () => void]] : []),
       [t("palette.actions.newCollection"), () => void s.newCollection()],
       [t("palette.actions.favorites"), () => s.go("favorites", { kinds: [] })],
@@ -283,6 +284,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
       !parsed.types &&
       !parsed.folder &&
       !parsed.tags.length &&
+      !parsed.anyOf.length &&
       !parsed.notes.length &&
       !parsed.colors.length &&
       !parsed.looks.length &&
@@ -295,7 +297,7 @@ export function Palette({ shown }: { shown?: Asset[] }) {
     return out;
     // Only what it reads: the whole store changes on every scan tick, and this searches every asset.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.kinds, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking, s.ai.on]);
+  }, [q, s.assets, s.notes, s.palettes, s.looks, s.filters, s.kinds, s.view, s.collections, s.colSel, s.dups, s.roots, hasKey, asking, asked, shown, meaningReady, seeking, s.ai.on, s.tagGroups]);
 
   const flat = sections.flatMap((sec) => sec.items);
   const run = (item?: Item) => {

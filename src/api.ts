@@ -9,7 +9,7 @@ import type { AssetsDelta } from "./lib/delta";
 import { t, translateError } from "./lib/i18n";
 import type { AiPrefs } from "./lib/prefs";
 import type { TaggingStatus, TagModel } from "./lib/tagging";
-import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, MeaningStatus, Notes, Root, ScanProgress, SpriteSheet, TextPreview } from "./types";
+import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, MeaningStatus, Notes, Root, ScanProgress, SpriteSheet, TagGroup, TagSnapshot, TextPreview } from "./types";
 
 export interface AppUpdate {
   version: string;
@@ -53,6 +53,21 @@ export const api = {
   setNote: (id: number, note: string) => invoke<string | null>("set_note", { id, note }),
   addTag: (ids: number[], tag: string) => invoke<string>("add_tag", { ids, tag }),
   removeTag: (ids: number[], tag: string) => invoke<void>("remove_tag", { ids, tag }),
+  tagGroups: () => invoke<TagGroup[]>("tag_groups"),
+  createTagGroup: (name: string) => invoke<number>("create_tag_group", { name }),
+  /** Returns the name as stored (trimmed). */
+  renameTagGroup: (id: number, name: string) => invoke<string>("rename_tag_group", { id, name }),
+  /** Its tags become ungrouped. */
+  deleteTagGroup: (id: number) => invoke<TagSnapshot>("delete_tag_group", { id }),
+  moveTagGroup: (id: number, position: number) => invoke<void>("move_tag_group", { id, position }),
+  /** Puts tags in a group, or with null makes them ungrouped. */
+  setTagGroup: (tags: string[], group: number | null) => invoke<TagSnapshot>("set_tag_group", { tags, group }),
+  /** Renames tags in the whole library, or merges them into `to` when it exists; changed assets come as deltas. */
+  renameTags: (from: string[], to: string) => invoke<TagSnapshot>("rename_tags", { from, to }),
+  /** Deletes tags from every asset; returns the snapshot and how many smart collections still name them. */
+  deleteTags: (tags: string[]) => invoke<[TagSnapshot, number]>("delete_tags", { tags }),
+  /** Undoes a tag change: puts back what its snapshot saved. */
+  restoreTags: (snapshot: TagSnapshot) => invoke<void>("restore_tags", { snapshot }),
   getSpriteSheet: (id: number) => invoke<SpriteSheet | null>("get_sprite_sheet", { id }),
   setSpriteSheet: (id: number, sheet: SpriteSheet) => invoke<void>("set_sprite_sheet", { id, sheet }),
   listCollections: () => invoke<Collection[]>("list_collections"),

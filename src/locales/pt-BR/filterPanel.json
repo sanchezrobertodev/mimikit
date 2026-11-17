@@ -51,6 +51,8 @@
   "modifiedIn": "Modificado há menos de",
   "untaggedOnly": "Só sem tags",
   "tagsNote": "Inclui recursos com qualquer uma das tags selecionadas.",
+  "ungrouped": "Sem grupo",
+  "manageTags": "Gerenciar tags",
   "stars_zero": "{{count}} estrelas",
   "stars_one": "{{count}} estrela",
   "stars_other": "{{count}} estrelas",

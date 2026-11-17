@@ -24,6 +24,7 @@ import {
   Settings,
   Sparkles,
   Sun,
+  Tags,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -135,21 +136,23 @@ function Row({ active, onClick, title, children, trailing }: { active: boolean; 
 
 export function Sidebar() {
   const s = useStore();
-  const { favorites, byKind, total } = useMemo(() => {
+  const { favorites, byKind, total, tags } = useMemo(() => {
     const byKind = new Map<string, number>();
+    const tags = new Set<string>();
     let favorites = 0;
     let total = 0;
     for (const a of s.assets) {
       byKind.set(a.kind, (byKind.get(a.kind) ?? 0) + a.size);
       if (a.favorite) favorites++;
       total += a.size;
+      for (const g of a.tags) tags.add(g);
     }
-    return { favorites, byKind, total };
+    return { favorites, byKind, total, tags: tags.size };
   }, [s.assets]);
   // Colours only matter to a colour rule; otherwise each batch of analysed images would recount every collection.
   const palettes = rulesWantColors(s.collections) ? s.palettes : null;
   const looks = ruleLooks(s.collections).length ? s.looks : null;
-  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks), [s.collections, s.assets, s.notes, palettes, looks]);
+  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks, s.tagGroups), [s.collections, s.assets, s.notes, palettes, looks, s.tagGroups]);
 
   const nav: { view: ViewName; label: string; icon: LucideIcon; count?: number; badge?: number; beta?: boolean }[] = [
     { view: "home", label: t("sidebar.home"), icon: House },
@@ -160,6 +163,7 @@ export function Sidebar() {
     // The same icon as Home's "sets of duplicates" row.
     { view: "duplicates", label: t("sidebar.duplicates"), icon: Copy, badge: s.dups?.length || undefined },
     { view: "insights", label: t("sidebar.insights"), icon: ChartNoAxesColumn },
+    { view: "tags", label: t("sidebar.tags"), icon: Tags, count: tags },
     // Gone with AI features off (Settings › General).
     ...(s.ai.on ? [{ view: "ai" as const, label: t("sidebar.ai"), icon: Sparkles, beta: true }] : []),
   ];

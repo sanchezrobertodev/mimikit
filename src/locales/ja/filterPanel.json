@@ -42,6 +42,8 @@
   "modifiedIn": "この期間内に更新",
   "untaggedOnly": "タグなしのみ",
   "tagsNote": "選択したタグのいずれかを持つアセットに一致します。",
+  "ungrouped": "グループなし",
+  "manageTags": "タグを管理",
   "stars_other": "星{{count}}つ",
   "starsAtLeast_other": "星{{count}}つ以上",
   "customColour": "カスタムカラー",

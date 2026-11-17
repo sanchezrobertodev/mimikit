@@ -19,7 +19,7 @@ export function CollectionsView({ items, groups, scopeAssets }: { items: Asset[]
   // Colours only matter to a colour rule; otherwise each batch of analysed images would recount every collection.
   const palettes = rulesWantColors(s.collections) ? s.palettes : null;
   const looks = ruleLooks(s.collections).length ? s.looks : null;
-  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks), [s.collections, s.assets, s.notes, palettes, looks]);
+  const smart = useMemo(() => smartMembers(s.collections, s.assets, s.notes, palettes, looks, s.tagGroups), [s.collections, s.assets, s.notes, palettes, looks, s.tagGroups]);
   const searching = s.query.trim() !== "" || s.kinds.length > 0 || activeFilterCount(s.filters) > 0;
   const current = s.collections.find((c) => c.id === s.colSel) ?? null;
   const all = current ? (smart.get(current.id) ?? current.assetIds.map((id) => byId.get(id)).filter((a): a is Asset => !!a)) : [];

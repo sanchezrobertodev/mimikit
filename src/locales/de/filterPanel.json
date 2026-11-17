@@ -47,6 +47,8 @@
   "modifiedIn": "Geändert innerhalb von",
   "untaggedOnly": "Nur ohne Tags",
   "tagsNote": "Findet Assets mit einem der ausgewählten Tags.",
+  "ungrouped": "Ohne Gruppe",
+  "manageTags": "Tags verwalten",
   "stars_one": "{{count}} Stern",
   "stars_other": "{{count}} Sterne",
   "starsAtLeast_one": "{{count}} Stern oder mehr",

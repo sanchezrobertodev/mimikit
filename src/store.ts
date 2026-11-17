@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { api, errorText } from "./api";
 import { toLab, type LabSwatch, type Swatch } from "./lib/colors";
 import { applyDeltas, deltasAfter, type AssetsDelta } from "./lib/delta";
-import { noFilters, parseQuery, ruleMembers, type Filters, type Looks } from "./lib/filter";
+import { groupWord, noFilters, parseQuery, ruleMembers, type Filters, type Looks } from "./lib/filter";
 import { ancestorKeys } from "./lib/folders";
 import { t, type TKey, type Vars } from "./lib/i18n";
 import { latestRequest } from "./lib/latest";
@@ -13,7 +13,7 @@ import { markSeen, seenVersion } from "./lib/news";
 import { applyTheme, loadPrefs, savePrefs, type AiPrefs, type KindLabels, type Layout, type Prefs, type SortKey, type StartView, type Theme } from "./lib/prefs";
 import type { AccentId } from "./lib/themes";
 import { forgetThumbnails, saveFontSample, thumbnailFor } from "./lib/thumbs";
-import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, FolderFilter, Kind, MeaningStatus, Notes, Root, SpriteSheet, ViewName } from "./types";
+import type { AnalysisStatus, Asset, Collection, CollectionRule, DupGroup, FolderFilter, Kind, MeaningStatus, Notes, Root, SpriteSheet, TagGroup, TagSnapshot, ViewName } from "./types";
 
 export interface Toast {
   id: number;
@@ -28,6 +28,8 @@ interface State extends Prefs {
   roots: Root[];
   assets: Asset[];
   collections: Collection[];
+  /** Tag groups in their order, each with its tags. */
+  tagGroups: TagGroup[];
   /** Files indexed so far, per root being scanned. */
   scanning: Record<number, number>;
   /** Roots whose folder couldn't be read on their last scan. */
@@ -141,6 +143,18 @@ interface State extends Prefs {
   setFavorite: (ids: number[], favorite: boolean) => Promise<void>;
   addTag: (ids: number[], tag: string) => Promise<void>;
   removeTag: (ids: number[], tag: string) => Promise<void>;
+  /** Renames tags in the whole library, or merges them into `to` when it exists. False if it was refused. */
+  renameTags: (from: string[], to: string) => Promise<boolean>;
+  /** Deletes tags from every asset; smart collections keep their searches. */
+  deleteTags: (tags: string[]) => Promise<void>;
+  /** A group named "New group" (numbered if taken) at the end; its id, or null if it failed. */
+  newTagGroup: () => Promise<number | null>;
+  renameTagGroup: (id: number, name: string) => Promise<boolean>;
+  /** Its tags become ungrouped. */
+  deleteTagGroup: (id: number) => Promise<void>;
+  moveTagGroup: (id: number, position: number) => Promise<void>;
+  /** Puts tags in a group, or with null makes them ungrouped. */
+  setTagGroup: (tags: string[], group: number | null) => Promise<void>;
   setSuggestFor: (ids: number[] | null) => void;
   /** Makes Claude's suggestions of `ids` real tags: those in `tags`, or all of them. */
   acceptSuggestions: (ids: number[], tags?: string[]) => Promise<void>;
@@ -265,6 +279,29 @@ export const useStore = create<State>((set, get, store) => {
       return false;
     }
   };
+  /** Collections and tag groups again, after a tag change: renaming a tag edits the smart collections that name it. */
+  const refreshTags = async () => {
+    const [collections, tagGroups] = await Promise.all([api.listCollections(), api.tagGroups()]);
+    set({ collections, tagGroups });
+  };
+  /** A tag change's Undo: puts back what its snapshot saved. Changed assets come back as deltas. */
+  const restoreTags = (snapshot: TagSnapshot) => async () => {
+    await api.restoreTags(snapshot);
+    await refreshTags();
+  };
+  /** Runs a tag change and offers its Undo; on failure shows the error and reloads. */
+  const tagChange = async (run: () => Promise<TagSnapshot>, message: () => string) => {
+    try {
+      const snapshot = await run();
+      await refreshTags();
+      get().showToast(message(), restoreTags(snapshot));
+      return true;
+    } catch (e) {
+      get().setError(e);
+      await get().reload();
+      return false;
+    }
+  };
   /** Side effects of opening a folder: the tree expands down to it and it joins the recent list. */
   const folderState = (f: FolderFilter | null | undefined): Partial<State> => {
     if (!f) return {};
@@ -375,6 +412,7 @@ export const useStore = create<State>((set, get, store) => {
     roots: [],
     assets: [],
     collections: [],
+    tagGroups: [],
     scanning: {},
     missing: {},
     view: prefs.startView,
@@ -489,7 +527,7 @@ export const useStore = create<State>((set, get, store) => {
     reload: async () => {
       loading++;
       try {
-        const [roots, list, collections, notes] = await Promise.all([api.listRoots(), api.listAssets(), api.listCollections(), api.listNotes()]);
+        const [roots, list, collections, notes, tagGroups] = await Promise.all([api.listRoots(), api.listAssets(), api.listCollections(), api.listNotes(), api.tagGroups()]);
         seq = list.seq;
         const ids = new Set(list.assets.map((a) => a.id));
         set((s) => ({
@@ -499,6 +537,7 @@ export const useStore = create<State>((set, get, store) => {
           missing: Object.fromEntries(roots.map((r) => [r.id, r.missing])),
           assets: list.assets,
           collections,
+          tagGroups,
           colSel: collections.some((c) => c.id === s.colSel) ? s.colSel : (collections[0]?.id ?? null),
           ...keepOnly(s, (id) => ids.has(id)),
           notes,
@@ -831,6 +870,83 @@ export const useStore = create<State>((set, get, store) => {
       patchAssets(ids, (a) => ({ ...a, tags: a.tags.filter((x) => x !== tag) }));
       await write(() => api.removeTag(ids, tag));
     },
+    renameTags: (from, to) => {
+      const tag = to.trim().toLowerCase();
+      const known = get().assets.some((a) => a.tags.includes(tag)) || get().tagGroups.some((g) => g.tags.includes(tag));
+      return tagChange(
+        () => api.renameTags(from, to),
+        () =>
+          from.length > 1
+            ? t("store.tagsMerged", { count: from.length, tag: `#${tag}` })
+            : t(known ? "store.tagMerged" : "store.tagRenamed", { from: `#${from[0]}`, tag: `#${tag}` }),
+      );
+    },
+    deleteTags: async (tags) => {
+      const count = get().assets.filter((a) => a.tags.some((x) => tags.includes(x))).length;
+      let rules = 0;
+      await tagChange(
+        async () => {
+          const [snapshot, n] = await api.deleteTags(tags);
+          rules = n;
+          return snapshot;
+        },
+        () =>
+          [
+            tags.length === 1 ? t("store.tagDeleted", { tag: `#${tags[0]}`, count }) : t("store.tagsDeleted", { count: tags.length }),
+            rules ? t("store.rulesKept", { count: rules }) : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+      );
+    },
+    newTagGroup: async () => {
+      const words = new Set(get().tagGroups.map((g) => groupWord(g.name)));
+      let name = t("store.newGroup");
+      for (let i = 2; words.has(groupWord(name)); i++) name = t("store.newGroupNumbered", { number: i });
+      try {
+        const id = await api.createTagGroup(name);
+        await refreshTags();
+        return id;
+      } catch (e) {
+        get().setError(e);
+        return null;
+      }
+    },
+    renameTagGroup: async (id, name) => {
+      try {
+        await api.renameTagGroup(id, name);
+        await refreshTags();
+        return true;
+      } catch (e) {
+        get().setError(e);
+        return false;
+      }
+    },
+    deleteTagGroup: async (id) => {
+      const name = get().tagGroups.find((g) => g.id === id)?.name ?? "";
+      await tagChange(
+        () => api.deleteTagGroup(id),
+        () => t("store.groupDeleted", { name }),
+      );
+    },
+    moveTagGroup: async (id, position) => {
+      if (await write(() => api.moveTagGroup(id, position))) await refreshTags().catch(get().setError);
+    },
+    setTagGroup: async (tags, group) => {
+      const name = get().tagGroups.find((g) => g.id === group)?.name;
+      const one = tags.length === 1 ? `#${tags[0]}` : null;
+      await tagChange(
+        () => api.setTagGroup(tags, group),
+        () =>
+          name
+            ? one
+              ? t("store.tagMoved", { tag: one, group: name })
+              : t("store.tagsMoved", { count: tags.length, group: name })
+            : one
+              ? t("store.tagUngrouped", { tag: one })
+              : t("store.tagsUngrouped", { count: tags.length }),
+      );
+    },
     setSuggestFor: (suggestFor) => set({ suggestFor, palette: false }),
     acceptSuggestions: async (ids, tags) => {
       patchAssets(ids, (a) => {
@@ -965,7 +1081,7 @@ export const useStore = create<State>((set, get, store) => {
     copyCollection: async (id) => {
       const c = get().collections.find((x) => x.id === id);
       if (!c) return;
-      const ids = c.rule ? ruleMembers(c.rule, get().assets, get().notes, undefined, get().palettes, get().looks).map((a) => a.id) : c.assetIds;
+      const ids = c.rule ? ruleMembers(c.rule, get().assets, get().notes, undefined, get().palettes, get().looks, get().tagGroups).map((a) => a.id) : c.assetIds;
       if (!ids.length) return;
       const dest = await api.pickFolder(t("store.copyTo", { name: c.name }));
       if (!dest) return;
