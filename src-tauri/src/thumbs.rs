@@ -1,9 +1,11 @@
 //! Thumbnails and full-size previews, cached as PNGs in the app cache. Source files are only read.
 
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use image::{DynamicImage, RgbaImage};
 use image_dds::ddsfile::{D3DFormat, Dds, DxgiFormat, PixelFormatFlags};
+use image_dds::error::SurfaceError;
 use image_dds::{ImageFormat as Dxf, Surface};
 
 pub const THUMB_SIZE: u32 = 256;
@@ -76,7 +78,9 @@ pub fn decode(path: &Path, ext: &str) -> Result<DynamicImage, String> {
 /// The top mip level of a DDS texture's first layer and depth slice (a cube map's first face). BC6H and the float formats
 /// come out as linear light for [`tone_map`]. BC5 is drawn as the normal map it usually is, with blue rebuilt.
 fn dds(path: &Path) -> Result<DynamicImage, String> {
-    let dds = Dds::read(std::fs::read(path).map_err(|e| e.to_string())?.as_slice()).map_err(|e| e.to_string())?;
+    // The headers first (148 bytes at most), so pixels are only read once the texture is known to fit.
+    let mut file = std::io::BufReader::new(std::fs::File::open(path).map_err(|e| e.to_string())?);
+    let mut dds = Dds::read((&mut file).take(148)).map_err(|e| e.to_string())?;
     let (d3d, dxgi, pf) = (dds.get_d3d_format(), dds.get_dxgi_format(), &dds.header.spf);
     // BGRX and RGBX: the fourth byte is unused, not alpha.
     let x8 = matches!(d3d, Some(D3DFormat::X8R8G8B8 | D3DFormat::X8B8G8R8))
@@ -117,14 +121,27 @@ fn dds(path: &Path) -> Result<DynamicImage, String> {
         return Err(UNREADABLE.into());
     }
     // Layer 0, depth slice 0 and mip 0 come first in the data whatever the counts, so a 1-layer, 1-mip view reads them.
-    let surface = Surface {
+    let empty = Surface {
         width,
         height,
         depth: 1,
         layers: 1,
         mipmaps: 1,
         image_format: format,
+        data: &[] as &[u8],
+    };
+    // Then only the bytes that view needs, never the whole file (mips, array layers, volume slices): image_dds names
+    // the count when the view has no data.
+    if let Err(SurfaceError::NotEnoughData { expected, actual: 0 }) = empty.decode_rgba8() {
+        let rest = (expected as u64).saturating_sub(dds.data.len() as u64);
+        (&mut file)
+            .take(rest)
+            .read_to_end(&mut dds.data)
+            .map_err(|e| e.to_string())?;
+    }
+    let surface = Surface {
         data: &dds.data[..],
+        ..empty
     };
     if float {
         let f = surface.decode_rgbaf32().map_err(|e| e.to_string())?;
@@ -301,8 +318,14 @@ mod tests {
         let mut bc7 = vec![(1 << 6, 7)];
         bc7.extend([100, 100, 50, 50, 25, 25, 127, 127].map(|c| (c, 7)));
         let bc7 = block(&[bc7, vec![(1, 1), (1, 1)]].concat());
-        let cases: [(&str, Vec<u8>, [u8; 4]); 13] = [
+        let cases: [(&str, Vec<u8>, [u8; 4]); 14] = [
             ("bc1", dds(4, 4, fourcc(b"DXT1"), None, &bc1), [255, 0, 0, 255]),
+            // Smaller mips after the top level aren't needed, so they aren't read.
+            (
+                "bc1-mips",
+                dds(4, 4, fourcc(b"DXT1"), None, &[&bc1[..], &[0; 16]].concat()),
+                [255, 0, 0, 255],
+            ),
             (
                 "bc4",
                 dds(4, 4, dx10, Some(80), &[200, 100, 0, 0, 0, 0, 0, 0]),
