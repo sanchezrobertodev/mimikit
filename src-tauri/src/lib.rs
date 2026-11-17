@@ -1323,6 +1323,14 @@ mod tests {
         assert!(dir.path().join("walk_002 (2).png").exists() && !dir.path().join("walk_001 (2).png").exists());
         assert!(super::write_aseprite_frames(b"\x89PNG\r\n\x1a\n", 2, "x", false, dir.path()).is_err());
         assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 5);
+
+        // Cut inside the last frame: the three whole frames are kept, and the missing one is a failure.
+        let cut = &f[..f.len() - 10];
+        assert_eq!(crate::aseprite::durations(cut).len(), 3);
+        let cut_dir = tempfile::tempdir().unwrap();
+        let (written, failed) = super::write_aseprite_frames(cut, 3, "cut", false, cut_dir.path()).unwrap();
+        assert_eq!((written.len(), failed.len()), (3, 1), "{failed:?}");
+        assert!(failed[0].contains("after frame 3 of 4"), "{failed:?}");
     }
 
     #[test]
