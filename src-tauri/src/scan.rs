@@ -1,10 +1,11 @@
 //! Keeps the `assets` table in step with the files under a root. Only ever reads the files.
 
+use std::collections::{HashMap, HashSet};
 use std::fs::Metadata;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering};
 use std::time::UNIX_EPOCH;
 
 use rusqlite::{Connection, OptionalExtension, Result, params};
@@ -154,6 +155,9 @@ pub fn upsert_file(
         ],
         |r| r.get(0),
     )?;
+    if prev.is_none() {
+        conn.execute("INSERT OR REPLACE INTO fresh (id) VALUES (?1)", [id])?;
+    }
     touched.push(id);
     Ok(true)
 }
@@ -195,8 +199,32 @@ pub(crate) fn unreadable(rel: &str, unread: &[String]) -> bool {
 
 const BATCH: usize = 500;
 
-/// Full rescan of a root: upserts every file, then drops rows for files that are gone. Commits every
-/// [`BATCH`] files and releases the lock in between, so the UI can show (and thumbnail) assets while it runs.
+/// Walks of a scan under way or about to start, in every root and library.
+static WALKS: AtomicUsize = AtomicUsize::new(0);
+
+/// Counts as a walk under way until dropped. Take it before the scan's thread starts, so another scan started at the
+/// same time can't sweep before this one's new rows are in.
+pub struct Walk(());
+
+impl Walk {
+    pub fn start() -> Walk {
+        WALKS.fetch_add(1, Ordering::SeqCst);
+        Walk(())
+    }
+}
+
+impl Drop for Walk {
+    fn drop(&mut self) {
+        WALKS.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+/// A row: id, size, mtime and hash.
+type Row = (i64, i64, i64, Option<String>);
+
+/// Full rescan of a root: upserts every file, then drops rows for files that are gone, except those that turn out to
+/// be renamed or moved (see [`reconnect`]). Commits every [`BATCH`] files and releases the lock in between, so the UI
+/// can show (and thumbnail) assets while it runs. `walking` is dropped once the files are read.
 /// `report(conn, count, touched)` is called after every batch, including the sweep and the dimensions pass, with the
 /// lock still held and the ids of the rows that batch added, changed or removed. Returns the number of files, or None
 /// when the root itself can't be read, or reads as empty while it has rows: then every row is kept as it was.
@@ -204,6 +232,7 @@ pub fn scan_root(
     db: &Mutex<Connection>,
     root_id: i64,
     root: &Path,
+    walking: Walk,
     mut report: impl FnMut(&Connection, usize, &[i64]),
 ) -> Result<Option<usize>> {
     // Above every stamp already stored, even ones from a clock that was ahead, so the sweep sees all of them.
@@ -213,6 +242,10 @@ pub fn scan_root(
             r.get(0)
         })?;
         LAST_SEEN.fetch_max(max.unwrap_or(0), Ordering::Relaxed);
+        conn.execute(
+            "DELETE FROM fresh WHERE id IN (SELECT id FROM assets WHERE root_id = ?1)",
+            [root_id],
+        )?;
         seen_now()
     };
     let mut count = 0;
@@ -240,6 +273,7 @@ pub fn scan_root(
         // The mutex isn't fair: without a pause this thread re-locks at once and UI commands starve until the end.
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
+    drop(walking);
     // An unplugged drive or a renamed folder isn't a library whose files were all deleted. The passes below would also
     // store every file not read yet as unreadable, for good.
     if unread.iter().any(|d| d.is_empty()) {
@@ -257,28 +291,158 @@ pub fn scan_root(
             return Ok(None);
         }
     }
+    let stale = |conn: &Connection| stale_rows(conn, root_id, seen, &unread);
+    // A file renamed or moved while the app was closed is a gone row here and a new row in this root or another: wait
+    // for every walk (the app scans all roots at launch), then hash the new rows a gone row's hash needs.
+    if !stale(&db.lock().unwrap())?.is_empty() {
+        while WALKS.load(Ordering::SeqCst) > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        let todo = to_hash(&db.lock().unwrap(), root_id, seen)?;
+        crate::dupes::hash_and_store(db, &todo)?;
+    }
     {
         let mut conn = db.lock().unwrap();
         let tx = conn.transaction()?;
-        let stale: Vec<(i64, String)> = tx
-            .prepare("SELECT id, rel_path FROM assets WHERE root_id = ?1 AND seen < ?2")?
-            .query_map(params![root_id, seen], |r| Ok((r.get(0)?, r.get(1)?)))?
-            .collect::<Result<_>>()?;
-        // Files under a folder that couldn't be read may well still be there.
-        let gone: Vec<i64> = stale
-            .into_iter()
-            .filter(|(_, rel)| !unreadable(rel, &unread))
-            .map(|(id, _)| id)
-            .collect();
-        for id in &gone {
+        let gone = stale(&tx)?;
+        let moved = reconnect(&tx, root_id, seen, &gone)?;
+        let mut touched: Vec<i64> = moved.iter().flat_map(|&(g, n)| [g, n]).collect();
+        let kept: HashSet<i64> = moved.iter().map(|&(g, _)| g).collect();
+        for (id, ..) in gone.iter().filter(|g| !kept.contains(&g.0)) {
             tx.execute("DELETE FROM assets WHERE id = ?1", [id])?;
+            touched.push(*id);
         }
         tx.commit()?;
-        report(&conn, count, &gone);
+        report(&conn, count, &touched);
     }
     fill_dimensions(db, root_id, root, &unread, |conn, ids| report(conn, count, ids))?;
     crate::audio::fill_audio(db, root_id, root, &unread, None, |conn, ids| report(conn, count, ids))?;
     Ok(Some(count))
+}
+
+/// Rows of the root a scan stamped `seen` didn't find. Not those under a folder it couldn't read: they may well be there.
+fn stale_rows(conn: &Connection, root_id: i64, seen: i64, unread: &[String]) -> Result<Vec<Row>> {
+    let mut stmt =
+        conn.prepare("SELECT rel_path, id, size, mtime, hash FROM assets WHERE root_id = ?1 AND seen < ?2")?;
+    let rows = stmt.query_map(params![root_id, seen], |r| {
+        Ok((r.get::<_, String>(0)?, (r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))
+    })?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (rel, row) = row?;
+        if !unreadable(&rel, unread) {
+            out.push(row);
+        }
+    }
+    Ok(out)
+}
+
+/// New rows without a hash that are the size of a stale row with one: id, size, mtime and path, for
+/// [`crate::dupes::hash_and_store`].
+fn to_hash(conn: &Connection, root_id: i64, seen: i64) -> Result<Vec<(i64, i64, i64, PathBuf)>> {
+    let mut stmt = conn.prepare(
+        "SELECT a.id, a.size, a.mtime, r.path, a.rel_path FROM fresh f JOIN assets a ON a.id = f.id
+         JOIN roots r ON r.id = a.root_id
+         WHERE a.hash IS NULL AND a.size IN (SELECT size FROM assets WHERE root_id = ?1 AND seen < ?2 AND hash IS NOT NULL)",
+    )?;
+    stmt.query_map(params![root_id, seen], |r| {
+        let (root, rel): (String, String) = (r.get(3)?, r.get(4)?);
+        Ok((r.get(0)?, r.get(1)?, r.get(2)?, abs_path(&root, &rel)))
+    })?
+    .collect()
+}
+
+/// What a gone row and a new row share when they're one file: its bytes, or for a gone row never hashed, the size and
+/// mtime that a rename or a move keeps.
+#[derive(PartialEq, Eq, Hash)]
+enum Same<'a> {
+    Bytes(i64, &'a str),
+    Stamp(i64, i64),
+}
+
+/// Finds rows of `gone` (from a scan stamped `seen`) whose file came back as a new row in some root, and moves each
+/// onto its new row's path, so it keeps its id and with it its tags, rating, note, collections and the rest. Only where
+/// exactly one gone row and one new row match: copies of one file are never told apart by guess. Returns the
+/// (gone id, new id) pairs; the new rows are dropped.
+fn reconnect(conn: &Connection, root_id: i64, seen: i64, gone: &[Row]) -> Result<Vec<(i64, i64)>> {
+    if gone.is_empty() {
+        return Ok(vec![]);
+    }
+    let sizes = serde_json::to_string(&gone.iter().map(|g| g.1).collect::<Vec<_>>()).unwrap_or_default();
+    // Not a gone row itself: it would be paired with itself.
+    let new: Vec<Row> = conn
+        .prepare(
+            "SELECT a.id, a.size, a.mtime, a.hash FROM fresh f JOIN assets a ON a.id = f.id
+             WHERE a.size IN (SELECT value FROM json_each(?1)) AND NOT (a.root_id = ?2 AND a.seen < ?3)",
+        )?
+        .query_map(params![sizes, root_id, seen], |r| Row::try_from(r))?
+        .collect::<Result<_>>()?;
+    let mut by: HashMap<Same, (Vec<&Row>, Vec<&Row>)> = HashMap::new();
+    for g in gone {
+        // 0 is an mtime that couldn't be read, which unrelated files share.
+        if g.3.is_none() && g.2 == 0 {
+            continue;
+        }
+        let same = g.3.as_deref().map_or(Same::Stamp(g.1, g.2), |h| Same::Bytes(g.1, h));
+        by.entry(same).or_default().0.push(g);
+    }
+    for n in &new {
+        for same in [Some(Same::Stamp(n.1, n.2)), n.3.as_deref().map(|h| Same::Bytes(n.1, h))] {
+            if let Some((_, news)) = same.and_then(|s| by.get_mut(&s)) {
+                news.push(n);
+            }
+        }
+    }
+    let pairs: Vec<(&Row, &Row)> = by
+        .into_values()
+        .filter(|(g, n)| g.len() == 1 && n.len() == 1)
+        .map(|(g, n)| (g[0], n[0]))
+        .collect();
+    // A new row can match two gone rows, one by its hash and one by its mtime: then neither is clear.
+    let mut uses: HashMap<i64, usize> = HashMap::new();
+    for (_, n) in &pairs {
+        *uses.entry(n.0).or_default() += 1;
+    }
+    let mut moved = Vec::new();
+    for (g, n) in pairs.into_iter().filter(|(_, n)| uses[&n.0] == 1) {
+        move_onto(conn, g, n.0)?;
+        moved.push((g.0, n.0));
+    }
+    Ok(moved)
+}
+
+/// Moves gone row `g` onto the file of new row `n`, then drops `n`, keeping anything it was given in the meantime.
+fn move_onto(conn: &Connection, g: &Row, n: i64) -> Result<()> {
+    type File = (i64, String, String, String, String, i64, i64, Option<String>, i64);
+    let f: File = conn.query_row(
+        "SELECT root_id, rel_path, name, ext, kind, size, mtime, hash, seen FROM assets WHERE id = ?1",
+        [n],
+        |r| File::try_from(r),
+    )?;
+    crate::dupes::merge_and_forget(conn, g.0, n)?;
+    // The same bytes with another mtime: Claude's suggestions, and having asked about them, still hold. The
+    // suggestions_stale trigger drops the suggestions when the mtime changes, so they go back after.
+    let suggested: Vec<String> = conn
+        .prepare("SELECT tag FROM tag_suggestions WHERE asset_id = ?1")?
+        .query_map([g.0], |r| r.get(0))?
+        .collect::<Result<_>>()?;
+    conn.execute(
+        "UPDATE assets SET root_id = ?2, rel_path = ?3, name = ?4, ext = ?5, kind = ?6, size = ?7, mtime = ?8, hash = ?9,
+           seen = ?10
+         WHERE id = ?1",
+        params![g.0, f.0, f.1, f.2, f.3, f.4, f.5, f.6, f.7, f.8],
+    )?;
+    conn.execute(
+        "UPDATE ai_asked SET mtime = ?4 WHERE asset_id = ?1 AND size = ?2 AND mtime = ?3",
+        params![g.0, g.1, g.2, f.6],
+    )?;
+    for tag in suggested {
+        conn.execute(
+            "INSERT OR IGNORE INTO tag_suggestions (asset_id, tag) VALUES (?1, ?2)",
+            params![g.0, tag],
+        )?;
+    }
+    Ok(())
 }
 
 /// Reads image dimensions for rows that don't have them yet, from file headers, in parallel and in batches.
@@ -455,7 +619,7 @@ pub mod tests {
     fn scan_touched(conn: &mut Connection, root: i64, r: &Path) -> (Option<usize>, Vec<i64>) {
         let db = Mutex::new(std::mem::replace(conn, Connection::open_in_memory().unwrap()));
         let mut touched = Vec::new();
-        let n = scan_root(&db, root, r, |_, _, ids| touched.extend_from_slice(ids)).unwrap();
+        let n = scan_root(&db, root, r, Walk::start(), |_, _, ids| touched.extend_from_slice(ids)).unwrap();
         *conn = db.into_inner().unwrap();
         (n, touched)
     }
@@ -682,7 +846,7 @@ pub mod tests {
             .unwrap();
         let shared = Mutex::new(conn);
         let mut first = true;
-        scan_root(&shared, root, r, |conn, _, _| {
+        scan_root(&shared, root, r, Walk::start(), |conn, _, _| {
             // After the files were walked, before the sweep: a.png is saved and renamed, and the watcher catches up.
             if std::mem::take(&mut first) {
                 fs::write(r.join("a.png"), "edited").unwrap();
@@ -898,6 +1062,248 @@ pub mod tests {
         got.sort();
         assert_eq!(got, [("a.wav".to_string(), Some(1000)), ("b.wav".to_string(), None)]);
     }
+
+    fn add_root(conn: &Connection, path: &Path) -> i64 {
+        conn.execute("INSERT INTO roots (path) VALUES (?1)", [path.display().to_string()])
+            .unwrap();
+        conn.last_insert_rowid()
+    }
+
+    fn id_of(conn: &Connection, rel: &str) -> i64 {
+        conn.query_row("SELECT id FROM assets WHERE rel_path = ?1", [rel], |r| r.get(0))
+            .unwrap()
+    }
+
+    /// Hashes what Find duplicates does: files with the size of another file.
+    fn hash_dupes(conn: &Connection) {
+        let hashes: Vec<_> = crate::dupes::unhashed(conn)
+            .unwrap()
+            .into_iter()
+            .map(|(id, size, mtime, p)| (id, size, mtime, crate::dupes::hash_file(&p).unwrap()))
+            .collect();
+        crate::dupes::store(conn, &hashes).unwrap();
+    }
+
+    fn set_mtime(path: &Path, t: std::time::SystemTime) {
+        fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(t)
+            .unwrap();
+    }
+
+    #[test]
+    fn files_renamed_or_moved_while_closed_keep_everything() {
+        let (dir, mut conn, root) = setup();
+        let r = dir.path();
+        fs::create_dir(r.join("sfx")).unwrap();
+        png(&r.join("hero.png"), 8, 8);
+        fs::write(r.join("jump.wav"), "RIFF....").unwrap();
+        scan(&mut conn, root, r);
+        let (hero, jump) = (id_of(&conn, "hero.png"), id_of(&conn, "jump.wav"));
+        db::add_tag(&conn, &[hero, jump], "keep").unwrap();
+        db::set_rating(&conn, &[hero], 4).unwrap();
+        db::set_note(&conn, hero, "the 2x one").unwrap();
+        db::set_favorite(&conn, &[hero], true).unwrap();
+        let level = db::create_collection(&conn, "Level", None).unwrap();
+        db::set_in_collection(&conn, level, &[hero], true).unwrap();
+        conn.execute_batch(&format!(
+            "INSERT INTO ai_tags VALUES ({hero}, 'keep');
+             INSERT INTO tag_suggestions VALUES ({hero}, 'knight');
+             INSERT INTO ai_asked SELECT id, size, mtime, 'model' FROM assets WHERE id = {hero};"
+        ))
+        .unwrap();
+
+        // Renamed in its folder, and moved to another one.
+        fs::rename(r.join("hero.png"), r.join("knight.png")).unwrap();
+        fs::rename(r.join("jump.wav"), r.join("sfx/jump.wav")).unwrap();
+        let (_, touched) = scan_touched(&mut conn, root, r);
+        let (rows, removed) = db::delta(&conn, &touched).unwrap();
+        let mut rows: Vec<(i64, String)> = rows.into_iter().map(|a| (a.id, a.rel_path)).collect();
+        rows.sort();
+        // The window gets the old rows at their new paths, and drops the new rows it was shown.
+        assert_eq!(rows, [(hero, "knight.png".into()), (jump, "sfx/jump.wav".into())]);
+        assert_eq!(removed.len(), 2);
+        assert_eq!(rels(&conn), ["knight.png", "sfx/jump.wav"]);
+
+        let a = db::asset(&conn, hero).unwrap();
+        assert_eq!(
+            (a.name.as_str(), a.tags, a.rating, a.favorite, a.suggested),
+            (
+                "knight.png",
+                vec!["keep".to_string()],
+                4,
+                true,
+                vec!["knight".to_string()]
+            )
+        );
+        assert_eq!(db::notes(&conn).unwrap()[&hero], "the 2x one");
+        assert_eq!(db::collections(&conn).unwrap()[0].asset_ids, [hero]);
+        let count = |sql: &str| conn.query_row(sql, [hero], |r| r.get::<_, i64>(0)).unwrap();
+        assert_eq!(count("SELECT count(*) FROM ai_tags WHERE asset_id = ?1"), 1);
+        assert_eq!(
+            count(
+                "SELECT count(*) FROM ai_asked k JOIN assets a ON a.id = k.asset_id AND a.size = k.size AND a.mtime = k.mtime WHERE a.id = ?1"
+            ),
+            1
+        );
+        assert_eq!(db::asset(&conn, jump).unwrap().tags, ["keep"]);
+    }
+
+    #[test]
+    fn a_file_moved_to_another_root_while_closed_keeps_its_tags() {
+        let (dir, mut conn, a) = setup();
+        let other = tempfile::tempdir().unwrap();
+        let (ra, rb) = (dir.path(), other.path());
+        let b = add_root(&conn, rb);
+        fs::write(ra.join("moving.png"), "moving").unwrap();
+        fs::write(ra.join("stays.png"), "x").unwrap();
+        scan(&mut conn, a, ra);
+        scan(&mut conn, b, rb);
+        let id = id_of(&conn, "moving.png");
+        db::add_tag(&conn, &[id], "keep").unwrap();
+
+        fs::rename(ra.join("moving.png"), rb.join("moving.png")).unwrap();
+        // As at launch: both scans start together, and the one the file left is done walking long before the other.
+        let db = Mutex::new(conn);
+        let (wa, wb) = (Walk::start(), Walk::start());
+        std::thread::scope(|s| {
+            s.spawn(|| scan_root(&db, a, ra, wa, |_, _, _| {}).unwrap());
+            s.spawn(|| {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                scan_root(&db, b, rb, wb, |_, _, _| {}).unwrap()
+            });
+        });
+        let mut conn = db.into_inner().unwrap();
+        let moved = db::asset(&conn, id).unwrap();
+        assert_eq!(
+            (moved.root_id, moved.rel_path.as_str(), moved.tags),
+            (b, "moving.png", vec!["keep".to_string()])
+        );
+        assert_eq!(rels(&conn), ["moving.png", "stays.png"]);
+        // Its new root's next scan finds it where it is.
+        scan(&mut conn, b, rb);
+        assert_eq!(db::asset(&conn, id).unwrap().tags, ["keep"]);
+    }
+
+    #[test]
+    fn copies_of_one_file_are_never_paired_by_guess() {
+        let (dir, mut conn, root) = setup();
+        let r = dir.path();
+        for (name, bytes) in [
+            ("a.png", "same"),
+            ("b.png", "same"),
+            ("c.png", "unique"),
+            ("d.png", "other"),
+            ("d2.png", "other"),
+        ] {
+            fs::write(r.join(name), bytes).unwrap();
+        }
+        scan(&mut conn, root, r);
+        hash_dupes(&conn);
+        for name in ["a.png", "b.png", "c.png", "d.png", "d2.png"] {
+            db::add_tag(&conn, &[id_of(&conn, name)], name).unwrap();
+        }
+
+        // Two identical files, both moved: which went where can't be told.
+        fs::create_dir(r.join("x")).unwrap();
+        fs::create_dir(r.join("y")).unwrap();
+        fs::rename(r.join("a.png"), r.join("x/a.png")).unwrap();
+        fs::rename(r.join("b.png"), r.join("y/b.png")).unwrap();
+        // A file never hashed, renamed and copied: two files with its size and mtime.
+        fs::rename(r.join("c.png"), r.join("c1.png")).unwrap();
+        fs::copy(r.join("c1.png"), r.join("c2.png")).unwrap();
+        set_mtime(
+            &r.join("c2.png"),
+            fs::metadata(r.join("c1.png")).unwrap().modified().unwrap(),
+        );
+        // A file deleted, whose copy was already in the library: that copy isn't it.
+        fs::remove_file(r.join("d.png")).unwrap();
+        scan(&mut conn, root, r);
+
+        let mut got: Vec<String> = db::assets(&conn, None)
+            .unwrap()
+            .into_iter()
+            .map(|a| format!("{} {}", a.rel_path, a.tags.join(",")))
+            .collect();
+        got.sort();
+        assert_eq!(got, ["c1.png ", "c2.png ", "d2.png d2.png", "x/a.png ", "y/b.png "]);
+    }
+
+    #[test]
+    fn a_new_file_not_hashed_yet_is_hashed_to_find_its_row() {
+        let (dir, mut conn, root) = setup();
+        let r = dir.path();
+        fs::write(r.join("a.png"), "aaaa").unwrap();
+        fs::write(r.join("b.png"), "bbbb").unwrap();
+        scan(&mut conn, root, r);
+        hash_dupes(&conn);
+        let a = id_of(&conn, "a.png");
+        db::add_tag(&conn, &[a], "keep").unwrap();
+        conn.execute_batch(&format!(
+            "INSERT INTO tag_suggestions VALUES ({a}, 'idea');
+             INSERT INTO ai_asked SELECT id, size, mtime, 'model' FROM assets WHERE id = {a};"
+        ))
+        .unwrap();
+
+        // Renamed, and given a new mtime: only its bytes tell.
+        fs::rename(r.join("a.png"), r.join("renamed.png")).unwrap();
+        set_mtime(
+            &r.join("renamed.png"),
+            std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+        );
+        scan(&mut conn, root, r);
+        let moved = db::asset(&conn, a).unwrap();
+        assert_eq!(
+            (moved.rel_path.as_str(), moved.tags, moved.suggested),
+            ("renamed.png", vec!["keep".to_string()], vec!["idea".to_string()])
+        );
+        assert_eq!(rels(&conn), ["b.png", "renamed.png"]);
+        // Its hash is kept, and Claude counts as asked about these bytes.
+        let (hashed, asked): (bool, bool) = conn
+            .query_row(
+                "SELECT hash IS NOT NULL, EXISTS (SELECT 1 FROM ai_asked k WHERE k.asset_id = a.id AND k.mtime = a.mtime)
+                 FROM assets a WHERE id = ?1",
+                [a],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert!(hashed && asked);
+    }
+
+    #[test]
+    fn a_missing_root_pairs_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (la, lb) = (dir.path().join("a"), dir.path().join("b"));
+        fs::create_dir(&la).unwrap();
+        fs::create_dir(&lb).unwrap();
+        let mut conn = db::open_memory();
+        let (a, b) = (add_root(&conn, &la), add_root(&conn, &lb));
+        fs::write(la.join("a.png"), "art").unwrap();
+        fs::write(la.join("b.png"), "x").unwrap();
+        scan(&mut conn, a, &la);
+        scan(&mut conn, b, &lb);
+        let id = id_of(&conn, "a.png");
+        db::add_tag(&conn, &[id], "keep").unwrap();
+
+        // A copy of a.png, size and mtime and all, is in b/; then a/'s drive is unplugged.
+        fs::copy(la.join("a.png"), lb.join("a.png")).unwrap();
+        set_mtime(
+            &lb.join("a.png"),
+            fs::metadata(la.join("a.png")).unwrap().modified().unwrap(),
+        );
+        fs::rename(&la, dir.path().join("away")).unwrap();
+        assert_eq!(scan_touched(&mut conn, a, &la).0, None);
+        scan(&mut conn, b, &lb);
+
+        let all = db::assets(&conn, None).unwrap();
+        let kept = all.iter().find(|x| x.id == id).unwrap();
+        assert_eq!((kept.root_id, kept.tags.clone()), (a, vec!["keep".to_string()]));
+        let copy = all.iter().find(|x| x.root_id == b).unwrap();
+        assert!(copy.id != id && copy.tags.is_empty());
+        assert_eq!(all.len(), 3);
+    }
 }
 
 #[cfg(test)]
@@ -914,7 +1320,7 @@ mod bench {
         let db = std::sync::Mutex::new(conn);
         let t = std::time::Instant::now();
         let mut first = None;
-        let n = super::scan_root(&db, 1, &dir, |_, _, _| {
+        let n = super::scan_root(&db, 1, &dir, super::Walk::start(), |_, _, _| {
             first.get_or_insert(t.elapsed());
         })
         .unwrap()
@@ -925,7 +1331,7 @@ mod bench {
             first.unwrap()
         );
         let t = std::time::Instant::now();
-        super::scan_root(&db, 1, &dir, |_, _, _| {}).unwrap();
+        super::scan_root(&db, 1, &dir, super::Walk::start(), |_, _, _| {}).unwrap();
         println!("rescan: {:?}", t.elapsed());
     }
 }

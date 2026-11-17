@@ -5,6 +5,14 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Fixed
+
+- **Files renamed or moved while Mimikit is closed keep their tags**, rating, note, favourite, collections and Claude's
+  tags and suggestions. The next scan finds each one at its new place, in the same folder, another folder or another
+  library folder, by its size and modified time, or by its contents when **Duplicates** has already read it. When
+  more than one file could be the one that moved, such as identical copies, none is matched and they show up as new
+  files, as before. A library folder that can't be reached matches nothing.
+
 ## [0.16.0] - 2026-11-17
 
 ### Added
