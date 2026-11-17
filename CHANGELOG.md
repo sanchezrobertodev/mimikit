@@ -5,6 +5,14 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+### Added
+
+- **DDS previews cover BC4 to BC7 and uncompressed textures**, with thumbnails: BC4, BC5, BC6H and BC7, common in
+  Unity and Unreal projects, and uncompressed RGBA, BGRA, R8, RG8 and float files, with or without a DX10 header.
+  BC5 normal maps show with their blue rebuilt, so they look like normal maps, and BC6H is tone mapped like EXR and
+  HDR. Find similar, search by colour and search by meaning cover them too. A DDS file's dimensions show even when
+  its format can't be previewed.
+
 ## [0.15.0] - 2026-11-15
 
 ### Added

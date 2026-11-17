@@ -112,8 +112,14 @@ pub fn open(path: &Path) -> Result<Connection> {
 }
 
 /// Files indexed before their extension had a kind stay "other", since scans skip unchanged files: gives them their kind.
-/// The next scan then reads image dimensions for them like for any new image.
+/// The next scan then reads image dimensions for them like for any new image, and for DDS files left at 0×0 by 0.15.0,
+/// which only read BC1–BC3 headers.
 pub fn reclassify(conn: &Connection) -> Result<()> {
+    // shortcut: runs every launch, so a broken .dds header is re-read once per launch (20 bytes); fine unless this grows.
+    conn.execute(
+        "UPDATE assets SET width = NULL, height = NULL WHERE ext = 'dds' AND width = 0",
+        [],
+    )?;
     let exts = conn
         .prepare("SELECT DISTINCT ext FROM assets WHERE kind = 'other'")?
         .query_map([], |r| r.get::<_, String>(0))?
@@ -568,9 +574,26 @@ mod tests {
             )
             .unwrap();
         }
+        // A BC7 file 0.15.0 couldn't read gets its dimensions read again; a read one keeps them.
+        conn.execute("UPDATE assets SET width = 0, height = 0 WHERE ext = 'dds'", [])
+            .unwrap();
+        conn.execute(
+            "INSERT INTO assets (root_id, rel_path, name, ext, kind, size, mtime, width, height)
+             VALUES (1, 'g.dds', 'g.dds', 'dds', 'image', 1, 0, 4, 4)",
+            [],
+        )
+        .unwrap();
         reclassify(&conn).unwrap();
         let kinds: Vec<String> = assets(&conn, None).unwrap().into_iter().map(|a| a.kind).collect();
-        assert_eq!(kinds, ["image", "model", "image", "image", "model", "audio", "other"]);
+        assert_eq!(
+            kinds,
+            ["image", "model", "image", "image", "model", "audio", "other", "image"]
+        );
+        let dims = |n: &str| {
+            conn.query_row("SELECT width FROM assets WHERE name = ?1", [n], |r| r.get(0))
+                .unwrap()
+        };
+        assert_eq!((dims("b.dds"), dims("g.dds")), (None::<i64>, Some(4)));
     }
 
     #[test]

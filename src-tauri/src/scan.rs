@@ -46,6 +46,15 @@ fn dimensions(path: &Path, ext: &str) -> Option<(u32, u32)> {
                 (be(&h[18..22]), be(&h[14..18]))
             })
         }
+        // DDS header: magic(4) size(4) flags(4) height(4) width(4)
+        "dds" => {
+            let mut h = [0u8; 20];
+            std::fs::File::open(path).ok()?.read_exact(&mut h).ok()?;
+            (&h[..4] == b"DDS ").then(|| {
+                let le = |b: &[u8]| u32::from_le_bytes([b[0], b[1], b[2], b[3]]);
+                (le(&h[16..20]), le(&h[12..16]))
+            })
+        }
         "ase" | "aseprite" => {
             let mut h = [0u8; 12];
             std::fs::File::open(path).ok()?.read_exact(&mut h).ok()?;
@@ -461,6 +470,25 @@ pub mod tests {
 
     fn png(path: &Path, w: u32, h: u32) {
         image::RgbaImage::new(w, h).save(path).unwrap();
+    }
+
+    #[test]
+    fn dds_dimensions_come_from_its_header() {
+        let dir = tempfile::tempdir().unwrap();
+        let (dds, other) = (dir.path().join("a.dds"), dir.path().join("b.dds"));
+        // Magic, header size and flags, then height 2 and width 8. Nothing else is read, whatever the format.
+        let header: Vec<u8> = [
+            *b"DDS ",
+            124u32.to_le_bytes(),
+            [0; 4],
+            2u32.to_le_bytes(),
+            8u32.to_le_bytes(),
+        ]
+        .concat();
+        fs::write(&dds, header).unwrap();
+        fs::write(&other, [0; 20]).unwrap();
+        assert_eq!(dimensions(&dds, "dds"), Some((8, 2)));
+        assert_eq!(dimensions(&other, "dds"), None);
     }
 
     #[test]
