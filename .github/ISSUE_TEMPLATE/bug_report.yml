@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in Mimikit doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Import a folder with…
+        2. Open…
+        3. …
+  - type: input
+    id: version
+    attributes:
+      label: Mimikit version
+      description: Shown at the bottom of the sidebar.
+      placeholder: v0.15.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (AppImage)
+        - Linux (.deb)
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: Windows 11 24H2, macOS 15.2, Ubuntu 24.04…
+  - type: input
+    id: file-type
+    attributes:
+      label: File type
+      description: If the problem is with certain files, which type? For example .aseprite, .glb or .wav. Only attach a file if you're allowed to share it.
