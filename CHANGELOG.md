@@ -5,6 +5,8 @@ All notable changes to Mimikit (called Asset Den until 0.4.0) are documented her
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-17
+
 ### Added
 
 - **Export frames works on Aseprite animations**: in **Animate**, a file with more than one frame saves each of its
