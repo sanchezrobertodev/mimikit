@@ -103,6 +103,9 @@ CREATE TRIGGER IF NOT EXISTS suggestions_stale AFTER UPDATE OF size, mtime ON as
 WHEN OLD.size IS NOT NEW.size OR OLD.mtime IS NOT NEW.mtime BEGIN
   DELETE FROM tag_suggestions WHERE asset_id = NEW.id;
 END;
+/* Rows added since their root's last scan began, for this run of the app: a file renamed or moved while it was closed
+   comes back as one of them (scan::reconnect). */
+CREATE TEMP TABLE IF NOT EXISTS fresh (id INTEGER PRIMARY KEY);
 ";
 
 pub fn open(path: &Path) -> Result<Connection> {

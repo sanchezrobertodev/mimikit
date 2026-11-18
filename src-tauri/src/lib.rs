@@ -120,6 +120,7 @@ fn spawn_scan(app: AppHandle, root: Root) {
 
 /// The scan itself, for a caller that holds the root's scan slot; frees the slot when it's done.
 fn run_scan(app: AppHandle, root: Root) {
+    let walk = scan::Walk::start();
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
         let progress = |count, done, missing| {
@@ -135,7 +136,7 @@ fn run_scan(app: AppHandle, root: Root) {
         };
         // Commits in batches and sends each batch's changes, so the UI shows (and thumbnails) assets while it runs.
         let mut changed = Vec::new();
-        let result = scan::scan_root(&state.db, root.id, Path::new(&root.path), |conn, n, touched| {
+        let result = scan::scan_root(&state.db, root.id, Path::new(&root.path), walk, |conn, n, touched| {
             emit_delta(&app, conn, touched);
             changed.extend_from_slice(touched);
             progress(n, false, false);
@@ -1121,11 +1122,14 @@ pub fn run() {
                     eprintln!("Automatic backup failed: {e}");
                 }
             });
-            // Catch up on anything that changed while the app was closed.
+            // Catch up on anything that changed while the app was closed. No scan sweeps before every root's has
+            // started, so a file moved from one root to another keeps its tags.
+            let starting = scan::Walk::start();
             for root in roots {
                 activate_root(app.handle(), &root);
                 spawn_scan(app.handle().clone(), root);
             }
+            drop(starting);
             // Batches sent before Mimikit closed are collected now.
             tagging::start(app.handle());
             meaning::resume(app.handle());

@@ -54,8 +54,9 @@ else you add live in Mimikit's own database. Mimikit was called Asset Den until 
 
 - **Every kind of asset in one library**: images and sprite sheets, audio, 3D models, fonts, video, and text or data
   files. Import one or more folders: assets appear while a folder is still scanning, and a live watcher picks up added,
-  renamed and deleted files (renames keep their tags). Engine sidecars (`.meta`, `.import`, `.uid`), hidden folders and
-  `node_modules` are skipped, plus any folder names you add in **Settings → Library**.
+  renamed and deleted files (renames keep their tags, and so do files renamed or moved while Mimikit was closed).
+  Engine sidecars (`.meta`, `.import`, `.uid`), hidden folders and `node_modules` are skipped, plus any folder names
+  you add in **Settings → Library**.
 - **Previews in place**, in the side panel (<kbd>Space</kbd>) or full screen (<kbd>Enter</kbd>):
   - images: zoom and pan, pixel-art scaling, transparency checkerboard (PNG, JPG, GIF, WebP, BMP, SVG, and
     TGA/PSD/TIFF/DDS/EXR/HDR/QOI/Aseprite via a decoded preview, with EXR, HDR and float DDS tone mapped), and
@@ -251,7 +252,6 @@ identical. "Copy to folder…" only ever creates new files.
   BMFont files) as unreadable characters.
 - Which audio and video formats play, and which videos get a frame thumbnail, depends on the OS webview. Windows
   (WebView2) plays the most; on Linux, install the GStreamer plugins for MP4/H.264.
-- A file renamed while the app is closed shows up as a new file on the next scan, so its tags don't follow it.
 - Find similar and search by colour only cover analysed images. A full analysis reads every image once (from its
   thumbnail when it has one) and can take several minutes on a big library; scrolling very fast past unanalysed images
   leaves some of them for that pass. Images that change while the app is closed are analysed after the next launch's
