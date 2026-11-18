@@ -393,20 +393,20 @@ fn reconnect(conn: &Connection, root_id: i64, seen: i64, gone: &[Row]) -> Result
             }
         }
     }
-    let pairs: Vec<(&Row, &Row)> = by
-        .into_values()
-        .filter(|(g, n)| g.len() == 1 && n.len() == 1)
-        .map(|(g, n)| (g[0], n[0]))
-        .collect();
-    // A new row can match two gone rows, one by its hash and one by its mtime: then neither is clear.
-    let mut uses: HashMap<i64, usize> = HashMap::new();
-    for (_, n) in &pairs {
-        *uses.entry(n.0).or_default() += 1;
+    // Every gone row a new row could be, by its hash and by its mtime: it's clear only when that's one.
+    let mut could_be: HashMap<i64, usize> = HashMap::new();
+    for (g, news) in by.values() {
+        for n in news {
+            *could_be.entry(n.0).or_default() += g.len();
+        }
     }
     let mut moved = Vec::new();
-    for (g, n) in pairs.into_iter().filter(|(_, n)| uses[&n.0] == 1) {
-        move_onto(conn, g, n.0)?;
-        moved.push((g.0, n.0));
+    for (g, n) in by
+        .values()
+        .filter(|(g, n)| g.len() == 1 && n.len() == 1 && could_be[&n[0].0] == 1)
+    {
+        move_onto(conn, g[0], n[0].0)?;
+        moved.push((g[0].0, n[0].0));
     }
     Ok(moved)
 }
@@ -1197,12 +1197,27 @@ pub mod tests {
             ("c.png", "unique"),
             ("d.png", "other"),
             ("d2.png", "other"),
+            ("e1.png", "triplet"),
+            ("e2.png", "triplet"),
+            ("e3.png", "triplet"),
         ] {
             fs::write(r.join(name), bytes).unwrap();
         }
+        let t = fs::metadata(r.join("e1.png")).unwrap().modified().unwrap();
+        for name in ["e2.png", "e3.png"] {
+            set_mtime(&r.join(name), t);
+        }
         scan(&mut conn, root, r);
         hash_dupes(&conn);
-        for name in ["a.png", "b.png", "c.png", "d.png", "d2.png"] {
+        // Of three identical files, only one hashed: the others are just their size and mtime.
+        conn.execute(
+            "UPDATE assets SET hash = NULL WHERE rel_path IN ('e2.png', 'e3.png')",
+            [],
+        )
+        .unwrap();
+        for name in [
+            "a.png", "b.png", "c.png", "d.png", "d2.png", "e1.png", "e2.png", "e3.png",
+        ] {
             db::add_tag(&conn, &[id_of(&conn, name)], name).unwrap();
         }
 
@@ -1220,6 +1235,10 @@ pub mod tests {
         );
         // A file deleted, whose copy was already in the library: that copy isn't it.
         fs::remove_file(r.join("d.png")).unwrap();
+        // All three gone and one back: its hash matches only one of them, but it could be any.
+        fs::rename(r.join("e1.png"), r.join("e.png")).unwrap();
+        fs::remove_file(r.join("e2.png")).unwrap();
+        fs::remove_file(r.join("e3.png")).unwrap();
         scan(&mut conn, root, r);
 
         let mut got: Vec<String> = db::assets(&conn, None)
@@ -1228,7 +1247,10 @@ pub mod tests {
             .map(|a| format!("{} {}", a.rel_path, a.tags.join(",")))
             .collect();
         got.sort();
-        assert_eq!(got, ["c1.png ", "c2.png ", "d2.png d2.png", "x/a.png ", "y/b.png "]);
+        assert_eq!(
+            got,
+            ["c1.png ", "c2.png ", "d2.png d2.png", "e.png ", "x/a.png ", "y/b.png "]
+        );
     }
 
     #[test]
